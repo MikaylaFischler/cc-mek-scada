@@ -61,7 +61,7 @@ function mqueue.new()
     function public.push_data(key, value) _push(TYPE.DATA, { key = key, val = value }) end
 
     -- push a packet onto the queue
-    ---@param packet packet|frame
+    ---@param packet frame|packet|dataframe
     function public.push_packet(packet) _push(TYPE.PACKET, packet) end
 
     -- get an item off the queue

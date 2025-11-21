@@ -77,7 +77,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
     -- try to resolve a MODBUS transaction
     ---@nodiscard
-    ---@param m_pkt modbus_frame MODBUS packet
+    ---@param m_pkt modbus_adu MODBUS packet
     ---@return integer|false txn_type, integer txn_id transaction type or false on error/busy, transaction ID
     function protected.try_resolve(m_pkt)
         if m_pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
@@ -187,7 +187,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 -- luacheck: no unused args
 
     -- handle a packet
-    ---@param m_pkt modbus_frame
+    ---@param m_pkt modbus_adu
 ---@diagnostic disable-next-line: unused-local
     function public.handle_packet(m_pkt)
         log.debug("template unit_session.handle_packet() called", true)

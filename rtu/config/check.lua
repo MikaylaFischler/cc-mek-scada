@@ -62,13 +62,13 @@ local function send_sv(msg_type, msg)
     local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
     pkt.make(msg_type, msg)
-    frame.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+    frame.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
     self.nic.transmit(self.settings.SVR_Channel, self.settings.RTU_Channel, frame)
 end
 
 -- handle an establish message from the supervisor
----@param packet mgmt_frame
+---@param packet mgmt_dataframe
 local function handle_packet(packet)
     local error_msg = nil
 

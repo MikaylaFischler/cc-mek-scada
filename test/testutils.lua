@@ -61,7 +61,7 @@ end
 ---@param error_flag MODBUS_FCODE MODBUS_FCODE.ERROR_FLAG
 function testutils.modbus_tester(modbus, error_flag)
     -- test packet
-    ---@type modbus_frame
+    ---@type modbus_adu
     local packet = {
         txn_id = 0,
         length = 0,

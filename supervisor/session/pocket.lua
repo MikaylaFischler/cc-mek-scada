@@ -87,14 +87,14 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
         local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
         out_queue.push_packet(frame)
         self.seq_num = self.seq_num + 1
     end
 
     -- handle a packet
-    ---@param pkt mgmt_frame
+    ---@param pkt mgmt_dataframe
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -109,7 +109,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_frame
+            ---@cast pkt mgmt_dataframe
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then

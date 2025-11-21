@@ -181,7 +181,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
     -- PUBLIC FUNCTIONS --
 
     -- handle a packet
-    ---@param m_pkt modbus_frame
+    ---@param m_pkt modbus_adu
     function public.handle_packet(m_pkt)
         local txn_type = self.session.try_resolve(m_pkt)
         if txn_type == false then

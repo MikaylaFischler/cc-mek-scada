@@ -319,7 +319,7 @@ function rtu.comms(version, nic, conn_watchdog)
         local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -386,7 +386,7 @@ function rtu.comms(version, nic, conn_watchdog)
     function public.send_modbus(m_pkt)
         local frame = comms.scada_frame()
 
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -418,7 +418,7 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return modbus_frame|mgmt_frame|nil packet
+    ---@return modbus_adu|mgmt_dataframe|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
@@ -445,7 +445,7 @@ function rtu.comms(version, nic, conn_watchdog)
     end
 
     -- handle a MODBUS/SCADA packet
-    ---@param packet modbus_frame|mgmt_frame
+    ---@param packet modbus_adu|mgmt_dataframe
     ---@param units rtu_registry_entry[] RTU entries
     ---@param rtu_state rtu_state
     ---@param sounders rtu_speaker_sounder[] speaker alarm sounders
@@ -477,7 +477,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
             -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
-                ---@cast packet modbus_frame
+                ---@cast packet modbus_adu
                 if rtu_state.linked then
                     local return_code   ---@type boolean
                     local reply         ---@type modbus_packet
@@ -521,7 +521,7 @@ function rtu.comms(version, nic, conn_watchdog)
                     log.debug("discarding MODBUS packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_dataframe
                 -- SCADA management packet
                 if rtu_state.linked then
                     if packet.type == MGMT_TYPE.KEEP_ALIVE then

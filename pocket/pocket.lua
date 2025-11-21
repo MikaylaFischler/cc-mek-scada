@@ -423,7 +423,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        frame.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        frame.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.PKT_Channel, frame)
         self.sv.seq_num = self.sv.seq_num + 1
@@ -436,7 +436,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
-        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
         nic.transmit(config.CRD_Channel, config.PKT_Channel, frame)
         self.api.seq_num = self.api.seq_num + 1
@@ -449,7 +449,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         local frame, pkt = comms.scada_frame(), comms.crdn_packet()
 
         pkt.make(msg_type, msg)
-        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, pkt.raw_sendable())
+        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, pkt.raw_packet())
 
         nic.transmit(config.CRD_Channel, config.PKT_Channel, frame)
         self.api.seq_num = self.api.seq_num + 1
@@ -620,7 +620,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return mgmt_frame|crdn_frame|nil packet
+    ---@return mgmt_dataframe|crdn_dataframe|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local s_pkt = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
@@ -646,7 +646,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         return pkt
     end
 
-    ---@param packet mgmt_frame|crdn_frame
+    ---@param packet mgmt_dataframe|crdn_dataframe
     ---@param length integer
     ---@param max integer?
     ---@return boolean
@@ -659,14 +659,14 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         return ok
     end
 
-    ---@param packet mgmt_frame|crdn_frame
+    ---@param packet mgmt_dataframe|crdn_dataframe
     local function _fail_type(packet)
         local fmt = "[comms] RX_PACKET{r_chan=%d,proto=%d,type=%d}: unrecognized packet type"
         log.debug(util.sprintf(fmt, packet.scada_frame.remote_channel(), packet.scada_frame.protocol(), packet.type))
     end
 
     -- handle a packet
-    ---@param packet mgmt_frame|crdn_frame|nil
+    ---@param packet mgmt_dataframe|crdn_dataframe|nil
     function public.handle_packet(packet)
         local diag = iocontrol.get_db().diag
         local ps   = iocontrol.get_db().ps
@@ -698,7 +698,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 api_watchdog.feed()
 
                 if protocol == PROTOCOL.SCADA_CRDN then
-                    ---@cast packet crdn_frame
+                    ---@cast packet crdn_dataframe
                     if self.api.linked then
                         if packet.type == CRDN_TYPE.FAC_CMD then
                             -- facility command acknowledgement
@@ -779,7 +779,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         log.debug("discarding coordinator SCADA_CRDN packet before linked")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_frame
+                    ---@cast packet mgmt_dataframe
                     if self.api.linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
@@ -892,7 +892,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
                 -- handle packet
                 if protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_frame
+                    ---@cast packet mgmt_dataframe
                     if self.sv.linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
