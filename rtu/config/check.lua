@@ -59,8 +59,7 @@ end
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
-    local frame = comms.scada_frame()
-    local pkt = comms.mgmt_packet()
+    local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
     pkt.make(msg_type, msg)
     frame.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())

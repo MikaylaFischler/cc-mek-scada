@@ -420,8 +420,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_sv(msg_type, msg)
-        local frame = comms.scada_frame()
-        local pkt = comms.mgmt_packet()
+        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
         frame.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
@@ -434,8 +433,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_crd(msg_type, msg)
-        local frame = comms.scada_frame()
-        local pkt = comms.mgmt_packet()
+        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
         frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
@@ -448,8 +446,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type CRDN_TYPE
     ---@param msg table
     local function _send_api(msg_type, msg)
-        local frame = comms.scada_frame()
-        local pkt = comms.crdn_packet()
+        local frame, pkt = comms.scada_frame(), comms.crdn_packet()
 
         pkt.make(msg_type, msg)
         frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, pkt.raw_sendable())

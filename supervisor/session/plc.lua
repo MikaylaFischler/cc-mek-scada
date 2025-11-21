@@ -241,8 +241,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local frame = comms.scada_frame()
-        local pkt = comms.rplc_packet()
+        local frame, pkt = comms.scada_frame(), comms.rplc_packet()
 
         pkt.make(reactor_id, msg_type, msg)
         frame.make(s_addr, self.seq_num, PROTOCOL.RPLC, pkt.raw_sendable())
@@ -255,8 +254,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local frame = comms.scada_frame()
-        local pkt = comms.mgmt_packet()
+        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(msg_type, msg)
         frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())

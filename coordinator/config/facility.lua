@@ -51,8 +51,7 @@ local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min an
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
-    local frame = comms.scada_frame()
-    local pkt = comms.mgmt_packet()
+    local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
     pkt.make(msg_type, msg)
     frame.make(self.sv_addr, self.sv_seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())

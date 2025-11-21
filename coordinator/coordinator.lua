@@ -202,9 +202,7 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
             pkt = comms.mgmt_packet()
         elseif protocol == PROTOCOL.SCADA_CRDN then
             pkt = comms.crdn_packet()
-        else
-            return
-        end
+        else return end
 
         pkt.make(msg_type, msg)
         frame.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
@@ -218,8 +216,7 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     ---@param ack ESTABLISH_ACK
     ---@param data any?
     local function _send_api_establish_ack(rx_frame, ack, data)
-        local tx_frame = comms.scada_frame()
-        local pkt = comms.mgmt_packet()
+        local tx_frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
         tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
