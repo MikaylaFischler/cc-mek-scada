@@ -7,6 +7,8 @@ local network = require("scada-common.network")
 local ppm     = require("scada-common.ppm")
 local util    = require("scada-common.util")
 
+local databus = require("reactor-plc.databus")
+
 local println = util.println
 
 ---@class plc_backplane
@@ -22,6 +24,8 @@ local _bp = {
     wd_nic = nil,   ---@type nic|nil
     wl_nic = nil    ---@type nic|nil
 }
+
+local multi_reactor_warn = "BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured"
 
 -- initialize the system peripheral backplane<br>
 ---@param config plc_config
@@ -118,6 +122,16 @@ function backplane.init(config, __shared_memory)
             plc_state.reactor_formed = false
         end
     end
+
+    -- detect and warn about multiple reactors
+    if #ppm.get_all_devices("fissionReactorLogicAdapter") > 1 then
+        println("startup> !! DANGER !! more than one reactor was detected! do not share reactor connections between multiple PLCs! they may not all be protected and used as configured")
+
+        log.warning("BKPLN: !! DANGER !! more than one reactor was detected on startup!")
+        log.warning(multi_reactor_warn)
+
+        databus.tx_multi_reactor(true)
+    end
 end
 
 -- get the active NIC
@@ -139,7 +153,15 @@ function backplane.attach(iface, type, device, print_no_fp)
     local sys       = _bp.smem.plc_sys
 
     if type ~= nil and device ~= nil then
-        if state.no_reactor and (type == "fissionReactorLogicAdapter") then
+        if type == "fissionReactorLogicAdapter" then
+            if not state.no_reactor then
+                log.warning("BKPLN: !! DANGER !! an additional reactor (" .. iface .. ") was connected and will not be used!")
+                log.warning(multi_reactor_warn)
+
+                databus.tx_multi_reactor(true)
+                return
+            end
+
             -- reconnected reactor
             log.info("BKPLN: REACTOR LINK_UP " .. iface)
 
@@ -242,14 +264,33 @@ function backplane.detach(iface, type, device, print_no_fp)
     local dev   = _bp.smem.plc_dev
     local sys   = _bp.smem.plc_sys
 
-    if device == dev.reactor then
+    if type == "fissionReactorLogicAdapter" then
         log.info("BKPLN: REACTOR LINK_DOWN " .. iface)
 
-        print_no_fp("reactor disconnected")
-        log.warning("BKPLN: reactor disconnected")
+        -- detect and warn about multiple reactors
+        if #ppm.get_all_devices("fissionReactorLogicAdapter") > 1 then
+            log.warning("BKPLN: !! DANGER !! more than one reactor is still present!")
+            log.warning(multi_reactor_warn)
 
-        state.no_reactor = true
-        state.degraded = true
+            databus.tx_multi_reactor(true)
+        else databus.tx_multi_reactor(false) end
+
+        -- if this is the active reactor, handle that
+        if device == dev.reactor then
+            print_no_fp("reactor disconnected")
+            log.warning("BKPLN: reactor disconnected")
+
+            state.no_reactor = true
+            state.degraded = true
+
+            -- try to find another reactor (this should not work unless multiple were incorrectly connected)
+            local reactor, r_iface = ppm.get_fission_reactor()
+            if reactor and r_iface then
+                log.info("BKPLN: found another fission reactor logic adapter")
+
+                backplane.attach(r_iface, type, reactor, print_no_fp)
+            end
+        end
     elseif _bp.smem.networked and type == "modem" then
         ---@cast device Modem
 
