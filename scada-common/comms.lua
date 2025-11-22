@@ -414,6 +414,7 @@ function comms.modbus_packet()
     ---@param unit_id integer
     ---@param func_code MODBUS_FCODE
     ---@param data table
+    ---@return boolean success
     function public.make(txn_id, unit_id, func_code, data)
         if type(data) == "table" then
             self.txn_id = txn_id
@@ -425,37 +426,33 @@ function comms.modbus_packet()
             -- populate raw array
             self.raw = { self.txn_id, self.unit_id, self.func_code }
             for i = 1, self.length do insert(self.raw, data[i]) end
-        else
-            log.error("COMMS: modbus_packet.make(): data not a table")
+
+            return true
         end
+
+        log.error("COMMS: modbus_packet.make(): data not a table")
+        return false
     end
 
     -- decode a MODBUS packet from a SCADA frame
     ---@param frame scada_packet
-    ---@return boolean success
+    ---@return modbus_frame|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOL.MODBUS_TCP then
-                local size_ok = frame.length() >= 3
-
-                if size_ok then
+                if frame.length() >= 3 then
                     local data = frame.data()
-                    public.make(data[1], data[2], data[3], { table.unpack(data, 4, #data) })
+
+                    if public.make(data[1], data[2], data[3], { table.unpack(data, 4, #data) }) then
+                        return public.get()
+                    end
                 end
+            else log.debug("COMMS: attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true) end
+        else log.debug("COMMS: nil frame encountered", true) end
 
-                local valid = type(self.txn_id) == "number" and type(self.unit_id) == "number" and type(self.func_code) == "number"
-
-                return size_ok and valid
-            else
-                log.debug("COMMS: attempted MODBUS_TCP parse of incorrect protocol " .. frame.protocol(), true)
-                return false
-            end
-        else
-            log.debug("COMMS: nil frame encountered", true)
-            return false
-        end
+        return nil
     end
 
     -- get raw to send
@@ -500,6 +497,7 @@ function comms.rplc_packet()
     ---@param id integer
     ---@param packet_type RPLC_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(id, packet_type, data)
         if type(data) == "table" then
             -- packet accessor properties
@@ -511,37 +509,33 @@ function comms.rplc_packet()
             -- populate raw array
             self.raw = { self.id, self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else
-            log.error("COMMS: rplc_packet.make(): data not a table")
+
+            return true
         end
+
+        log.error("COMMS: rplc_packet.make(): data not a table")
+        return false
     end
 
     -- decode an RPLC packet from a SCADA frame
     ---@param frame scada_packet
-    ---@return boolean success
+    ---@return rplc_frame|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOL.RPLC then
-                local ok = frame.length() >= 2
-
-                if ok then
+                if frame.length() >= 2 then
                     local data = frame.data()
-                    public.make(data[1], data[2], { table.unpack(data, 3, #data) })
+
+                    if public.make(data[1], data[2], { table.unpack(data, 3, #data) }) and (type(self.id) == "number") then
+                        return public.get()
+                    end
                 end
+            else log.debug("COMMS: attempted RPLC parse of incorrect protocol " .. frame.protocol(), true) end
+        else log.debug("COMMS: nil frame encountered", true) end
 
-                ok = ok and type(self.id) == "number"
-
-                return ok
-            else
-                log.debug("COMMS: attempted RPLC parse of incorrect protocol " .. frame.protocol(), true)
-                return false
-            end
-        else
-            log.debug("COMMS: nil frame encountered", true)
-            return false
-        end
+        return nil
     end
 
     -- get raw to send
@@ -583,6 +577,7 @@ function comms.mgmt_packet()
     -- make a SCADA management packet
     ---@param packet_type MGMT_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(packet_type, data)
         if type(data) == "table" then
             -- packet accessor properties
@@ -593,35 +588,33 @@ function comms.mgmt_packet()
             -- populate raw array
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else
-            log.error("COMMS: mgmt_packet.make(): data not a table")
+
+            return true
         end
+
+        log.error("COMMS: mgmt_packet.make(): data not a table")
+        return false
     end
 
     -- decode a SCADA management packet from a SCADA frame
     ---@param frame scada_packet
-    ---@return boolean success
+    ---@return mgmt_frame|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOL.SCADA_MGMT then
-                local ok = frame.length() >= 1
-
-                if ok then
+                if frame.length() >= 1 then
                     local data = frame.data()
-                    public.make(data[1], { table.unpack(data, 2, #data) })
-                end
 
-                return ok
-            else
-                log.debug("COMMS: attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true)
-                return false
-            end
-        else
-            log.debug("COMMS: nil frame encountered", true)
-            return false
-        end
+                    if public.make(data[1], { table.unpack(data, 2, #data) }) then
+                        return public.get()
+                    end
+                end
+            else log.debug("COMMS: attempted SCADA_MGMT parse of incorrect protocol " .. frame.protocol(), true) end
+        else log.debug("COMMS: nil frame encountered", true) end
+
+        return nil
     end
 
     -- get raw to send
@@ -662,6 +655,7 @@ function comms.crdn_packet()
     -- make a coordinator packet
     ---@param packet_type CRDN_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(packet_type, data)
         if type(data) == "table" then
             -- packet accessor properties
@@ -672,35 +666,33 @@ function comms.crdn_packet()
             -- populate raw array
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else
-            log.error("COMMS: crdn_packet.make(): data not a table")
+
+            return true
         end
+
+        log.error("COMMS: crdn_packet.make(): data not a table")
+        return false
     end
 
     -- decode a coordinator packet from a SCADA frame
     ---@param frame scada_packet
-    ---@return boolean success
+    ---@return crdn_frame|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             self.frame = frame
 
             if frame.protocol() == PROTOCOL.SCADA_CRDN then
-                local ok = frame.length() >= 1
-
-                if ok then
+                if frame.length() >= 1 then
                     local data = frame.data()
-                    public.make(data[1], { table.unpack(data, 2, #data) })
-                end
 
-                return ok
-            else
-                log.debug("COMMS: attempted SCADA_CRDN parse of incorrect protocol " .. frame.protocol(), true)
-                return false
-            end
-        else
-            log.debug("COMMS: nil frame encountered", true)
-            return false
-        end
+                    if public.make(data[1], { table.unpack(data, 2, #data) }) then
+                        return public.get()
+                    end
+                end
+            else log.debug("COMMS: attempted SCADA_CRDN parse of incorrect protocol " .. frame.protocol(), true) end
+        else log.debug("COMMS: nil frame encountered", true) end
+
+        return nil
     end
 
     -- get raw to send

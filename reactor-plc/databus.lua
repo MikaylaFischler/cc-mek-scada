@@ -69,6 +69,12 @@ function databus.tx_hw_status(plc_state)
     eval_status()
 end
 
+-- transmit if the reactor dangerously has multiple fission reactor logic adapters
+---@param multi boolean has multiple reactors
+function databus.tx_multi_reactor(multi)
+    databus.ps.publish("has_multi_reactor", multi)
+end
+
 -- transmit thread (routine) statuses
 ---@param thread string thread name
 ---@param ok boolean thread state
