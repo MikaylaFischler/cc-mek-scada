@@ -178,12 +178,10 @@ local function init(panel, config)
 
     multi_warn.register(databus.ps, "has_multi_reactor", function (v)
         if v then
-            multi_warn.show(true)
+            multi_warn.show()
 
             warn_toggle = false
             flash_warn()
-
-            tcd.dispatch_unique(2, flash_warn)
         else
             tcd.abort(flash_warn)
             multi_warn.hide(true)
