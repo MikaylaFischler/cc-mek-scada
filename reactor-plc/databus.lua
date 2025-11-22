@@ -16,12 +16,14 @@ local _dbus = {
     rps_reset = function () log.debug("DBUS: unset rps_reset() called") end,
 
     degraded = false,
+    wd_modem = true,
+    wl_modem = true,
     coroutines = {}
 }
 
 -- evaluate and publish system health status
 local function eval_status()
-    local ok = not _dbus.degraded
+    local ok = (not _dbus.degraded) and _dbus.wd_modem and _dbus.wl_modem
     for _, v in pairs(_dbus.coroutines) do ok = ok and v end
 
     databus.ps.publish("status", ok)
@@ -66,6 +68,8 @@ function databus.tx_hw_status(plc_state)
     databus.ps.publish("has_wl_modem", plc_state.wl_modem)
 
     _dbus.degraded = plc_state.degraded
+    _dbus.wd_modem = plc_state.wd_modem
+    _dbus.wl_modem = plc_state.wl_modem
     eval_status()
 end
 
