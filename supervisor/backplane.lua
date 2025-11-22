@@ -95,6 +95,7 @@ function backplane.attach(iface, type, device, print_no_fp)
         if _bp.wd_nic and (_bp.lan_iface == iface) then
             -- connect this as the wired NIC
             _bp.wd_nic.connect(device)
+            _bp.nic_map[iface] = _bp.wd_nic
 
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             print_no_fp("wired comms modem reconnected")
