@@ -179,7 +179,6 @@ local function init(panel, config)
     multi_warn.register(databus.ps, "has_multi_reactor", function (v)
         if v then
             multi_warn.show()
-
             warn_toggle = false
             flash_warn()
         else

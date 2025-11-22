@@ -56,7 +56,7 @@ function databus.tx_hw_status(plc_state)
     databus.ps.publish("has_wl_modem", plc_state.wl_modem)
 end
 
--- transmiti f the reactor dangerously has multiple fission reactor logic adapters
+-- transmit if the reactor dangerously has multiple fission reactor logic adapters
 ---@param multi boolean has multiple reactors
 function databus.tx_multi_reactor(multi)
     databus.ps.publish("has_multi_reactor", multi)
