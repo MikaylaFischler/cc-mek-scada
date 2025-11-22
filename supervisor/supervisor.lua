@@ -413,22 +413,14 @@ function supervisor.comms(_version, fp_ok, facility)
         end
 
         if s_pkt then
-            -- get as MODBUS TCP packet
             if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                local m_pkt = comms.modbus_packet()
-                if m_pkt.decode(s_pkt) then pkt = m_pkt.get() end
-            -- get as RPLC packet
+                pkt = comms.modbus_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.RPLC then
-                local rplc_pkt = comms.rplc_packet()
-                if rplc_pkt.decode(s_pkt) then pkt = rplc_pkt.get() end
-            -- get as SCADA management packet
+                pkt = comms.rplc_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then pkt = mgmt_pkt.get() end
-            -- get as coordinator packet
+                pkt = comms.mgmt_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                local crdn_pkt = comms.crdn_packet()
-                if crdn_pkt.decode(s_pkt) then pkt = crdn_pkt.get() end
+                pkt = comms.crdn_packet().decode(s_pkt)
             else
                 log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end
