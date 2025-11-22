@@ -33,6 +33,15 @@ local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 
 local iocontrol = {}
 
+local _ioctl = {
+    -- connection states for status evaluation
+    wd_modem = true,
+    wl_modem = true,
+    speaker = true,
+    monitor_states = {},
+    coroutines = {}
+}
+
 ---@class ioctl
 local io = {
     ---@class ioctl_front_panel
@@ -279,6 +288,15 @@ end
 
 --#region Front Panel PSIL
 
+-- evaluate and publish system health status
+local function fp_eval_status()
+    local ok = _ioctl.wd_modem and _ioctl.wl_modem and _ioctl.speaker
+    for _, v in pairs(_ioctl.monitor_states) do ok = ok and v end
+    for _, v in pairs(_ioctl.coroutines) do ok = ok and v end
+
+    io.fp.ps.publish("status", ok)
+end
+
 -- toggle heartbeat indicator
 function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
 
@@ -292,15 +310,30 @@ end
 
 -- report presence of the wired comms modem
 ---@param has_modem boolean
-function iocontrol.fp_has_wd_modem(has_modem) io.fp.ps.publish("has_wd_modem", has_modem) end
+function iocontrol.fp_has_wd_modem(has_modem)
+    io.fp.ps.publish("has_wd_modem", has_modem)
+
+    _ioctl.wd_modem = has_modem
+    fp_eval_status()
+end
 
 -- report presence of the wireless comms modem
 ---@param has_modem boolean
-function iocontrol.fp_has_wl_modem(has_modem) io.fp.ps.publish("has_wl_modem", has_modem) end
+function iocontrol.fp_has_wl_modem(has_modem)
+    io.fp.ps.publish("has_wl_modem", has_modem)
+
+    _ioctl.wl_modem = has_modem
+    fp_eval_status()
+end
 
 -- report presence of the speaker
 ---@param has_speaker boolean
-function iocontrol.fp_has_speaker(has_speaker) io.fp.ps.publish("has_speaker", has_speaker) end
+function iocontrol.fp_has_speaker(has_speaker)
+    io.fp.ps.publish("has_speaker", has_speaker)
+
+    _ioctl.speaker = has_speaker
+    fp_eval_status()
+end
 
 -- report supervisor link state
 ---@param state integer
@@ -322,6 +355,9 @@ function iocontrol.fp_monitor_state(id, connected)
 
     if name ~= nil then
         io.fp.ps.publish(name, connected)
+
+        _ioctl.monitor_states[name] = connected ~= 1
+        fp_eval_status()
     end
 end
 
@@ -329,7 +365,12 @@ end
 ---@param thread string thread name
 ---@param ok boolean thread state
 function iocontrol.fp_rt_status(thread, ok)
-    io.fp.ps.publish(util.c("routine__", thread), ok)
+    local name = util.c("routine__", thread)
+
+    io.fp.ps.publish(name, ok)
+
+    _ioctl.coroutines[name] = ok
+    fp_eval_status()
 end
 
 -- report PKT firmware version and PKT session connection state
