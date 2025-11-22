@@ -162,10 +162,9 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param nic nic active network interface device
----@param wl_nic nic|nil pocket wireless network interface device
+---@param backplane crd_backplane coordinator backplane
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, wl_nic, sv_watchdog)
+function coordinator.comms(version, backplane, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -179,6 +178,9 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         est_tick_waiting = nil,
         est_task_done = nil
     }
+
+    local nic    = backplane.active_nic()
+    local wl_nic = backplane.wireless_nic()
 
     if config.WirelessModem then
         comms.set_trusted_range(config.TrustedRange)
@@ -370,8 +372,13 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     ---@param distance integer
     ---@return mgmt_frame|crdn_frame|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, s_pkt, r_nic = nil, nil, backplane.nics[side]
+
+        if r_nic then
+            s_pkt = r_nic.receive(side, sender, reply_to, message, distance)
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
+        end
 
         if s_pkt then
             if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
