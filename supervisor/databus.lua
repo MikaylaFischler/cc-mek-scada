@@ -6,9 +6,19 @@ local const = require("scada-common.constants")
 local psil  = require("scada-common.psil")
 local util  = require("scada-common.util")
 
-local pgi  = require("supervisor.panel.pgi")
+local pgi   = require("supervisor.panel.pgi")
 
 local databus = {}
+
+local _dbus = {
+    wd_modem = true,
+    wl_modem = true
+}
+
+-- evaluate and publish system health status
+local function eval_status()
+    databus.ps.publish("status", _dbus.wd_modem and _dbus.wl_modem)
+end
 
 -- databus PSIL
 databus.ps = psil.create()
@@ -28,12 +38,18 @@ end
 ---@param has_modem boolean
 function databus.tx_hw_wd_modem(has_modem)
     databus.ps.publish("has_wd_modem", has_modem)
+
+    _dbus.wd_modem = has_modem
+    eval_status()
 end
 
 -- transmit hardware status for the wireless comms modem
 ---@param has_modem boolean
 function databus.tx_hw_wl_modem(has_modem)
     databus.ps.publish("has_wl_modem", has_modem)
+
+    _dbus.wl_modem = has_modem
+    eval_status()
 end
 
 -- transmit PLC firmware version and session connection state

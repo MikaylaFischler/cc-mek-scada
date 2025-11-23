@@ -326,10 +326,10 @@ function facility.receive_sv(side, sender, reply_to, message, distance)
         local s_pkt = self.nic.receive(side, sender, reply_to, message, distance)
 
         if s_pkt and s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-            local mgmt_pkt = comms.mgmt_packet()
-            if mgmt_pkt.decode(s_pkt) then
+            local pkt = comms.mgmt_packet().decode(s_pkt)
+            if pkt then
                 tcd.abort(handle_timeout)
-                handle_packet(mgmt_pkt.get())
+                handle_packet(pkt)
             end
         end
     end

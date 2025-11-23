@@ -162,10 +162,9 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param nic nic active network interface device
----@param wl_nic nic|nil pocket wireless network interface device
+---@param backplane crd_backplane coordinator backplane
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, wl_nic, sv_watchdog)
+function coordinator.comms(version, backplane, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
@@ -179,6 +178,9 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
         est_tick_waiting = nil,
         est_task_done = nil
     }
+
+    local nic    = backplane.active_nic()
+    local wl_nic = backplane.wireless_nic()
 
     if config.WirelessModem then
         comms.set_trusted_range(config.TrustedRange)
@@ -367,22 +369,19 @@ function coordinator.comms(version, nic, wl_nic, sv_watchdog)
     ---@param distance integer
     ---@return mgmt_dataframe|crdn_dataframe|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, s_pkt, r_nic = nil, nil, backplane.nics[side]
+
+        if r_nic then
+            s_pkt = r_nic.receive(side, sender, reply_to, message, distance)
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
+        end
 
         if s_pkt then
-            -- get as SCADA management packet
             if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_pkt.get()
-                end
-            -- get as coordinator packet
+                pkt = comms.mgmt_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                local crdn_pkt = comms.crdn_packet()
-                if crdn_pkt.decode(s_pkt) then
-                    pkt = crdn_pkt.get()
-                end
+                pkt = comms.crdn_packet().decode(s_pkt)
             else
                 log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end

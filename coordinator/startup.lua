@@ -20,7 +20,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "v1.7.0"
+local COORDINATOR_VERSION = "v1.7.2"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -230,7 +230,7 @@ local function main()
     log.debug("startup> conn watchdog created")
 
     -- setup comms
-    smem_sys.coord_comms = coordinator.comms(COORDINATOR_VERSION, backplane.active_nic(), backplane.wireless_nic(), smem_sys.conn_watchdog)
+    smem_sys.coord_comms = coordinator.comms(COORDINATOR_VERSION, backplane, smem_sys.conn_watchdog)
     log.debug("startup> comms init")
     log_comms("comms initialized")
 

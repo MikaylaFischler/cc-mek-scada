@@ -623,21 +623,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@return mgmt_dataframe|crdn_dataframe|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
 
+        local pkt = nil
         if s_pkt then
-            -- get as SCADA management packet
             if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_pkt.get()
-                end
-            -- get as coordinator packet
+                pkt = comms.mgmt_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                local crdn_pkt = comms.crdn_packet()
-                if crdn_pkt.decode(s_pkt) then
-                    pkt = crdn_pkt.get()
-                end
+                pkt = comms.crdn_packet().decode(s_pkt)
             else
                 log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end

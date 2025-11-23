@@ -417,6 +417,7 @@ function comms.modbus_packet()
     ---@param unit_id integer
     ---@param func_code MODBUS_FCODE
     ---@param data table
+    ---@return boolean success
     function public.make(txn_id, unit_id, func_code, data)
         if type(data) == TYPE_TBL then
             self.txn_id    = txn_id
@@ -428,12 +429,17 @@ function comms.modbus_packet()
             -- populate raw array
             self.raw = { self.txn_id, self.unit_id, self.func_code }
             for i = 1, self.length do insert(self.raw, data[i]) end
-        else log.error("COMMS: [modbus_make] data not a table") end
+
+            return true
+        end
+
+        log.error("COMMS: [modbus_make] data not a table")
+        return false
     end
 
     -- decode a MODBUS packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return boolean success
+    ---@return modbus_adu|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -449,12 +455,14 @@ function comms.modbus_packet()
                     self.func_code = data[3]
                     self.data      = data[4]
 
-                    return type(self.txn_id) == TYPE_NUM and type(self.unit_id) == TYPE_NUM and type(self.func_code) == TYPE_NUM
+                    if type(self.txn_id) == TYPE_NUM and type(self.unit_id) == TYPE_NUM and type(self.func_code) == TYPE_NUM then
+                        return public.get()
+                    end
                 else log.debug("COMMS: [modbus_decode] discarding malformed packet") end
             else log.debug("COMMS: [modbus_decode] attempted parse of incorrect protocol " .. frame.protocol(), true) end
         else log.debug("COMMS: [modbus_decode] discarding nil frame", true) end
 
-        return false
+        return nil
     end
 
     -- get raw packet for transmission
@@ -501,6 +509,7 @@ function comms.rplc_packet()
     ---@param id integer
     ---@param packet_type RPLC_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(id, packet_type, data)
         if type(data) == TYPE_TBL then
             -- packet accessor properties
@@ -512,12 +521,17 @@ function comms.rplc_packet()
             -- populate raw array
             self.raw = { self.id, self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else log.error("COMMS: [rplc_make] data not a table") end
+
+            return true
+        end
+
+        log.error("COMMS: [rplc_make] data not a table")
+        return false
     end
 
     -- decode an RPLC packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return boolean success
+    ---@return rplc_dataframe|nil frame the decoded data, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -531,11 +545,13 @@ function comms.rplc_packet()
                 self.data   = { table.unpack(data, 3, #data) }
                 self.length = #self.data
 
-                return type(self.id) == TYPE_NUM and type(self.type) == TYPE_NUM
+                if type(self.id) == TYPE_NUM and type(self.type) == TYPE_NUM then
+                    return public.get()
+                end
             else log.debug("COMMS: [rplc_decode] attempted parse of incorrect protocol " .. frame.protocol(), true) end
         else log.debug("COMMS: [rplc_decode] nil frame encountered", true) end
 
-        return false
+        return nil
     end
 
     -- get raw packet for transmission
@@ -579,6 +595,7 @@ function comms.mgmt_packet()
     -- make a SCADA management packet
     ---@param packet_type MGMT_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(packet_type, data)
         if type(data) == TYPE_TBL then
             -- packet accessor properties
@@ -589,12 +606,17 @@ function comms.mgmt_packet()
             -- populate raw array
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else log.error("COMMS: [mgmt_make] data not a table") end
+
+            return true
+        end
+
+        log.error("COMMS: [mgmt_make] data not a table")
+        return false
     end
 
     -- decode a SCADA management packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return boolean success
+    ---@return mgmt_dataframe|nil frame the decoded data, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -607,11 +629,13 @@ function comms.mgmt_packet()
                 self.data   = { table.unpack(data, 2, #data) }
                 self.length = #self.data
 
-                return type(self.type) == TYPE_NUM
+                if type(self.type) == TYPE_NUM then
+                    return public.get()
+                end
             else log.debug("COMMS: [mgmt_decode] attempted parse of incorrect protocol " .. frame.protocol(), true) end
         else log.debug("COMMS: [mgmt_decode] nil frame encountered", true) end
 
-        return false
+        return nil
     end
 
     -- get raw packet for transmission
@@ -654,6 +678,7 @@ function comms.crdn_packet()
     -- make a coordinator packet
     ---@param packet_type CRDN_TYPE
     ---@param data table
+    ---@return boolean success
     function public.make(packet_type, data)
         if type(data) == TYPE_TBL then
             -- packet accessor properties
@@ -664,12 +689,17 @@ function comms.crdn_packet()
             -- populate raw array
             self.raw = { self.type }
             for i = 1, #data do insert(self.raw, data[i]) end
-        else log.error("COMMS: [crdn_make] data not a table") end
+
+            return true
+        end
+
+        log.error("COMMS: [crdn_make] data not a table")
+        return false
     end
 
     -- decode a coordinator packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return boolean success
+    ---@return crdn_dataframe|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -682,11 +712,13 @@ function comms.crdn_packet()
                 self.data   = { table.unpack(data, 2, #data) }
                 self.length = #self.data
 
-                return type(self.type) == TYPE_NUM
+                if type(self.type) == TYPE_NUM then
+                    return public.get()
+                end
             else log.debug("COMMS: [crdn_decode] attempted parse of incorrect protocol " .. frame.protocol(), true) end
         else log.debug("COMMS: [crdn_decode] nil frame encountered", true) end
 
-        return false
+        return nil
     end
 
     -- get raw packet for transmission

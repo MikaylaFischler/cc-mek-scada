@@ -2,10 +2,10 @@
 -- Coordinator System Core Peripheral Backplane
 --
 
-local log     = require("scada-common.log")
-local network = require("scada-common.network")
-local ppm     = require("scada-common.ppm")
-local util    = require("scada-common.util")
+local log         = require("scada-common.log")
+local network     = require("scada-common.network")
+local ppm         = require("scada-common.ppm")
+local util        = require("scada-common.util")
 
 local coordinator = require("coordinator.coordinator")
 local iocontrol   = require("coordinator.iocontrol")
@@ -29,6 +29,7 @@ local _bp = {
     act_nic = nil,  ---@type nic
     wd_nic = nil,   ---@type nic|nil
     wl_nic = nil,   ---@type nic|nil
+    nic_map = {},   ---@type nic[] connected nics
 
     speaker = nil, ---@type Speaker|nil
 
@@ -42,6 +43,9 @@ local _bp = {
         unit_ifaces = {}    ---@type string[]
     }
 }
+
+-- network interfaces indexed by peripheral names
+backplane.nics = _bp.nic_map
 
 -- initialize the display peripheral backplane
 ---@param config crd_config
@@ -167,6 +171,7 @@ function backplane.init(config, __shared_memory)
 
         _bp.wd_nic  = wd_nic
         _bp.act_nic = wd_nic -- set this as active for now
+        _bp.nic_map[_bp.lan_iface] = wd_nic
 
         wd_nic.closeAll()
         wd_nic.open(config.CRD_Channel)
@@ -189,6 +194,7 @@ function backplane.init(config, __shared_memory)
         end
 
         _bp.wl_nic = wl_nic
+        if iface then _bp.nic_map[iface] = wl_nic end
 
         wl_nic.closeAll()
         wl_nic.open(config.CRD_Channel)
@@ -262,6 +268,7 @@ function backplane.attach(type, device, iface)
         if wd_nic and (_bp.lan_iface == iface) then
             -- connect this as the wired NIC
             wd_nic.connect(device)
+            _bp.nic_map[iface] = _bp.wd_nic
 
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             log_sys("wired comms modem reconnected")
@@ -279,6 +286,7 @@ function backplane.attach(type, device, iface)
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
             wl_nic.connect(device)
+            _bp.nic_map[iface] = _bp.wl_nic
 
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
             log_sys("wireless comms modem reconnected")
@@ -376,6 +384,8 @@ function backplane.detach(type, device, iface)
         ---@cast device Modem
 
         log.info(util.c("BKPLN: PHY_DETACH ", iface))
+
+        _bp.nic_map[iface] = nil
 
         if wd_nic and wd_nic.is_modem(device) then
             wd_nic.disconnect()

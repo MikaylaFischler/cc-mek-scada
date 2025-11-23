@@ -58,11 +58,11 @@ local function init(panel, config)
 
     local system = Div{parent=main_page,width=18,height=17,x=2,y=2}
 
-    local on = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
+    local status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
-    on.update(true)
     system.line_break()
 
+    status.register(databus.ps, "status", status.update)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     if config.WirelessModem and config.WiredModem then

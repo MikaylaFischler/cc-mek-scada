@@ -921,14 +921,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         local pkt = nil
 
         if s_pkt then
-            -- get as RPLC packet
             if s_pkt.protocol() == PROTOCOL.RPLC then
-                local rplc_pkt = comms.rplc_packet()
-                if rplc_pkt.decode(s_pkt) then pkt = rplc_pkt.get() end
-            -- get as SCADA management packet
+                pkt = comms.rplc_packet().decode(s_pkt)
             elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then pkt = mgmt_pkt.get() end
+                pkt = comms.mgmt_packet().decode(s_pkt)
             else
                 log.debug("unsupported packet type " .. s_pkt.protocol(), true)
             end
