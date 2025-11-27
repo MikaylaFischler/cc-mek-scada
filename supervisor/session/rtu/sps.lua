@@ -131,17 +131,17 @@ function sps.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_adu
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.FORMED then
             -- formed response
             -- load in data if correct length
-            if m_pkt.length == 1 then
-                self.db.formed = m_pkt.data[1]
+            if adu.length == 1 then
+                self.db.formed = adu.data[1]
 
                 if not self.db.formed then self.has_build = false end
             else
@@ -150,17 +150,17 @@ function sps.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if m_pkt.length == 9 then
+            if adu.length == 9 then
                 self.db.build.last_update = util.time_ms()
-                self.db.build.length      = m_pkt.data[1]
-                self.db.build.width       = m_pkt.data[2]
-                self.db.build.height      = m_pkt.data[3]
-                self.db.build.min_pos     = m_pkt.data[4]
-                self.db.build.max_pos     = m_pkt.data[5]
-                self.db.build.coils       = m_pkt.data[6]
-                self.db.build.input_cap   = m_pkt.data[7]
-                self.db.build.output_cap  = m_pkt.data[8]
-                self.db.build.max_energy  = m_pkt.data[9]
+                self.db.build.length      = adu.data[1]
+                self.db.build.width       = adu.data[2]
+                self.db.build.height      = adu.data[3]
+                self.db.build.min_pos     = adu.data[4]
+                self.db.build.max_pos     = adu.data[5]
+                self.db.build.coils       = adu.data[6]
+                self.db.build.input_cap   = adu.data[7]
+                self.db.build.output_cap  = adu.data[8]
+                self.db.build.max_energy  = adu.data[9]
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
@@ -170,26 +170,26 @@ function sps.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
-            if m_pkt.length == 1 then
+            if adu.length == 1 then
                 self.db.state.last_update  = util.time_ms()
-                self.db.state.process_rate = m_pkt.data[1]
+                self.db.state.process_rate = adu.data[1]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             -- load in data if correct length
-            if m_pkt.length == 9 then
+            if adu.length == 9 then
                 self.db.tanks.last_update = util.time_ms()
-                self.db.tanks.input       = m_pkt.data[1]
-                self.db.tanks.input_need  = m_pkt.data[2]
-                self.db.tanks.input_fill  = m_pkt.data[3]
-                self.db.tanks.output      = m_pkt.data[4]
-                self.db.tanks.output_need = m_pkt.data[5]
-                self.db.tanks.output_fill = m_pkt.data[6]
-                self.db.tanks.energy      = m_pkt.data[7]
-                self.db.tanks.energy_need = m_pkt.data[8]
-                self.db.tanks.energy_fill = m_pkt.data[9]
+                self.db.tanks.input       = adu.data[1]
+                self.db.tanks.input_need  = adu.data[2]
+                self.db.tanks.input_fill  = adu.data[3]
+                self.db.tanks.output      = adu.data[4]
+                self.db.tanks.output_need = adu.data[5]
+                self.db.tanks.output_fill = adu.data[6]
+                self.db.tanks.energy      = adu.data[7]
+                self.db.tanks.energy_need = adu.data[8]
+                self.db.tanks.energy_fill = adu.data[9]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

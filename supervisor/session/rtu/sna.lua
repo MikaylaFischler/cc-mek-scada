@@ -108,19 +108,19 @@ function sna.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_adu
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if m_pkt.length == 2 then
+            if adu.length == 2 then
                 self.db.build.last_update = util.time_ms()
-                self.db.build.input_cap   = m_pkt.data[1]
-                self.db.build.output_cap  = m_pkt.data[2]
+                self.db.build.input_cap   = adu.data[1]
+                self.db.build.output_cap  = adu.data[2]
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
@@ -130,24 +130,24 @@ function sna.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
-            if m_pkt.length == 2 then
+            if adu.length == 2 then
                 self.db.state.last_update     = util.time_ms()
-                self.db.state.production_rate = m_pkt.data[1]
-                self.db.state.peak_production = m_pkt.data[2]
+                self.db.state.production_rate = adu.data[1]
+                self.db.state.peak_production = adu.data[2]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             -- load in data if correct length
-            if m_pkt.length == 6 then
+            if adu.length == 6 then
                 self.db.tanks.last_update = util.time_ms()
-                self.db.tanks.input       = m_pkt.data[1]
-                self.db.tanks.input_need  = m_pkt.data[2]
-                self.db.tanks.input_fill  = m_pkt.data[3]
-                self.db.tanks.output      = m_pkt.data[4]
-                self.db.tanks.output_need = m_pkt.data[5]
-                self.db.tanks.output_fill = m_pkt.data[6]
+                self.db.tanks.input       = adu.data[1]
+                self.db.tanks.input_need  = adu.data[2]
+                self.db.tanks.input_fill  = adu.data[3]
+                self.db.tanks.output      = adu.data[4]
+                self.db.tanks.output_need = adu.data[5]
+                self.db.tanks.output_fill = adu.data[6]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

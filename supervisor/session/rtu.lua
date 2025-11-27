@@ -276,7 +276,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
             ---@cast pkt modbus_adu
             if self.units[pkt.unit_id] ~= nil then
-                self.units[pkt.unit_id].handle_packet(pkt)
+                self.units[pkt.unit_id].handle_adu(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
             ---@cast pkt mgmt_packet

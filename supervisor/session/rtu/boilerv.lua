@@ -142,17 +142,17 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_adu
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.FORMED then
             -- formed response
             -- load in data if correct length
-            if m_pkt.length == 1 then
-                self.db.formed = m_pkt.data[1]
+            if adu.length == 1 then
+                self.db.formed = adu.data[1]
 
                 if not self.db.formed then self.has_build = false end
             else
@@ -161,20 +161,20 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if m_pkt.length == 12 then
+            if adu.length == 12 then
                 self.db.build.last_update   = util.time_ms()
-                self.db.build.length        = m_pkt.data[1]
-                self.db.build.width         = m_pkt.data[2]
-                self.db.build.height        = m_pkt.data[3]
-                self.db.build.min_pos       = m_pkt.data[4]
-                self.db.build.max_pos       = m_pkt.data[5]
-                self.db.build.boil_cap      = m_pkt.data[6]
-                self.db.build.steam_cap     = m_pkt.data[7]
-                self.db.build.water_cap     = m_pkt.data[8]
-                self.db.build.hcoolant_cap  = m_pkt.data[9]
-                self.db.build.ccoolant_cap  = m_pkt.data[10]
-                self.db.build.superheaters  = m_pkt.data[11]
-                self.db.build.max_boil_rate = m_pkt.data[12]
+                self.db.build.length        = adu.data[1]
+                self.db.build.width         = adu.data[2]
+                self.db.build.height        = adu.data[3]
+                self.db.build.min_pos       = adu.data[4]
+                self.db.build.max_pos       = adu.data[5]
+                self.db.build.boil_cap      = adu.data[6]
+                self.db.build.steam_cap     = adu.data[7]
+                self.db.build.water_cap     = adu.data[8]
+                self.db.build.hcoolant_cap  = adu.data[9]
+                self.db.build.ccoolant_cap  = adu.data[10]
+                self.db.build.superheaters  = adu.data[11]
+                self.db.build.max_boil_rate = adu.data[12]
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
@@ -184,31 +184,31 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
-            if m_pkt.length == 3 then
+            if adu.length == 3 then
                 self.db.state.last_update = util.time_ms()
-                self.db.state.temperature = m_pkt.data[1]
-                self.db.state.boil_rate   = m_pkt.data[2]
-                self.db.state.env_loss    = m_pkt.data[3]
+                self.db.state.temperature = adu.data[1]
+                self.db.state.boil_rate   = adu.data[2]
+                self.db.state.env_loss    = adu.data[3]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             -- load in data if correct length
-            if m_pkt.length == 12 then
+            if adu.length == 12 then
                 self.db.tanks.last_update = util.time_ms()
-                self.db.tanks.steam       = m_pkt.data[1]
-                self.db.tanks.steam_need  = m_pkt.data[2]
-                self.db.tanks.steam_fill  = m_pkt.data[3]
-                self.db.tanks.water       = m_pkt.data[4]
-                self.db.tanks.water_need  = m_pkt.data[5]
-                self.db.tanks.water_fill  = m_pkt.data[6]
-                self.db.tanks.hcool       = m_pkt.data[7]
-                self.db.tanks.hcool_need  = m_pkt.data[8]
-                self.db.tanks.hcool_fill  = m_pkt.data[9]
-                self.db.tanks.ccool       = m_pkt.data[10]
-                self.db.tanks.ccool_need  = m_pkt.data[11]
-                self.db.tanks.ccool_fill  = m_pkt.data[12]
+                self.db.tanks.steam       = adu.data[1]
+                self.db.tanks.steam_need  = adu.data[2]
+                self.db.tanks.steam_fill  = adu.data[3]
+                self.db.tanks.water       = adu.data[4]
+                self.db.tanks.water_need  = adu.data[5]
+                self.db.tanks.water_fill  = adu.data[6]
+                self.db.tanks.hcool       = adu.data[7]
+                self.db.tanks.hcool_need  = adu.data[8]
+                self.db.tanks.hcool_fill  = adu.data[9]
+                self.db.tanks.ccool       = adu.data[10]
+                self.db.tanks.ccool_need  = adu.data[11]
+                self.db.tanks.ccool_fill  = adu.data[12]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end
