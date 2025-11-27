@@ -460,7 +460,7 @@ function threads.thread__unit_comms(smem, unit)
                         -- received data
                     elseif msg.qtype == mqueue.TYPE.PACKET then
                         -- received a packet
-                        local _, reply = unit.modbus_io.handle_packet(msg.message)
+                        local _, reply = unit.modbus_io.handle_adu(msg.message)
                         rtu_comms.send_modbus(reply)
                     end
                 end

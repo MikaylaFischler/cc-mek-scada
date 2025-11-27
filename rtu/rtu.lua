@@ -481,7 +481,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
                         if unit.type == RTU_UNIT_TYPE.REDSTONE then
                             -- immediately execute redstone RTU requests
-                            return_code, reply = unit.modbus_io.handle_packet(packet)
+                            return_code, reply = unit.modbus_io.handle_adu(packet)
 
                             if not return_code then
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)

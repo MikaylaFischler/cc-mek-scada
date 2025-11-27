@@ -300,22 +300,22 @@ function modbus.new(rtu_dev, use_parallel_read)
 
     -- validate a request without actually executing it
     ---@nodiscard
-    ---@param packet modbus_adu
+    ---@param adu modbus_adu
     ---@return boolean return_code, modbus_packet reply
-    function public.check_request(packet)
+    function public.check_request(adu)
         local return_code = true
         local response = { MODBUS_EXCODE.ACKNOWLEDGE }
 
-        if packet.length == 2 then
+        if adu.length == 2 then
             -- handle  by function code
-            if packet.func_code == MODBUS_FCODE.READ_COILS then
-            elseif packet.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
-            elseif packet.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
-            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGS then
-            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
-            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
-            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
-            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
+            if adu.func_code == MODBUS_FCODE.READ_COILS then
+            elseif adu.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
+            elseif adu.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
+            elseif adu.func_code == MODBUS_FCODE.READ_INPUT_REGS then
+            elseif adu.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
+            elseif adu.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
+            elseif adu.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
+            elseif adu.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
             else
                 -- unknown function
                 return_code = false
@@ -329,41 +329,41 @@ function modbus.new(rtu_dev, use_parallel_read)
 
         -- default is to echo back<br>
         -- but here we echo back with error flag, on success the "error" will be acknowledgement
-        local func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+        local func_code = bit.bor(adu.func_code, MODBUS_FCODE.ERROR_FLAG)
 
         -- create reply
         local reply = comms.modbus_packet()
-        reply.make(packet.txn_id, packet.unit_id, func_code, response)
+        reply.make(adu.txn_id, adu.unit_id, func_code, response)
 
         return return_code, reply
     end
 
-    -- handle a MODBUS TCP packet and generate a reply
+    -- handle a MODBUS TCP ADU and generate a reply
     ---@nodiscard
-    ---@param packet modbus_adu
+    ---@param adu modbus_adu
     ---@return boolean return_code, modbus_packet reply
-    function public.handle_packet(packet)
+    function public.handle_adu(adu)
         local return_code   ---@type boolean
         local response      ---@type table|MODBUS_EXCODE
 
-        if packet.length >= 2 then
+        if adu.length >= 2 then
             -- handle  by function code
-            if packet.func_code == MODBUS_FCODE.READ_COILS then
-                return_code, response = _1_read_coils(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
-                return_code, response = _2_read_discrete_inputs(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
-                return_code, response = _3_read_multiple_holding_registers(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.READ_INPUT_REGS then
-                return_code, response = _4_read_input_registers(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
-                return_code, response = _5_write_single_coil(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
-                return_code, response = _6_write_single_holding_register(packet.data[1], packet.data[2])
-            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
-                return_code, response = _15_write_multiple_coils(packet.data[1], { table.unpack(packet.data, 2, packet.length) })
-            elseif packet.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
-                return_code, response = _16_write_multiple_holding_registers(packet.data[1], { table.unpack(packet.data, 2, packet.length) })
+            if adu.func_code == MODBUS_FCODE.READ_COILS then
+                return_code, response = _1_read_coils(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.READ_DISCRETE_INPUTS then
+                return_code, response = _2_read_discrete_inputs(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.READ_MUL_HOLD_REGS then
+                return_code, response = _3_read_multiple_holding_registers(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.READ_INPUT_REGS then
+                return_code, response = _4_read_input_registers(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.WRITE_SINGLE_COIL then
+                return_code, response = _5_write_single_coil(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.WRITE_SINGLE_HOLD_REG then
+                return_code, response = _6_write_single_holding_register(adu.data[1], adu.data[2])
+            elseif adu.func_code == MODBUS_FCODE.WRITE_MUL_COILS then
+                return_code, response = _15_write_multiple_coils(adu.data[1], { table.unpack(adu.data, 2, adu.length) })
+            elseif adu.func_code == MODBUS_FCODE.WRITE_MUL_HOLD_REGS then
+                return_code, response = _16_write_multiple_holding_registers(adu.data[1], { table.unpack(adu.data, 2, adu.length) })
             else
                 -- unknown function
                 return_code = false
@@ -376,10 +376,10 @@ function modbus.new(rtu_dev, use_parallel_read)
         end
 
         -- default is to echo back
-        local func_code = packet.func_code
+        local func_code = adu.func_code
         if not return_code then
             -- echo back with error flag
-            func_code = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
+            func_code = bit.bor(adu.func_code, MODBUS_FCODE.ERROR_FLAG)
         end
 
         if type(response) == "table" then
@@ -391,7 +391,7 @@ function modbus.new(rtu_dev, use_parallel_read)
 
         -- create reply
         local reply = comms.modbus_packet()
-        reply.make(packet.txn_id, packet.unit_id, func_code, response)
+        reply.make(adu.txn_id, adu.unit_id, func_code, response)
 
         return return_code, reply
     end
@@ -401,39 +401,39 @@ end
 
 -- create an error reply
 ---@nodiscard
----@param packet modbus_adu MODBUS packet frame
+---@param adu modbus_adu MODBUS ADU
 ---@param code MODBUS_EXCODE exception code
 ---@return modbus_packet reply
-local function excode_reply(packet, code)
+local function excode_reply(adu, code)
     -- reply back with error flag and exception code
     local reply = comms.modbus_packet()
-    local fcode = bit.bor(packet.func_code, MODBUS_FCODE.ERROR_FLAG)
-    reply.make(packet.txn_id, packet.unit_id, fcode, { code })
+    local fcode = bit.bor(adu.func_code, MODBUS_FCODE.ERROR_FLAG)
+    reply.make(adu.txn_id, adu.unit_id, fcode, { code })
     return reply
 end
 
 -- return a SERVER_DEVICE_FAIL error reply
 ---@nodiscard
----@param packet modbus_adu MODBUS packet frame
+---@param adu modbus_adu MODBUS ADU
 ---@return modbus_packet reply
-function modbus.reply__srv_device_fail(packet) return excode_reply(packet, MODBUS_EXCODE.SERVER_DEVICE_FAIL) end
+function modbus.reply__srv_device_fail(adu) return excode_reply(adu, MODBUS_EXCODE.SERVER_DEVICE_FAIL) end
 
 -- return a SERVER_DEVICE_BUSY error reply
 ---@nodiscard
----@param packet modbus_adu MODBUS packet frame
+---@param adu modbus_adu MODBUS ADU
 ---@return modbus_packet reply
-function modbus.reply__srv_device_busy(packet) return excode_reply(packet, MODBUS_EXCODE.SERVER_DEVICE_BUSY) end
+function modbus.reply__srv_device_busy(adu) return excode_reply(adu, MODBUS_EXCODE.SERVER_DEVICE_BUSY) end
 
 -- return a NEG_ACKNOWLEDGE error reply
 ---@nodiscard
----@param packet modbus_adu MODBUS packet frame
+---@param adu modbus_adu MODBUS ADU
 ---@return modbus_packet reply
-function modbus.reply__neg_ack(packet) return excode_reply(packet, MODBUS_EXCODE.NEG_ACKNOWLEDGE) end
+function modbus.reply__neg_ack(adu) return excode_reply(adu, MODBUS_EXCODE.NEG_ACKNOWLEDGE) end
 
 -- return a GATEWAY_PATH_UNAVAILABLE error reply
 ---@nodiscard
----@param packet modbus_adu MODBUS packet frame
+---@param adu modbus_adu MODBUS ADU
 ---@return modbus_packet reply
-function modbus.reply__gw_unavailable(packet) return excode_reply(packet, MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE) end
+function modbus.reply__gw_unavailable(adu) return excode_reply(adu, MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE) end
 
 return modbus
