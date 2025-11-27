@@ -198,7 +198,7 @@ function network.nic(modem)
         end
     end
 
-    -- parse in a modem message as a network frame
+    -- parse in modem frame components as a SCADA network frame
     ---@nodiscard
     ---@param side string modem side
     ---@param sender integer sender channel

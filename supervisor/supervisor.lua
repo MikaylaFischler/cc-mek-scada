@@ -190,15 +190,15 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- send a probe response
     ---@param nic nic
-    ---@param packet scada_frame
+    ---@param rx_frame scada_frame
     ---@param ack PROBE_ACK
-    local function _send_probe(nic, packet, ack)
+    local function _send_probe(nic, rx_frame, ack)
         local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
 
         pkt.make(MGMT_TYPE.PROBE, { ack })
-        frame.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
 
-        nic.transmit(packet.remote_channel(), config.SVR_Channel, frame)
+        nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, frame)
     end
 
     --#region Establish Handlers
