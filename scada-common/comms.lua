@@ -6,8 +6,8 @@ local log = require("scada-common.log")
 
 -- basic acceleration aliases
 
-local type    = type
-local insert  = table.insert
+local type     = type
+local insert   = table.insert
 
 local TYPE_NUM = "number"
 local TYPE_STR = "string"
@@ -235,7 +235,7 @@ function comms.scada_frame()
         if (type(max_distance) == TYPE_NUM) and (type(distance) == TYPE_NUM) and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
             -- log.debug("COMMS: scada_frame.receive(): discarding frame with distance " .. distance .. " (outside trusted range)")
-        elseif (type(self.raw) == TYPE_TBL) then
+        elseif type(self.raw) == TYPE_TBL then
             self.src_addr  = self.raw[1]
             self.dest_addr = self.raw[2]
 
@@ -439,7 +439,7 @@ function comms.modbus_container()
 
     -- decode a MODBUS packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return modbus_adu|nil frame the decoded frame, if valid
+    ---@return modbus_adu|nil packet the decoded packet, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -531,7 +531,7 @@ function comms.rplc_container()
 
     -- decode an RPLC packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return rplc_packet|nil frame the decoded data, if valid
+    ---@return rplc_packet|nil packet the decoded packet, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -616,7 +616,7 @@ function comms.mgmt_container()
 
     -- decode a SCADA management packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return mgmt_packet|nil frame the decoded data, if valid
+    ---@return mgmt_packet|nil packet the decoded packet, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -699,7 +699,7 @@ function comms.crdn_container()
 
     -- decode a coordinator packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return crdn_packet|nil frame the decoded frame, if valid
+    ---@return crdn_packet|nil packet the decoded packet, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
