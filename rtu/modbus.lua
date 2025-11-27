@@ -301,7 +301,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     -- validate a request without actually executing it
     ---@nodiscard
     ---@param adu modbus_adu
-    ---@return boolean return_code, modbus_packet reply
+    ---@return boolean return_code, modbus_container reply
     function public.check_request(adu)
         local return_code = true
         local response = { MODBUS_EXCODE.ACKNOWLEDGE }
@@ -341,7 +341,7 @@ function modbus.new(rtu_dev, use_parallel_read)
     -- handle a MODBUS TCP ADU and generate a reply
     ---@nodiscard
     ---@param adu modbus_adu
-    ---@return boolean return_code, modbus_packet reply
+    ---@return boolean return_code, modbus_container reply
     function public.handle_adu(adu)
         local return_code   ---@type boolean
         local response      ---@type table|MODBUS_EXCODE
@@ -403,7 +403,7 @@ end
 ---@nodiscard
 ---@param adu modbus_adu MODBUS ADU
 ---@param code MODBUS_EXCODE exception code
----@return modbus_packet reply
+---@return modbus_container reply
 local function excode_reply(adu, code)
     -- reply back with error flag and exception code
     local reply = comms.modbus_packet()
@@ -415,25 +415,25 @@ end
 -- return a SERVER_DEVICE_FAIL error reply
 ---@nodiscard
 ---@param adu modbus_adu MODBUS ADU
----@return modbus_packet reply
+---@return modbus_container reply
 function modbus.reply__srv_device_fail(adu) return excode_reply(adu, MODBUS_EXCODE.SERVER_DEVICE_FAIL) end
 
 -- return a SERVER_DEVICE_BUSY error reply
 ---@nodiscard
 ---@param adu modbus_adu MODBUS ADU
----@return modbus_packet reply
+---@return modbus_container reply
 function modbus.reply__srv_device_busy(adu) return excode_reply(adu, MODBUS_EXCODE.SERVER_DEVICE_BUSY) end
 
 -- return a NEG_ACKNOWLEDGE error reply
 ---@nodiscard
 ---@param adu modbus_adu MODBUS ADU
----@return modbus_packet reply
+---@return modbus_container reply
 function modbus.reply__neg_ack(adu) return excode_reply(adu, MODBUS_EXCODE.NEG_ACKNOWLEDGE) end
 
 -- return a GATEWAY_PATH_UNAVAILABLE error reply
 ---@nodiscard
 ---@param adu modbus_adu MODBUS ADU
----@return modbus_packet reply
+---@return modbus_container reply
 function modbus.reply__gw_unavailable(adu) return excode_reply(adu, MODBUS_EXCODE.GATEWAY_PATH_UNAVAILABLE) end
 
 return modbus

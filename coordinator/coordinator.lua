@@ -198,16 +198,16 @@ function coordinator.comms(version, backplane, sv_watchdog)
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
         local frame = comms.scada_frame()
-        local pkt   ---@type mgmt_packet|crdn_packet
+        local cntnr ---@type mgmt_container|crdn_container
 
         if protocol == PROTOCOL.SCADA_MGMT then
-            pkt = comms.mgmt_packet()
+            cntnr = comms.mgmt_packet()
         elseif protocol == PROTOCOL.SCADA_CRDN then
-            pkt = comms.crdn_packet()
+            cntnr = comms.crdn_packet()
         else return end
 
-        pkt.make(msg_type, msg)
-        frame.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_packet())
+        cntnr.make(msg_type, msg)
+        frame.make(self.sv_addr, self.sv_seq_num, protocol, cntnr.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.CRD_Channel, frame)
         self.sv_seq_num = self.sv_seq_num + 1
@@ -367,7 +367,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return mgmt_dataframe|crdn_dataframe|nil packet
+    ---@return mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt, s_pkt, r_nic = nil, nil, backplane.nics[side]
 
@@ -391,7 +391,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- handle a packet
-    ---@param packet mgmt_dataframe|crdn_dataframe|nil
+    ---@param packet mgmt_packet|crdn_packet|nil
     ---@return boolean close_ui
     function public.handle_packet(packet)
         local was_linked = self.sv_linked
@@ -410,7 +410,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 elseif not self.sv_linked then
                     log.debug("discarding pocket API packet before linked to supervisor")
                 elseif protocol == PROTOCOL.SCADA_CRDN then
-                    ---@cast packet crdn_dataframe
+                    ---@cast packet crdn_packet
                     -- look for an associated session
                     local session = apisessions.find_session(src_addr)
 
@@ -423,7 +423,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         log.debug("discarding SCADA_CRDN packet without a known session")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_dataframe
+                    ---@cast packet mgmt_packet
                     -- look for an associated session
                     local session = apisessions.find_session(src_addr)
 
@@ -493,7 +493,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                 -- handle packet
                 if protocol == PROTOCOL.SCADA_CRDN then
-                    ---@cast packet crdn_dataframe
+                    ---@cast packet crdn_packet
                     if self.sv_linked then
                         if packet.type == CRDN_TYPE.INITIAL_BUILDS then
                             if packet.length == 2 then
@@ -608,7 +608,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         log.debug("discarding SCADA_CRDN packet before linked")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_dataframe
+                    ---@cast packet mgmt_packet
                     if self.sv_linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back

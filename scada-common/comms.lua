@@ -30,8 +30,8 @@ comms.version = "3.1.0"
 comms.api_version = "0.0.10"
 
 ---@alias frame scada_frame|authd_frame
----@alias packet modbus_packet|rplc_packet|mgmt_packet|crdn_packet
----@alias dataframe modbus_adu|rplc_dataframe|mgmt_dataframe|crdn_dataframe
+---@alias packet_container modbus_container|rplc_container|mgmt_container|crdn_container
+---@alias packet modbus_adu|rplc_packet|mgmt_packet|crdn_packet
 
 --#region Protocol Definitions
 
@@ -394,7 +394,7 @@ end
 
 --#region Network Packets
 
--- MODBUS packet, modeled after MODBUS TCP
+-- MODBUS packet container, modeled after MODBUS TCP
 ---@nodiscard
 function comms.modbus_packet()
     local self = {
@@ -409,7 +409,7 @@ function comms.modbus_packet()
         data      = {}
     }
 
-    ---@class modbus_packet
+    ---@class modbus_container
     local public = {}
 
     -- make a MODBUS packet
@@ -465,11 +465,11 @@ function comms.modbus_packet()
         return nil
     end
 
-    -- get raw packet for transmission
+    -- get the raw packet table for transmission
     ---@nodiscard
     function public.raw_packet() return self.raw end
 
-    -- get this packet's data (MODBUS ADU, application data unit) with an immutable relation to this object
+    -- create a new packet (ADU) from this container's contents
     ---@nodiscard
     function public.get()
         ---@class modbus_adu
@@ -488,7 +488,7 @@ function comms.modbus_packet()
     return public
 end
 
--- reactor PLC packet
+-- reactor PLC packet container
 ---@nodiscard
 function comms.rplc_packet()
     local self = {
@@ -502,7 +502,7 @@ function comms.rplc_packet()
         data   = {}
     }
 
-    ---@class rplc_packet
+    ---@class rplc_container
     local public = {}
 
     -- make an RPLC packet
@@ -531,7 +531,7 @@ function comms.rplc_packet()
 
     -- decode an RPLC packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return rplc_dataframe|nil frame the decoded data, if valid
+    ---@return rplc_packet|nil frame the decoded data, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -554,15 +554,15 @@ function comms.rplc_packet()
         return nil
     end
 
-    -- get raw packet for transmission
+    -- get the raw packet table for transmission
     ---@nodiscard
     function public.raw_packet() return self.raw end
 
-    -- get this packet's data as an RPLC dataframe with an immutable relation to this object
+    -- create a new packet from this container's contents
     ---@nodiscard
     function public.get()
-        ---@class rplc_dataframe
-        local frame = {
+        ---@class rplc_packet
+        local packet = {
             scada_frame = self.frame,
             id = self.id,
             type = self.type,
@@ -570,7 +570,7 @@ function comms.rplc_packet()
             data = self.data
         }
 
-        return frame
+        return packet
     end
 
     return public
@@ -589,7 +589,7 @@ function comms.mgmt_packet()
         data   = {}
     }
 
-    ---@class mgmt_packet
+    ---@class mgmt_container
     local public = {}
 
     -- make a SCADA management packet
@@ -616,7 +616,7 @@ function comms.mgmt_packet()
 
     -- decode a SCADA management packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return mgmt_dataframe|nil frame the decoded data, if valid
+    ---@return mgmt_packet|nil frame the decoded data, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -638,22 +638,22 @@ function comms.mgmt_packet()
         return nil
     end
 
-    -- get raw packet for transmission
+    -- get the raw packet table for transmission
     ---@nodiscard
     function public.raw_packet() return self.raw end
 
-    -- get this packet's data as an MGMT dataframe with an immutable relation to this object
+    -- create a new packet from this container's contents
     ---@nodiscard
     function public.get()
-        ---@class mgmt_dataframe
-        local frame = {
+        ---@class mgmt_packet
+        local packet = {
             scada_frame = self.frame,
             type = self.type,
             length = self.length,
             data = self.data
         }
 
-        return frame
+        return packet
     end
 
     return public
@@ -672,7 +672,7 @@ function comms.crdn_packet()
         data   = {}
     }
 
-    ---@class crdn_packet
+    ---@class crdn_container
     local public = {}
 
     -- make a coordinator packet
@@ -699,7 +699,7 @@ function comms.crdn_packet()
 
     -- decode a coordinator packet from a SCADA frame
     ---@param frame scada_frame
-    ---@return crdn_dataframe|nil frame the decoded frame, if valid
+    ---@return crdn_packet|nil frame the decoded frame, if valid
     function public.decode(frame)
         if frame then
             local data = frame.data()
@@ -721,22 +721,22 @@ function comms.crdn_packet()
         return nil
     end
 
-    -- get raw packet for transmission
+    -- get the raw packet table for transmission
     ---@nodiscard
     function public.raw_packet() return self.raw end
 
-    -- get this packet's data as a CRDN dataframe with an immutable relation to this object
+    -- create a new packet from this container's contents
     ---@nodiscard
     function public.get()
-        ---@class crdn_dataframe
-        local frame = {
+        ---@class crdn_packet
+        local packet = {
             scada_frame = self.frame,
             type = self.type,
             length = self.length,
             data = self.data
         }
 
-        return frame
+        return packet
     end
 
     return public

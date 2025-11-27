@@ -68,7 +68,7 @@ local function send_sv(msg_type, msg)
 end
 
 -- handle an establish message from the supervisor
----@param packet mgmt_dataframe
+---@param packet mgmt_packet
 local function handle_packet(packet)
     local error_msg = nil
 

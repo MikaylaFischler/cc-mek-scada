@@ -94,7 +94,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
     end
 
     -- handle a packet
-    ---@param pkt mgmt_dataframe
+    ---@param pkt mgmt_packet
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -109,7 +109,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_dataframe
+            ---@cast pkt mgmt_packet
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then

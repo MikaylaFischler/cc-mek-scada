@@ -235,7 +235,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     end
 
     -- send a MODBUS packet
-    ---@param m_pkt modbus_packet MODBUS packet
+    ---@param m_pkt modbus_container MODBUS packet
     local function _send_modbus(m_pkt)
         local frame = comms.scada_frame()
 
@@ -259,7 +259,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     end
 
     -- handle a packet
-    ---@param pkt modbus_adu|mgmt_dataframe
+    ---@param pkt modbus_adu|mgmt_packet
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -279,7 +279,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 self.units[pkt.unit_id].handle_packet(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_dataframe
+            ---@cast pkt mgmt_packet
             -- handle management packet
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
