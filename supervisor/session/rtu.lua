@@ -235,13 +235,13 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     end
 
     -- send a MODBUS packet
-    ---@param m_pkt modbus_container MODBUS packet
-    local function _send_modbus(m_pkt)
+    ---@param m_cnt modbus_container MODBUS container
+    local function _send_modbus(m_cnt)
         local frame = comms.scada_frame()
 
-        frame.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_packet())
+        frame.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
 
-        out_queue.push_packet(frame)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -254,7 +254,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
         mgmt.make(msg_type, msg)
         frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        out_queue.push_packet(frame)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -365,13 +365,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 local msg = in_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.PACKET then
+                    if msg.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(msg.message)
-                    elseif msg.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- instruction with body
                     end
                 end
 
@@ -432,11 +428,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 local msg = self.modbus_q.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.PACKET then
-                        -- handle a packet
+                    if msg.qtype == mqueue.TYPE.NETWORK then
+                        -- handle a MODBUS container
                         _send_modbus(msg.message)
-                    elseif msg.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data

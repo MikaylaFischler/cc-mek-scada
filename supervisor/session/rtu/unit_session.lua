@@ -69,7 +69,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
             modbus.make(txn_id, unit_id, f_code, register_param)
 
-            out_queue.push_packet(modbus)
+            out_queue.push_network(modbus)
         end
 
         return txn_id

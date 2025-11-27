@@ -417,7 +417,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                     -- coordinator packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
-                        session.in_queue.push_packet(packet)
+                        session.in_queue.push_network(packet)
                     else
                         -- any other packet should be session related, discard it
                         log.debug("discarding SCADA_CRDN packet without a known session")
@@ -430,7 +430,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                     -- SCADA management packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
-                        session.in_queue.push_packet(packet)
+                        session.in_queue.push_network(packet)
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         -- validate packet and continue

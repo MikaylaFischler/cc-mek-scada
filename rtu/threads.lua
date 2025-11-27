@@ -233,7 +233,7 @@ function threads.thread__main(smem)
                 local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
-                    smem.q.mq_comms.push_packet(packet)
+                    smem.q.mq_comms.push_network(packet)
                 end
             elseif event == "timer" and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? close connection
@@ -357,11 +357,7 @@ function threads.thread__comms(smem)
                 local msg = comms_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                    if msg.qtype == mqueue.TYPE.NETWORK then
                         -- received a packet
                         -- handle the packet (rtu_state passed to allow setting link flag, sounders passed to manage alarm audio)
                         rtu_comms.handle_packet(msg.message, units, rtu_state, sounders)
@@ -454,12 +450,8 @@ function threads.thread__unit_comms(smem, unit)
                 local msg = packet_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
+                    if msg.qtype == mqueue.TYPE.NETWORK then
+                        -- received an ADU
                         local _, reply = unit.modbus_io.handle_adu(msg.message)
                         rtu_comms.send_modbus(reply)
                     end

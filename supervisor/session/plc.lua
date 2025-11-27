@@ -246,7 +246,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         rplc.make(reactor_id, msg_type, msg)
         frame.make(s_addr, self.seq_num, PROTOCOL.RPLC, rplc.raw_packet())
 
-        out_queue.push_packet(frame)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -259,7 +259,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         mgmt.make(msg_type, msg)
         frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        out_queue.push_packet(frame)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -609,7 +609,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 local message = in_queue.pop()
 
                 if message ~= nil then
-                    if message.qtype == mqueue.TYPE.PACKET then
+                    if message.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(message.message)
                     elseif message.qtype == mqueue.TYPE.COMMAND then

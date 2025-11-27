@@ -458,7 +458,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.RPLC then
                 -- reactor PLC packet should be session related, discard it
@@ -502,7 +502,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.MODBUS_TCP then
                 ---@cast packet modbus_adu
@@ -547,7 +547,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_packet
@@ -581,7 +581,7 @@ function supervisor.comms(_version, fp_ok, facility)
 
             if session then
                 -- pass the packet onto the session handler
-                session.in_queue.push_packet(packet)
+                session.in_queue.push_network(packet)
             elseif protocol == PROTOCOL.SCADA_MGMT then
                 ---@cast packet mgmt_packet
                 -- SCADA management packet

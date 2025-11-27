@@ -382,11 +382,11 @@ function rtu.comms(version, nic, conn_watchdog)
     end
 
     -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_container
-    function public.send_modbus(m_pkt)
+    ---@param m_cnt modbus_container
+    function public.send_modbus(m_cnt)
         local frame = comms.scada_frame()
 
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_packet())
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -496,7 +496,7 @@ function rtu.comms(version, nic, conn_watchdog)
                                     log.warning("device busy, discarding new request" .. unit_dbg_tag)
                                 else
                                     -- queue the command if not busy
-                                    unit.pkt_queue.push_packet(packet)
+                                    unit.pkt_queue.push_network(packet)
                                 end
                             else
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
