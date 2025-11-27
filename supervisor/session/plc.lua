@@ -241,10 +241,10 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.rplc_packet()
+        local frame, rplc = comms.scada_frame(), comms.rplc_container()
 
-        pkt.make(reactor_id, msg_type, msg)
-        frame.make(s_addr, self.seq_num, PROTOCOL.RPLC, pkt.raw_packet())
+        rplc.make(reactor_id, msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.RPLC, rplc.raw_packet())
 
         out_queue.push_packet(frame)
         self.seq_num = self.seq_num + 1
@@ -254,10 +254,10 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         out_queue.push_packet(frame)
         self.seq_num = self.seq_num + 1

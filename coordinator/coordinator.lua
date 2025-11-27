@@ -201,9 +201,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
         local cntnr ---@type mgmt_container|crdn_container
 
         if protocol == PROTOCOL.SCADA_MGMT then
-            cntnr = comms.mgmt_packet()
+            cntnr = comms.mgmt_container()
         elseif protocol == PROTOCOL.SCADA_CRDN then
-            cntnr = comms.crdn_packet()
+            cntnr = comms.crdn_container()
         else return end
 
         cntnr.make(msg_type, msg)
@@ -218,10 +218,10 @@ function coordinator.comms(version, backplane, sv_watchdog)
     ---@param ack ESTABLISH_ACK
     ---@param data any?
     local function _send_api_establish_ack(rx_frame, ack, data)
-        local tx_frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local tx_frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
 ---@diagnostic disable-next-line: need-check-nil
         wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, tx_frame)
@@ -369,21 +369,21 @@ function coordinator.comms(version, backplane, sv_watchdog)
     ---@param distance integer
     ---@return mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, s_pkt, r_nic = nil, nil, backplane.nics[side]
+        local pkt, frame, r_nic = nil, nil, backplane.nics[side]
 
         if r_nic then
-            s_pkt = r_nic.receive(side, sender, reply_to, message, distance)
+            frame = r_nic.receive(side, sender, reply_to, message, distance)
         else
             log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                pkt = comms.crdn_container().decode(frame)
             else
-                log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("attempted parse of illegal packet type " .. frame.protocol(), true)
             end
         end
 

@@ -51,10 +51,10 @@ local function is_int_min_max(x, min, max) return util.is_int(x) and x >= min an
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
-    local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+    local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-    pkt.make(msg_type, msg)
-    frame.make(self.sv_addr, self.sv_seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+    mgmt.make(msg_type, msg)
+    frame.make(self.sv_addr, self.sv_seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
     self.nic.transmit(self.tmp_cfg.SVR_Channel, self.tmp_cfg.CRD_Channel, frame)
     self.sv_seq_num = self.sv_seq_num + 1
@@ -323,10 +323,10 @@ end
 ---@param distance integer
 function facility.receive_sv(side, sender, reply_to, message, distance)
     if self.nic ~= nil and self.net_listen then
-        local s_pkt = self.nic.receive(side, sender, reply_to, message, distance)
+        local frame = self.nic.receive(side, sender, reply_to, message, distance)
 
-        if s_pkt and s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-            local pkt = comms.mgmt_packet().decode(s_pkt)
+        if frame and frame.protocol() == PROTOCOL.SCADA_MGMT then
+            local pkt = comms.mgmt_container().decode(frame)
             if pkt then
                 tcd.abort(handle_timeout)
                 handle_packet(pkt)

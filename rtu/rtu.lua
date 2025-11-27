@@ -316,10 +316,10 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -420,16 +420,16 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param distance integer
     ---@return modbus_adu|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                pkt = comms.modbus_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
             else
-                log.debug("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("illegal packet type " .. frame.protocol(), true)
             end
         end
 

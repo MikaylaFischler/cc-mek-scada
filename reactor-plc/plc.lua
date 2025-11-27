@@ -569,10 +569,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.rplc_packet()
+        local frame, rplc = comms.scada_frame(), comms.rplc_container()
 
-        pkt.make(config.UnitID, msg_type, msg)
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, pkt.raw_packet())
+        rplc.make(config.UnitID, msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, rplc.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -582,10 +582,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
@@ -917,16 +917,16 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param distance integer
     ---@return rplc_packet|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.RPLC then
+                pkt = comms.rplc_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
             else
-                log.debug("unsupported packet type " .. s_pkt.protocol(), true)
+                log.debug("unsupported packet type " .. frame.protocol(), true)
             end
         end
 

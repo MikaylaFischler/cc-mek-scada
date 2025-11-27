@@ -179,10 +179,10 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param ack ESTABLISH_ACK
     ---@param data? any optional data
     local function _send_establish(nic, rx_frame, ack, data)
-        local tx_frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local tx_frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, tx_frame)
         self.last_est_acks[rx_frame.src_addr()] = ack
@@ -193,10 +193,10 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param rx_frame scada_frame
     ---@param ack PROBE_ACK
     local function _send_probe(nic, rx_frame, ack)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(MGMT_TYPE.PROBE, { ack })
-        frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(MGMT_TYPE.PROBE, { ack })
+        frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, frame)
     end
@@ -404,25 +404,25 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param distance integer
     ---@return modbus_adu|rplc_packet|mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, s_pkt, nic = nil, nil, backplane.nics[side]
+        local pkt, frame, nic = nil, nil, backplane.nics[side]
 
         if nic then
-            s_pkt = nic.receive(side, sender, reply_to, message, distance)
+            frame = nic.receive(side, sender, reply_to, message, distance)
         else
             log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                pkt = comms.modbus_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.RPLC then
+                pkt = comms.rplc_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                pkt = comms.crdn_container().decode(frame)
             else
-                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
             end
         end
 

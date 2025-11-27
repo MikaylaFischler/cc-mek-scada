@@ -332,7 +332,7 @@ function modbus.new(rtu_dev, use_parallel_read)
         local func_code = bit.bor(adu.func_code, MODBUS_FCODE.ERROR_FLAG)
 
         -- create reply
-        local reply = comms.modbus_packet()
+        local reply = comms.modbus_container()
         reply.make(adu.txn_id, adu.unit_id, func_code, response)
 
         return return_code, reply
@@ -390,7 +390,7 @@ function modbus.new(rtu_dev, use_parallel_read)
         end
 
         -- create reply
-        local reply = comms.modbus_packet()
+        local reply = comms.modbus_container()
         reply.make(adu.txn_id, adu.unit_id, func_code, response)
 
         return return_code, reply
@@ -406,7 +406,7 @@ end
 ---@return modbus_container reply
 local function excode_reply(adu, code)
     -- reply back with error flag and exception code
-    local reply = comms.modbus_packet()
+    local reply = comms.modbus_container()
     local fcode = bit.bor(adu.func_code, MODBUS_FCODE.ERROR_FLAG)
     reply.make(adu.txn_id, adu.unit_id, fcode, { code })
     return reply

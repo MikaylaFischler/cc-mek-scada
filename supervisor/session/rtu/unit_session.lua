@@ -64,12 +64,12 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         busy_wait = busy_wait or DEFAULT_BUSY_WAIT
 
         if (util.time_ms() - self.last_busy) >= busy_wait then
-            local m_pkt = comms.modbus_packet()
+            local modbus = comms.modbus_container()
             txn_id = self.transaction_controller.create(txn_type)
 
-            m_pkt.make(txn_id, unit_id, f_code, register_param)
+            modbus.make(txn_id, unit_id, f_code, register_param)
 
-            out_queue.push_packet(m_pkt)
+            out_queue.push_packet(modbus)
         end
 
         return txn_id

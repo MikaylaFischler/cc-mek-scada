@@ -420,10 +420,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_sv(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv.addr, self.sv.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(config.SVR_Channel, config.PKT_Channel, frame)
         self.sv.seq_num = self.sv.seq_num + 1
@@ -433,10 +433,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_crd(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_packet())
+        mgmt.make(msg_type, msg)
+        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
         nic.transmit(config.CRD_Channel, config.PKT_Channel, frame)
         self.api.seq_num = self.api.seq_num + 1
@@ -446,10 +446,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param msg_type CRDN_TYPE
     ---@param msg table
     local function _send_api(msg_type, msg)
-        local frame, pkt = comms.scada_frame(), comms.crdn_packet()
+        local frame, crdn = comms.scada_frame(), comms.crdn_container()
 
-        pkt.make(msg_type, msg)
-        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, pkt.raw_packet())
+        crdn.make(msg_type, msg)
+        frame.make(self.api.addr, self.api.seq_num, PROTOCOL.SCADA_CRDN, crdn.raw_packet())
 
         nic.transmit(config.CRD_Channel, config.PKT_Channel, frame)
         self.api.seq_num = self.api.seq_num + 1
@@ -622,16 +622,16 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     ---@param distance integer
     ---@return mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
 
         local pkt = nil
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                pkt = comms.crdn_container().decode(frame)
             else
-                log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("attempted parse of illegal packet type " .. frame.protocol(), true)
             end
         end
 

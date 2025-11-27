@@ -396,7 +396,7 @@ end
 
 -- MODBUS packet container, modeled after MODBUS TCP
 ---@nodiscard
-function comms.modbus_packet()
+function comms.modbus_container()
     local self = {
         frame = nil,      ---@type scada_frame
 
@@ -490,7 +490,7 @@ end
 
 -- reactor PLC packet container
 ---@nodiscard
-function comms.rplc_packet()
+function comms.rplc_container()
     local self = {
         frame = nil, ---@type scada_frame
 
@@ -576,9 +576,9 @@ function comms.rplc_packet()
     return public
 end
 
--- SCADA management packet
+-- SCADA management packet container
 ---@nodiscard
-function comms.mgmt_packet()
+function comms.mgmt_container()
     local self = {
         frame = nil, ---@type scada_frame
 
@@ -659,9 +659,9 @@ function comms.mgmt_packet()
     return public
 end
 
--- SCADA coordinator packet
+-- SCADA coordinator packet container
 ---@nodiscard
-function comms.crdn_packet()
+function comms.crdn_container()
     local self = {
         frame = nil, ---@type scada_frame
 
