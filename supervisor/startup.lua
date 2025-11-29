@@ -186,6 +186,7 @@ local function main()
             -- free any closed sessions
             svsessions.free_all_closed()
 
+            -- start next clock timer
             loop_clock.start()
         elseif event == "timer" then
             -- a non-clock timer event, check watchdogs

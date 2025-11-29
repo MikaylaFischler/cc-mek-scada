@@ -75,6 +75,9 @@ function threads.thread__main(smem)
                     -- toggle heartbeat
                     iocontrol.heartbeat()
 
+                    -- periodic hardware tasks
+                    backplane.periodic()
+
                     -- maintain connection
                     local ok, start_ui = coord_comms.try_connect()
                     if not ok then
@@ -100,6 +103,7 @@ function threads.thread__main(smem)
                         iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
                     end
 
+                    -- start next clock timer
                     loop_clock.start()
                 elseif conn_watchdog.is_timer(param1) then
                     -- supervisor watchdog timeout

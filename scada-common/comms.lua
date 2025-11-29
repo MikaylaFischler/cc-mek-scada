@@ -2,7 +2,8 @@
 -- SCADA Network Communications Objects
 --
 
-local log = require("scada-common.log")
+local log  = require("scada-common.log")
+local util = require("scada-common.util")
 
 -- basic acceleration aliases
 
@@ -61,17 +62,20 @@ local RPLC_TYPE = {
 
 ---@enum MGMT_TYPE
 local MGMT_TYPE = {
+    -- connection
     ESTABLISH = 0,       -- establish new connection
     KEEP_ALIVE = 1,      -- keep alive packet w/ RTT
     CLOSE = 2,           -- close a connection
-    PROBE = 3,
+    SWITCH_NET = 3,
+    -- RTU
     RTU_ADVERT = 4,      -- RTU capability advertisement
     RTU_DEV_REMOUNT = 5, -- RTU multiblock possbily changed (formed, unformed) due to PPM remount
     RTU_TONE_ALARM = 6,  -- instruct RTUs to play specified alarm tones
-    DIAG_TONE_GET = 7,   -- (API) diagnostic: get alarm tones
-    DIAG_TONE_SET = 8,   -- (API) diagnostic: set alarm tones
-    DIAG_ALARM_SET = 9,  -- (API) diagnostic: set alarm to simulate audio for
-    INFO_LIST_CMP = 10   -- (API) info: list all computers on the network
+    -- API
+    DIAG_TONE_GET = 7,   -- diagnostic - get alarm tones
+    DIAG_TONE_SET = 8,   -- diagnostic - set alarm tones
+    DIAG_ALARM_SET = 9,  -- diagnostic - set alarm to simulate audio for
+    INFO_LIST_CMP = 10   -- info - list all computers on the network
 }
 
 ---@enum CRDN_TYPE
@@ -104,12 +108,6 @@ local ESTABLISH_ACK = {
 
 ---@enum DEVICE_TYPE device types for establish messages
 local DEVICE_TYPE = { PLC = 0, RTU = 1, SVR = 2, CRD = 3, PKT = 4 }
-
----@enum PROBE_ACK
-local PROBE_ACK = {
-    OPEN = 0,
-    CONFLICT = 1
-}
 
 ---@enum PLC_AUTO_ACK
 local PLC_AUTO_ACK = {
@@ -152,8 +150,6 @@ comms.CRDN_TYPE = CRDN_TYPE
 comms.ESTABLISH_ACK = ESTABLISH_ACK
 comms.DEVICE_TYPE = DEVICE_TYPE
 
-comms.PROBE_ACK = PROBE_ACK
-
 comms.PLC_AUTO_ACK = PLC_AUTO_ACK
 
 comms.UNIT_COMMAND = UNIT_COMMAND
@@ -174,7 +170,97 @@ function comms.set_trusted_range(distance)
     if distance == 0 then max_distance = nil else max_distance = distance end
 end
 
---#region Network Frames
+--#region Network Frames (Layer 2)
+
+-- SCADA link-layer discovery frame
+---@nodiscard
+function comms.lld_frame()
+    local self = {
+        modem_frame = nil, ---@type modem_frame|nil
+
+        valid = false,
+
+        raw = {},
+
+        src_addr  = nil, ---@type integer|nil
+        dest_addr = nil, ---@type integer|nil
+        ttl       = 0
+    }
+
+    ---@class lld_frame
+    local public = {}
+
+    -- make a link-layer discovery frame
+    ---@param dest_addr integer destination computer address (ID)
+    ---@param ttl integer time to live (expiry time)
+    function public.make(dest_addr, ttl)
+        self.valid = true
+
+        self.src_addr  = COMPUTER_ID
+        self.dest_addr = dest_addr
+        self.ttl       = ttl
+
+        self.raw = { COMPUTER_ID, dest_addr, ttl }
+    end
+
+    -- parse in modem frame fields as a link-layer discovery frame
+    ---@param side string modem side
+    ---@param sender integer sender channel
+    ---@param reply_to integer reply channel
+    ---@param message any message body
+    ---@param distance integer transmission distance
+    ---@return boolean valid valid frame received (including not expired)
+    function public.receive(side, sender, reply_to, message, distance)
+        ---@class modem_frame
+        self.modem_frame = {
+            iface = side, s_chan = sender, r_chan = reply_to, dist = distance, data = message
+        }
+
+        self.valid = false
+        self.raw   = self.modem_frame.data
+
+        if (type(max_distance) == TYPE_NUM) and (type(distance) == TYPE_NUM) and (distance > max_distance) then
+            -- outside of maximum allowable transmission distance
+            -- log.debug("COMMS: lld_frame.receive(): discarding frame with distance " .. distance .. " (outside trusted range)")
+        elseif type(self.raw) == TYPE_TBL then
+            self.src_addr  = self.raw[1]
+            self.dest_addr = self.raw[2]
+            self.ttl       = self.raw[3]
+
+            -- check if this frame is destined for this device, otherwise discard ASAP
+            if ((self.dest_addr == COMPUTER_ID) or (self.dest_addr == comms.BROADCAST)) and type(self.ttl) == TYPE_NUM then
+                self.valid = (self.ttl >= util.time_ms()) and (#self.raw == 3) and type(self.src_addr) == TYPE_NUM and
+                             type(self.dest_addr) == TYPE_NUM
+            end
+        end
+
+        return self.valid
+    end
+
+    -- public accessors --
+
+    ---@nodiscard
+    function public.modem_event() return self.modem_frame end
+    ---@nodiscard
+    function public.raw_frame() return self.raw end
+
+    ---@nodiscard
+    function public.interface() return self.modem_frame.iface end
+    ---@nodiscard
+    function public.local_channel() return self.modem_frame.s_chan end
+    ---@nodiscard
+    function public.remote_channel() return self.modem_frame.r_chan end
+
+    ---@nodiscard
+    function public.is_valid() return self.valid end
+
+    ---@nodiscard
+    function public.src_addr() return self.src_addr or comms.BROADCAST end
+    ---@nodiscard
+    function public.dest_addr() return self.dest_addr or comms.BROADCAST end
+
+    return public
+end
 
 -- SCADA network frame
 ---@nodiscard
@@ -230,7 +316,7 @@ function comms.scada_frame()
         }
 
         self.valid = false
-        self.raw = self.modem_frame.data
+        self.raw   = self.modem_frame.data
 
         if (type(max_distance) == TYPE_NUM) and (type(distance) == TYPE_NUM) and (distance > max_distance) then
             -- outside of maximum allowable transmission distance
@@ -241,7 +327,7 @@ function comms.scada_frame()
 
             -- check if this frame is destined for this device, otherwise discard ASAP
             -- if it is, check that the payload is a table and continue
-            if ((self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID)) and (type(self.raw[5]) == TYPE_TBL) then
+            if ((self.dest_addr == COMPUTER_ID) or (self.dest_addr == comms.BROADCAST)) and (type(self.raw[5]) == TYPE_TBL) then
                 self.seq_num  = self.raw[3]
                 self.protocol = self.raw[4]
                 self.length   = #self.raw[5]
@@ -341,7 +427,7 @@ function comms.authd_frame()
         }
 
         self.valid = false
-        self.raw = self.modem_frame.data
+        self.raw   = self.modem_frame.data
 
         if (type(max_distance) == TYPE_NUM) and ((type(distance) ~= TYPE_NUM) or (distance > max_distance)) then
             -- outside of maximum allowable transmission distance
@@ -351,7 +437,7 @@ function comms.authd_frame()
             self.dest_addr = self.raw[2]
 
             -- check if this packet is destined for this device, otherwise discard ASAP
-            if (self.dest_addr == comms.BROADCAST) or (self.dest_addr == COMPUTER_ID) then
+            if (self.dest_addr == COMPUTER_ID) or (self.dest_addr == comms.BROADCAST) then
                 self.mac     = self.raw[3]
                 self.payload = self.raw[4]
 
@@ -392,7 +478,7 @@ end
 
 --#endregion
 
---#region Network Packets
+--#region Network Packets (Layer 3)
 
 -- MODBUS packet container, modeled after MODBUS TCP
 ---@nodiscard

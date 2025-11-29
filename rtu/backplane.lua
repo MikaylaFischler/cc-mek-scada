@@ -42,7 +42,7 @@ function backplane.init(config, __shared_memory)
     -- init wired NIC
     if type(_bp.lan_iface) == "string" then
         local modem  = ppm.get_modem(_bp.lan_iface)
-        local wd_nic = network.nic(modem)
+        local wd_nic = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
@@ -58,7 +58,7 @@ function backplane.init(config, __shared_memory)
     -- init wireless NIC(s)
     if config.WirelessModem then
         local modem, iface = ppm.get_wireless_modem()
-        local wl_nic       = network.nic(modem)
+        local wl_nic       = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
 
@@ -105,6 +105,12 @@ function backplane.active_nic() return _bp.act_nic end
 
 -- get the sounder interfaces
 function backplane.sounders() return _bp.sounders end
+
+-- periodic hardware peripheral tasks
+function backplane.periodic()
+    if _bp.wd_nic then _bp.wd_nic.periodic() end
+    if _bp.wl_nic then _bp.wl_nic.periodic() end
+end
 
 -- handle a backplane peripheral attach
 ---@param type string

@@ -211,6 +211,9 @@ function threads.thread__main(smem)
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
+                -- periodic hardware tasks
+                backplane.periodic()
+
                 -- update speaker states
                 for _, sounder in pairs(sounders) do
                     -- re-compute output if needed, then play audio if available
@@ -220,14 +223,14 @@ function threads.thread__main(smem)
                     end
                 end
 
-                -- start next clock timer
-                loop_clock.start()
-
                 -- period tick, if we are not linked send establish request
                 if not rtu_state.linked then
                     -- advertise units
                     rtu_comms.send_establish(units)
                 end
+
+                -- start next clock timer
+                loop_clock.start()
             elseif event == "modem_message" then
                 -- got a packet
                 local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)

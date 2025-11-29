@@ -65,6 +65,9 @@ function threads.thread__main(smem)
                 -- start next clock timer
                 loop_clock.start()
 
+                -- periodic hardware tasks
+                backplane.periodic()
+
                 -- send updated data
                 if networked then
                     if plc_comms.is_linked() then

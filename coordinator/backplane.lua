@@ -246,6 +246,12 @@ function backplane.wireless_nic() return _bp.wl_nic end
 -- get the configured displays
 function backplane.displays() return _bp.displays end
 
+-- periodic backplane peripheral tasks
+function backplane.periodic()
+    if _bp.wd_nic then _bp.wd_nic.periodic() end
+    if _bp.wl_nic then _bp.wl_nic.periodic() end
+end
+
 -- handle a backplane peripheral attach
 ---@param type string
 ---@param device table
