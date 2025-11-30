@@ -534,17 +534,15 @@ function comms.modbus_container()
             self.raw   = data
 
             if frame.protocol() == PROTOCOL.MODBUS_TCP then
-                if type(data[4]) == TYPE_TBL then
-                    self.txn_id    = data[1]
-                    self.length    = #data[4]
-                    self.unit_id   = data[2]
-                    self.func_code = data[3]
-                    self.data      = data[4]
+                self.txn_id    = data[1]
+                self.unit_id   = data[2]
+                self.func_code = data[3]
+                self.data      = { table.unpack(data, 4, #data) }
+                self.length    = #self.data
 
-                    if type(self.txn_id) == TYPE_NUM and type(self.unit_id) == TYPE_NUM and type(self.func_code) == TYPE_NUM then
-                        return public.get()
-                    end
-                else log.debug("COMMS: [modbus_decode] discarding malformed packet") end
+                if type(self.txn_id) == TYPE_NUM and type(self.unit_id) == TYPE_NUM and type(self.func_code) == TYPE_NUM then
+                    return public.get()
+                end
             else log.debug("COMMS: [modbus_decode] attempted parse of incorrect protocol " .. frame.protocol(), true) end
         else log.debug("COMMS: [modbus_decode] discarding nil frame", true) end
 
