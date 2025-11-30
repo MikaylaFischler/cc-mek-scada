@@ -105,8 +105,10 @@ local function _sv_handle_outq(session)
                             log.debug(util.c("SVS: unknown PLC SV queue command ", cmd.key))
                         end
                     end
-                else
+                elseif cmd.key < SV_Q_DATA.__END_CRD_CMDS__ then
+                    -- notifications and acknowledgements to the coordinator 
                     local crd_s = svsessions.get_crd_session()
+
                     if crd_s ~= nil then
                         if cmd.key == SV_Q_DATA.CRDN_ACK then
                             -- ack to be sent to coordinator
@@ -119,6 +121,13 @@ local function _sv_handle_outq(session)
                             crd_s.in_queue.push_data(CRD_S_DATA.RESEND_RTU_BUILD, cmd.val)
                         end
                     end
+                elseif cmd.key == SV_Q_DATA.SWITCHED_NIC then
+                    -- change the NIC
+                    local nic = cmd.val ---@type nic
+
+                    session.nic = nic
+
+                    log.debug(util.c("SVS: switched session ", session, " to ", nic.phy_name()))
                 end
             end
         end

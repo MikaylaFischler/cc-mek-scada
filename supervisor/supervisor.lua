@@ -7,6 +7,7 @@ local themes     = require("graphics.themes")
 
 local backplane  = require("supervisor.backplane")
 
+local svqtypes   = require("supervisor.session.svqtypes")
 local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}
@@ -436,8 +437,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        ---@cast packet mgmt_packet
-                        ---@todo
+                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
                     else
                         log.debug(util.c("unexpected packet for PLC @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -475,8 +475,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        ---@cast packet mgmt_packet
-                        ---@todo
+                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
                     else
                         log.debug(util.c("unexpected packet for RTU_GW @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -515,8 +514,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        ---@cast packet mgmt_packet
-                        ---@todo
+                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
                     else
                         log.debug(util.c("unexpected packet for CRD @ ", src_addr, " received on ", nic.phy_name()))
                     end
