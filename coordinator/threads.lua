@@ -268,8 +268,6 @@ function threads.thread__render(smem)
                                 log_sys(util.c("configured monitor ", cmd.val, " resized, ", util.trinary(is_ok, "display fits", "display does not fit")))
                             end
                         end
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 

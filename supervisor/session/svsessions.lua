@@ -81,11 +81,9 @@ local function _sv_handle_outq(session)
         local msg = session.out_queue.pop()
 
         if msg ~= nil then
-            if msg.qtype == mqueue.TYPE.PACKET then
-                -- handle a packet to be sent
+            if msg.qtype == mqueue.TYPE.NETWORK then
+                -- handle a SCADA frame to be sent
                 session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
-            elseif msg.qtype == mqueue.TYPE.COMMAND then
-                -- handle instruction/notification
             elseif msg.qtype == mqueue.TYPE.DATA then
                 -- instruction/notification with body
                 local cmd = msg.message ---@type queue_data
@@ -151,10 +149,10 @@ local function _shutdown(session)
     session.open = false
     session.instance.close()
 
-    -- send packets in out queue (for the close packet)
+    -- send frames in the out queue (for the close packet)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
-        if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
+        if msg ~= nil and msg.qtype == mqueue.TYPE.NETWORK then
             session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
         end
     end

@@ -114,7 +114,7 @@ function threads.thread__main(smem)
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
-                    smem.q.mq_comms_rx.push_packet(packet)
+                    smem.q.mq_comms_rx.push_network(packet)
                 end
             elseif event == "timer" and networked and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? close connection and shutdown reactor
@@ -266,10 +266,6 @@ function threads.thread__rps(smem)
                             log.warning("RPS: received supervisor timeout alert")
                             rps.trip_timeout()
                         end
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 
@@ -359,10 +355,6 @@ function threads.thread__comms_tx(smem)
                             plc_comms.send_status(plc_state.no_reactor, plc_state.reactor_formed)
                             plc_comms.send_rps_status()
                         end
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 
@@ -436,11 +428,7 @@ function threads.thread__comms_rx(smem)
                 local msg = comms_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                    if msg.qtype == mqueue.TYPE.NETWORK then
                         -- received a packet
                         -- handle the packet (setpoints passed to update burn rate setpoint)
                         --                   (plc_state passed to check if degraded)

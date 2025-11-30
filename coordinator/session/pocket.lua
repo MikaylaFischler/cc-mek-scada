@@ -86,13 +86,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     ---@param msg_type CRDN_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local c_pkt = comms.crdn_packet()
+        local frame, crdn = comms.scada_frame(), comms.crdn_container()
 
-        c_pkt.make(msg_type, msg)
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_CRDN, c_pkt.raw_sendable())
+        crdn.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_CRDN, crdn.raw_packet())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -100,13 +99,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -129,7 +127,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     end
 
     -- handle a packet
-    ---@param pkt mgmt_frame|crdn_frame
+    ---@param pkt mgmt_packet|crdn_packet
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -144,7 +142,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
-            ---@cast pkt crdn_frame
+            ---@cast pkt crdn_packet
 
             local db = iocontrol.get_db()
 
@@ -438,7 +436,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_frame
+            ---@cast pkt mgmt_packet
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
@@ -510,13 +508,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 local message = in_queue.pop()
 
                 if message ~= nil then
-                    if message.qtype == mqueue.TYPE.PACKET then
+                    if message.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(message.message)
-                    elseif message.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
-                    elseif message.qtype == mqueue.TYPE.DATA then
-                        -- instruction with body
                     end
                 end
 

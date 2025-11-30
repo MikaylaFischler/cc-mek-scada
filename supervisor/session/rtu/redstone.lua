@@ -243,26 +243,26 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_frame
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- check if this is a failed write request
             -- redstone operations are always immediately executed, so this would not be from an ACK or BUSY
-            if m_pkt.txn_id == self.phy_trans.coils then
+            if adu.txn_id == self.phy_trans.coils then
                 self.phy_trans.coils = TXN_READY
                 log.debug(log_tag .. "failed to write coils, retrying soon")
-            elseif m_pkt.txn_id == self.phy_trans.hold_regs then
+            elseif adu.txn_id == self.phy_trans.hold_regs then
                 self.phy_trans.hold_regs = TXN_READY
                 log.debug(log_tag .. "failed to write holding registers, retrying soon")
             end
         elseif txn_type == TXN_TYPES.DI_READ then
             -- discrete input read response
-            if m_pkt.length == #self.io_map.digital_in then
-                for i = 1, m_pkt.length do
+            if adu.length == #self.io_map.digital_in then
+                for i = 1, adu.length do
                     local entry = self.io_map.digital_in[i]
-                    local value = m_pkt.data[i]
+                    local value = adu.data[i]
 
                     self.phy_io.digital_in[entry.bank][entry.port].phy = value
                 end
@@ -271,10 +271,10 @@ function redstone.new(session_id, unit_id, advert, out_queue)
             end
         elseif txn_type == TXN_TYPES.INPUT_REG_READ then
             -- input register read response
-            if m_pkt.length == #self.io_map.analog_in then
-                for i = 1, m_pkt.length do
+            if adu.length == #self.io_map.analog_in then
+                for i = 1, adu.length do
                     local entry = self.io_map.analog_in[i]
-                    local value = m_pkt.data[i]
+                    local value = adu.data[i]
 
                     self.phy_io.analog_in[entry.bank][entry.port].phy = value
                 end
@@ -288,11 +288,11 @@ function redstone.new(session_id, unit_id, advert, out_queue)
             -- update phy I/O table
             -- if there are multiple outputs for the same port, they will overwrite eachother (but *should* be identical)
             -- given these are redstone outputs, if one worked they all should have, so no additional verification will be done
-            if m_pkt.length == #self.io_map.digital_out then
-                for i = 1, m_pkt.length do
+            if adu.length == #self.io_map.digital_out then
+                for i = 1, adu.length do
                     local entry = self.io_map.digital_out[i]
                     local state = self.phy_io.digital_out[entry.bank][entry.port]
-                    local value = m_pkt.data[i]
+                    local value = adu.data[i]
 
                     state.phy = value
                     if state.req == IO_LVL.FLOATING then state.req = value end
@@ -309,10 +309,10 @@ function redstone.new(session_id, unit_id, advert, out_queue)
             -- update phy I/O table
             -- if there are multiple outputs for the same port, they will overwrite eachother (but *should* be identical)
             -- given these are redstone outputs, if one worked they all should have, so no additional verification will be done
-            if m_pkt.length == #self.io_map.analog_out then
-                for i = 1, m_pkt.length do
+            if adu.length == #self.io_map.analog_out then
+                for i = 1, adu.length do
                     local entry = self.io_map.analog_out[i]
-                    local value = m_pkt.data[i]
+                    local value = adu.data[i]
 
                     self.phy_io.analog_out[entry.bank][entry.port].phy = value
                 end

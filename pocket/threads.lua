@@ -156,9 +156,7 @@ function threads.thread__render(smem)
                 local msg = render_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
+                    if msg.qtype == mqueue.TYPE.DATA then
                         -- received data
                         local cmd = msg.message ---@type queue_data
 
@@ -177,8 +175,6 @@ function threads.thread__render(smem)
                                 if type(cmd.val[2]) == "function" then cmd.val[2]() end
                             end
                         end
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 

@@ -61,7 +61,7 @@ end
 ---@param error_flag MODBUS_FCODE MODBUS_FCODE.ERROR_FLAG
 function testutils.modbus_tester(modbus, error_flag)
     -- test packet
-    ---@type modbus_frame
+    ---@type modbus_adu
     local packet = {
         txn_id = 0,
         length = 0,
@@ -95,7 +95,7 @@ function testutils.modbus_tester(modbus, error_flag)
     -- test the current packet, expecting an error
     ---@param excode MODBUS_EXCODE exception code to expect
     function public.test_error__handle_packet(excode)
-        local rcode, reply = modbus.handle_packet(packet)
+        local rcode, reply = modbus.handle_adu(packet)
         assert(rcode == false, "CHECK_NOT_FAIL")
         assert(reply.get().func_code == bit.bor(packet.func_code, error_flag), "WRONG_FCODE")
         assert(reply.get().data[1] == excode, "EXCODE_MISMATCH")
@@ -111,7 +111,7 @@ function testutils.modbus_tester(modbus, error_flag)
 
     -- test the current packet, expecting success
     function public.test_success__handle_packet()
-        local rcode, reply = modbus.handle_packet(packet)
+        local rcode, reply = modbus.handle_adu(packet)
         assert(rcode, "CHECK_NOT_OK")
         println(testutils.stringify(reply.get().data))
     end

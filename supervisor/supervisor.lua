@@ -175,37 +175,37 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- send an establish request response
     ---@param nic nic
-    ---@param packet scada_packet
+    ---@param rx_frame scada_frame
     ---@param ack ESTABLISH_ACK
     ---@param data? any optional data
-    local function _send_establish(nic, packet, ack, data)
-        local s_pkt, m_pkt = comms.scada_packet(), comms.mgmt_packet()
+    local function _send_establish(nic, rx_frame, ack, data)
+        local tx_frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(packet.remote_channel(), config.SVR_Channel, s_pkt)
-        self.last_est_acks[packet.src_addr()] = ack
+        nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, tx_frame)
+        self.last_est_acks[rx_frame.src_addr()] = ack
     end
 
     -- send a probe response
     ---@param nic nic
-    ---@param packet scada_packet
+    ---@param rx_frame scada_frame
     ---@param ack PROBE_ACK
-    local function _send_probe(nic, packet, ack)
-        local s_pkt, m_pkt = comms.scada_packet(), comms.mgmt_packet()
+    local function _send_probe(nic, rx_frame, ack)
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(MGMT_TYPE.PROBE, { ack })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(MGMT_TYPE.PROBE, { ack })
+        frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(packet.remote_channel(), config.SVR_Channel, s_pkt)
+        nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, frame)
     end
 
     --#region Establish Handlers
 
     -- handle a PLC establish
     ---@param nic nic
-    ---@param packet mgmt_frame
+    ---@param packet mgmt_packet
     ---@param src_addr integer
     ---@param i_seq_num integer
     ---@param last_ack ESTABLISH_ACK
@@ -269,7 +269,7 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- handle an RTU gateway establish
     ---@param nic nic
-    ---@param packet mgmt_frame
+    ---@param packet mgmt_packet
     ---@param src_addr integer
     ---@param i_seq_num integer
     ---@param last_ack ESTABLISH_ACK
@@ -313,7 +313,7 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- handle a coordinator establish
     ---@param nic nic
-    ---@param packet mgmt_frame
+    ---@param packet mgmt_packet
     ---@param src_addr integer
     ---@param i_seq_num integer
     ---@param last_ack ESTABLISH_ACK
@@ -354,7 +354,7 @@ function supervisor.comms(_version, fp_ok, facility)
 
     -- handle a pocket debug establish
     ---@param nic nic
-    ---@param packet mgmt_frame
+    ---@param packet mgmt_packet
     ---@param src_addr integer
     ---@param i_seq_num integer
     ---@param last_ack ESTABLISH_ACK
@@ -402,27 +402,27 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return modbus_frame|rplc_frame|mgmt_frame|crdn_frame|nil packet
+    ---@return modbus_adu|rplc_packet|mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, s_pkt, nic = nil, nil, backplane.nics[side]
+        local pkt, frame, nic = nil, nil, backplane.nics[side]
 
         if nic then
-            s_pkt = nic.receive(side, sender, reply_to, message, distance)
+            frame = nic.receive(side, sender, reply_to, message, distance)
         else
             log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                pkt = comms.modbus_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.RPLC then
+                pkt = comms.rplc_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                pkt = comms.crdn_container().decode(frame)
             else
-                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
             end
         end
 
@@ -430,7 +430,7 @@ function supervisor.comms(_version, fp_ok, facility)
     end
 
     -- handle a packet
-    ---@param packet modbus_frame|rplc_frame|mgmt_frame|crdn_frame
+    ---@param packet modbus_adu|rplc_packet|mgmt_packet|crdn_packet
     function public.handle_packet(packet)
         local nic       = backplane.nics[packet.scada_frame.interface()]
         local l_chan    = packet.scada_frame.local_channel()
@@ -450,7 +450,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection probe
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
-                        ---@cast packet mgmt_frame
+                        ---@cast packet mgmt_packet
                         log.debug(util.c("PROBE_ACK: conflict with PLC @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
                         _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
                     else
@@ -458,13 +458,13 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.RPLC then
                 -- reactor PLC packet should be session related, discard it
                 log.debug("discarding RPLC packet without a known session")
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if packet.type == MGMT_TYPE.ESTABLISH then
                     -- establish a new session: validate packet and continue
@@ -494,7 +494,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection probe
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
-                        ---@cast packet mgmt_frame
+                        ---@cast packet mgmt_packet
                         log.debug(util.c("PROBE_ACK: conflict with RTU_GW @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
                         _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
                     else
@@ -502,14 +502,14 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.MODBUS_TCP then
-                ---@cast packet modbus_frame
+                ---@cast packet modbus_adu
                 -- MODBUS response, should be session related, discard it
                 log.debug("discarding MODBUS_TCP packet without a known session")
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if packet.type == MGMT_TYPE.ESTABLISH then
                     -- establish a new session: validate packet and continue
@@ -539,7 +539,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection probe
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
-                        ---@cast packet mgmt_frame
+                        ---@cast packet mgmt_packet
                         log.debug(util.c("PROBE_ACK: conflict with CRD @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
                         _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
                     else
@@ -547,10 +547,10 @@ function supervisor.comms(_version, fp_ok, facility)
                     end
                 else
                     -- pass the packet onto the session handler
-                    session.in_queue.push_packet(packet)
+                    session.in_queue.push_network(packet)
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if packet.type == MGMT_TYPE.ESTABLISH then
                     -- establish a new session: validate packet and continue
@@ -569,7 +569,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     log.debug(util.c("discarding coordinator SCADA_MGMT packet without a known session from computer ", src_addr))
                 end
             elseif protocol == PROTOCOL.SCADA_CRDN then
-                ---@cast packet crdn_frame
+                ---@cast packet crdn_packet
                 -- coordinator packet,  should be session related, discard it
                 log.debug(util.c("discarding coordinator SCADA_CRDN packet without a known session from computer ", src_addr))
             else
@@ -581,9 +581,9 @@ function supervisor.comms(_version, fp_ok, facility)
 
             if session then
                 -- pass the packet onto the session handler
-                session.in_queue.push_packet(packet)
+                session.in_queue.push_network(packet)
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if packet.type == MGMT_TYPE.ESTABLISH then
                     -- establish a new session: validate packet and continue
@@ -598,7 +598,7 @@ function supervisor.comms(_version, fp_ok, facility)
                     log.debug(util.c("discarding pocket SCADA_MGMT packet without a known session from computer ", src_addr))
                 end
             elseif protocol == PROTOCOL.SCADA_CRDN then
-                ---@cast packet crdn_frame
+                ---@cast packet crdn_packet
                 -- coordinator packet, should be session related, discard it
                 log.debug(util.c("discarding pocket SCADA_CRDN packet without a known session from computer ", src_addr))
             else

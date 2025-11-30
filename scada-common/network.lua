@@ -76,7 +76,8 @@ local function compute_hmac(message)
     return hash
 end
 
--- NIC: Network Interface Controller<br>
+-- Network Interface Controller (NIC)<br>
+-- sends and receives frames using a modem<br>
 -- utilizes HMAC-MD5 for message authentication, if enabled and this is wireless
 ---@param modem Modem|nil modem to use
 function network.nic(modem)
@@ -175,74 +176,68 @@ function network.nic(modem)
         self.channels = {}
     end
 
-    -- send a packet, with message authentication if configured
+    -- send a frame, with message authentication if configured
     ---@param dest_channel integer destination channel
     ---@param local_channel integer local channel
-    ---@param packet scada_packet packet
-    function public.transmit(dest_channel, local_channel, packet)
+    ---@param frame scada_frame frame
+    function public.transmit(dest_channel, local_channel, frame)
         if self.connected then
-            local tx_packet = packet ---@type authd_packet|scada_packet
+            local tx_frame = frame ---@type authd_frame|scada_frame
 
             if self.use_hash then
                 -- local start = util.time_ms()
-                tx_packet = comms.authd_packet()
-
-                ---@cast tx_packet authd_packet
-                tx_packet.make(packet, compute_hmac)
-
-                -- log.debug("NET: network.modem.transmit(): data processing took " .. (util.time_ms() - start) .. "ms")
+                tx_frame = comms.authd_frame()
+                tx_frame.make(frame, compute_hmac)
+                -- log.debug("NET: network.nic.transmit(): data processing took " .. (util.time_ms() - start) .. "ms")
             end
 
 ---@diagnostic disable-next-line: need-check-nil
-            modem.transmit(dest_channel, local_channel, tx_packet.raw_sendable())
+            modem.transmit(dest_channel, local_channel, tx_frame.raw_frame())
         else
-            log.debug("NET: network.transmit() tx dropped, link is down")
+            log.debug("NET: network.transmit() tx dropped, phy is down")
         end
     end
 
-    -- parse in a modem message as a network packet
+    -- parse in modem frame components as a SCADA network frame
     ---@nodiscard
     ---@param side string modem side
     ---@param sender integer sender channel
     ---@param reply_to integer reply channel
-    ---@param message any packet sent with or without message authentication
+    ---@param message any SCADA frame sent with or without message authentication
     ---@param distance integer transmission distance
-    ---@return scada_packet|nil packet received packet if valid and passed authentication check
+    ---@return scada_frame|nil frame received frame if valid and passed authentication check
     function public.receive(side, sender, reply_to, message, distance)
-        local packet = nil
+        local frame = nil
 
         if self.connected and side == self.iface then
-            local s_packet = comms.scada_packet()
+            local s_frame = comms.scada_frame()
 
             if self.use_hash then
-                -- parse packet as an authenticated SCADA packet
-                local a_packet = comms.authd_packet()
-                a_packet.receive(side, sender, reply_to, message, distance)
+                -- parse frame as an authenticated SCADA frame
+                local a_frame = comms.authd_frame()
 
-                if a_packet.is_valid() then
-                    s_packet.receive(side, sender, reply_to, a_packet.data(), distance)
-
-                    if s_packet.is_valid() then
+                if a_frame.receive(side, sender, reply_to, message, distance) then
+                    if s_frame.receive(side, sender, reply_to, a_frame.data(), distance) then
                         -- local start         = util.time_ms()
-                        local computed_hmac = compute_hmac(textutils.serialize(s_packet.raw_header(), { allow_repetitions = true, compact = true }))
+                        local computed_hmac = compute_hmac(textutils.serialize(s_frame.raw_header(), { allow_repetitions = true, compact = true }))
 
-                        if a_packet.mac() == computed_hmac then
-                            -- log.debug("NET: network.modem.receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
-                            s_packet.stamp_authenticated()
+                        if a_frame.mac() == computed_hmac then
+                            -- log.debug("NET: network.nic.receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
+                            s_frame.stamp_authenticated()
                         else
-                            -- log.debug("NET: network.modem.receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: network.nic.receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                         end
                     end
                 end
             else
-                -- parse packet as a generic SCADA packet
-                s_packet.receive(side, sender, reply_to, message, distance)
+                -- parse frame as a generic SCADA frame
+                s_frame.receive(side, sender, reply_to, message, distance)
             end
 
-            if s_packet.is_valid() then packet = s_packet end
+            if s_frame.is_valid() then frame = s_frame end
         end
 
-        return packet
+        return frame
     end
 
     return public

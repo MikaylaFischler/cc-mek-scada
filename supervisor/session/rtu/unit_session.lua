@@ -64,12 +64,12 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         busy_wait = busy_wait or DEFAULT_BUSY_WAIT
 
         if (util.time_ms() - self.last_busy) >= busy_wait then
-            local m_pkt = comms.modbus_packet()
+            local modbus = comms.modbus_container()
             txn_id = self.transaction_controller.create(txn_type)
 
-            m_pkt.make(txn_id, unit_id, f_code, register_param)
+            modbus.make(txn_id, unit_id, f_code, register_param)
 
-            out_queue.push_packet(m_pkt)
+            out_queue.push_network(modbus)
         end
 
         return txn_id
@@ -77,23 +77,23 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
     -- try to resolve a MODBUS transaction
     ---@nodiscard
-    ---@param m_pkt modbus_frame MODBUS packet
+    ---@param adu modbus_adu MODBUS ADU
     ---@return integer|false txn_type, integer txn_id transaction type or false on error/busy, transaction ID
-    function protected.try_resolve(m_pkt)
-        if m_pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
-            if m_pkt.unit_id == unit_id then
-                local txn_type = self.transaction_controller.resolve(m_pkt.txn_id)
+    function protected.try_resolve(adu)
+        if adu.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
+            if adu.unit_id == unit_id then
+                local txn_type = self.transaction_controller.resolve(adu.txn_id)
                 local txn_tag = util.c(" (", txn_tags[txn_type], ")")
 
                 if txn_type == nil then
                     -- couldn't find this transaction
-                    log.debug(log_tag .. "MODBUS: expired or spurious transaction reply (txn_id " .. m_pkt.txn_id .. ")")
-                    return false, m_pkt.txn_id
+                    log.debug(log_tag .. "MODBUS: expired or spurious transaction reply (txn_id " .. adu.txn_id .. ")")
+                    return false, adu.txn_id
                 end
 
-                if bit.band(m_pkt.func_code, MODBUS_FCODE.ERROR_FLAG) ~= 0 then
+                if bit.band(adu.func_code, MODBUS_FCODE.ERROR_FLAG) ~= 0 then
                     -- transaction incomplete or failed
-                    local ex = m_pkt.data[1]
+                    local ex = adu.data[1]
                     if ex == MODBUS_EXCODE.ILLEGAL_FUNCTION then
                         log.error(log_tag .. "MODBUS: illegal function" .. txn_tag)
                     elseif ex == MODBUS_EXCODE.ILLEGAL_DATA_ADDR then
@@ -107,7 +107,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
                         end
                     elseif ex == MODBUS_EXCODE.ACKNOWLEDGE then
                         -- will have to wait on reply, renew the transaction
-                        self.transaction_controller.renew(m_pkt.txn_id, txn_type)
+                        self.transaction_controller.renew(adu.txn_id, txn_type)
                     elseif ex == MODBUS_EXCODE.SERVER_DEVICE_BUSY then
                         -- will have to try again later
                         self.last_busy = util.time_ms()
@@ -130,17 +130,17 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
                     self.device_fail = false
 
                     -- no error, return the transaction type
-                    return txn_type, m_pkt.txn_id
+                    return txn_type, adu.txn_id
                 end
             else
-                log.error(log_tag .. "wrong unit ID: " .. m_pkt.unit_id, true)
+                log.error(log_tag .. "wrong unit ID: " .. adu.unit_id, true)
             end
         else
-            log.error(log_tag .. "illegal packet type " .. m_pkt.scada_frame.protocol(), true)
+            log.error(log_tag .. "illegal packet type " .. adu.scada_frame.protocol(), true)
         end
 
         -- error or transaction in progress, return false
-        return false, m_pkt.txn_id
+        return false, adu.txn_id
     end
 
     -- post update tasks
@@ -186,11 +186,11 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
 
 -- luacheck: no unused args
 
-    -- handle a packet
-    ---@param m_pkt modbus_frame
+    -- handle a MODBUS ADU
+    ---@param adu modbus_adu
 ---@diagnostic disable-next-line: unused-local
-    function public.handle_packet(m_pkt)
-        log.debug("template unit_session.handle_packet() called", true)
+    function public.handle_adu(adu)
+        log.debug("template unit_session.handle_adu() called", true)
     end
 
     -- update this runner

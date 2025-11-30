@@ -569,13 +569,12 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local r_pkt = comms.rplc_packet()
+        local frame, rplc = comms.scada_frame(), comms.rplc_container()
 
-        r_pkt.make(config.UnitID, msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
+        rplc.make(config.UnitID, msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, rplc.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -583,13 +582,12 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -716,7 +714,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- handle a burn rate command
-    ---@param packet rplc_frame
+    ---@param packet rplc_packet
     ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
     local function _handle_burn_rate(packet, setpoints)
@@ -753,7 +751,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- handle an auto burn rate command
-    ---@param packet rplc_frame
+    ---@param packet rplc_packet
     ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
     local function _handle_auto_burn_rate(packet, setpoints)
@@ -917,18 +915,18 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return rplc_frame|mgmt_frame|nil packet
+    ---@return rplc_packet|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.RPLC then
+                pkt = comms.rplc_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
             else
-                log.debug("unsupported packet type " .. s_pkt.protocol(), true)
+                log.debug("unsupported packet type " .. frame.protocol(), true)
             end
         end
 
@@ -936,7 +934,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- handle RPLC and MGMT packets
-    ---@param packet rplc_frame|mgmt_frame packet frame
+    ---@param packet rplc_packet|mgmt_packet packet frame
     ---@param plc_state plc_state PLC state
     ---@param setpoints plc_setpoints setpoint control table
     ---@param println_ts function console print, when UI isn't running
@@ -965,7 +963,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
             -- handle packet
             if protocol == PROTOCOL.RPLC then
-                ---@cast packet rplc_frame
+                ---@cast packet rplc_packet
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == RPLC_TYPE.STATUS then
@@ -1016,7 +1014,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                     log.debug("discarding RPLC packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == MGMT_TYPE.KEEP_ALIVE then

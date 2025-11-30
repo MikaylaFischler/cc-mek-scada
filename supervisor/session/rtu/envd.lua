@@ -68,18 +68,18 @@ function envd.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_frame
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.RAD then
             -- radiation status response
-            if m_pkt.length == 2 then
+            if adu.length == 2 then
                 self.db.last_update   = util.time_ms()
-                self.db.radiation     = m_pkt.data[1]
-                self.db.radiation_raw = m_pkt.data[2]
+                self.db.radiation     = adu.data[1]
+                self.db.radiation_raw = adu.data[2]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

@@ -312,17 +312,16 @@ function rtu.comms(version, nic, conn_watchdog)
 
     --#region PRIVATE FUNCTIONS --
 
-    -- send a scada management packet
+    -- send a SCADA management packet
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -383,13 +382,13 @@ function rtu.comms(version, nic, conn_watchdog)
     end
 
     -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_packet
-    function public.send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
+    ---@param m_cnt modbus_container
+    function public.send_modbus(m_cnt)
+        local frame = comms.scada_frame()
 
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -419,18 +418,18 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return modbus_frame|mgmt_frame|nil packet
+    ---@return modbus_adu|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
         local pkt = nil
 
-        if s_pkt then
-            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_packet().decode(s_pkt)
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_packet().decode(s_pkt)
+        if frame then
+            if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                pkt = comms.modbus_container().decode(frame)
+            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                pkt = comms.mgmt_container().decode(frame)
             else
-                log.debug("illegal packet type " .. s_pkt.protocol(), true)
+                log.debug("illegal packet type " .. frame.protocol(), true)
             end
         end
 
@@ -438,7 +437,7 @@ function rtu.comms(version, nic, conn_watchdog)
     end
 
     -- handle a MODBUS/SCADA packet
-    ---@param packet modbus_frame|mgmt_frame
+    ---@param packet modbus_adu|mgmt_packet
     ---@param units rtu_registry_entry[] RTU entries
     ---@param rtu_state rtu_state
     ---@param sounders rtu_speaker_sounder[] speaker alarm sounders
@@ -470,10 +469,10 @@ function rtu.comms(version, nic, conn_watchdog)
 
             -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
-                ---@cast packet modbus_frame
+                ---@cast packet modbus_adu
                 if rtu_state.linked then
                     local return_code   ---@type boolean
-                    local reply         ---@type modbus_packet
+                    local reply         ---@type modbus_container
 
                     -- handle MODBUS instruction
                     if packet.unit_id <= #units then
@@ -482,7 +481,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
                         if unit.type == RTU_UNIT_TYPE.REDSTONE then
                             -- immediately execute redstone RTU requests
-                            return_code, reply = unit.modbus_io.handle_packet(packet)
+                            return_code, reply = unit.modbus_io.handle_adu(packet)
 
                             if not return_code then
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
@@ -497,7 +496,7 @@ function rtu.comms(version, nic, conn_watchdog)
                                     log.warning("device busy, discarding new request" .. unit_dbg_tag)
                                 else
                                     -- queue the command if not busy
-                                    unit.pkt_queue.push_packet(packet)
+                                    unit.pkt_queue.push_network(packet)
                                 end
                             else
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
@@ -514,7 +513,7 @@ function rtu.comms(version, nic, conn_watchdog)
                     log.debug("discarding MODBUS packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if rtu_state.linked then
                     if packet.type == MGMT_TYPE.KEEP_ALIVE then
