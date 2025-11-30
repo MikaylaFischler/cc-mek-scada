@@ -14,7 +14,6 @@ local supervisor = {}
 local PROTOCOL      = comms.PROTOCOL
 local DEVICE_TYPE   = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
-local PROBE_ACK     = comms.PROBE_ACK
 local MGMT_TYPE     = comms.MGMT_TYPE
 
 local LISTEN_MODE   = types.LISTEN_MODE
@@ -186,19 +185,6 @@ function supervisor.comms(_version, fp_ok, facility)
 
         nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, tx_frame)
         self.last_est_acks[rx_frame.src_addr()] = ack
-    end
-
-    -- send a probe response
-    ---@param nic nic
-    ---@param rx_frame scada_frame
-    ---@param ack PROBE_ACK
-    local function _send_probe(nic, rx_frame, ack)
-        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
-
-        mgmt.make(MGMT_TYPE.PROBE, { ack })
-        frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
-
-        nic.transmit(rx_frame.remote_channel(), config.SVR_Channel, frame)
     end
 
     --#region Establish Handlers
@@ -448,11 +434,10 @@ function supervisor.comms(_version, fp_ok, facility)
             if session then
                 if nic ~= session.nic then
                     -- this is from the same device but on a different interface
-                    -- drop unless it is a connection probe
-                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
+                    -- drop unless it is a connection transfer
+                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
                         ---@cast packet mgmt_packet
-                        log.debug(util.c("PROBE_ACK: conflict with PLC @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
-                        _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
+                        ---@todo
                     else
                         log.debug(util.c("unexpected packet for PLC @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -474,10 +459,6 @@ function supervisor.comms(_version, fp_ok, facility)
                         log.debug("invalid establish packet (on PLC channel)")
                         _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
                     end
-                elseif packet.type == MGMT_TYPE.PROBE then
-                    -- connection probing
-                    log.debug(util.c("PROBE_ACK: reporting open to PLC @", src_addr, " probed on ", nic.phy_name()))
-                    _send_probe(nic, packet.scada_frame, PROBE_ACK.OPEN)
                 else
                     -- any other packet should be session related, discard it
                     log.debug(util.c("discarding PLC SCADA_MGMT packet without a known session from computer ", src_addr))
@@ -492,11 +473,10 @@ function supervisor.comms(_version, fp_ok, facility)
             if session then
                 if nic ~= session.nic then
                     -- this is from the same device but on a different interface
-                    -- drop unless it is a connection probe
-                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
+                    -- drop unless it is a connection transfer
+                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
                         ---@cast packet mgmt_packet
-                        log.debug(util.c("PROBE_ACK: conflict with RTU_GW @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
-                        _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
+                        ---@todo
                     else
                         log.debug(util.c("unexpected packet for RTU_GW @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -519,10 +499,6 @@ function supervisor.comms(_version, fp_ok, facility)
                         log.debug("invalid establish packet (on RTU channel)")
                         _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
                     end
-                elseif packet.type == MGMT_TYPE.PROBE then
-                    -- connection probing
-                    log.debug(util.c("PROBE_ACK: reporting open to RTU_GW @", src_addr, " probed on ", nic.phy_name()))
-                    _send_probe(nic, packet.scada_frame, PROBE_ACK.OPEN)
                 else
                     -- any other packet should be session related, discard it
                     log.debug(util.c("discarding RTU gateway SCADA_MGMT packet without a known session from computer ", src_addr))
@@ -537,11 +513,10 @@ function supervisor.comms(_version, fp_ok, facility)
             if session then
                 if nic ~= session.nic then
                     -- this is from the same device but on a different interface
-                    -- drop unless it is a connection probe
-                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.PROBE) then
+                    -- drop unless it is a connection transfer
+                    if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
                         ---@cast packet mgmt_packet
-                        log.debug(util.c("PROBE_ACK: conflict with CRD @", src_addr, " on ", session.nic.phy_name(), " probed on ", nic.phy_name()))
-                        _send_probe(nic, packet.scada_frame, PROBE_ACK.CONFLICT)
+                        ---@todo
                     else
                         log.debug(util.c("unexpected packet for CRD @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -560,10 +535,6 @@ function supervisor.comms(_version, fp_ok, facility)
                         log.debug("CRD_ESTABLISH: establish packet length mismatch")
                         _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.DENY)
                     end
-                elseif packet.type == MGMT_TYPE.PROBE then
-                    -- connection probing
-                    log.debug(util.c("PROBE_ACK: reporting open to CRD @", src_addr, " probed on ", nic.phy_name()))
-                    _send_probe(nic, packet.scada_frame, PROBE_ACK.OPEN)
                 else
                     -- any other packet should be session related, discard it
                     log.debug(util.c("discarding coordinator SCADA_MGMT packet without a known session from computer ", src_addr))
