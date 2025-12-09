@@ -24,9 +24,13 @@ local _bp = {
     act_nic = nil,  ---@type nic
     wd_nic = nil,   ---@type nic|nil
     wl_nic = nil,   ---@type nic|nil
+    nic_map = {},   ---@type nic[] connected nics
 
     sounders = {}   ---@type rtu_speaker_sounder[]
 }
+
+-- network interfaces indexed by peripheral names
+backplane.nics = _bp.nic_map
 
 -- initialize the system peripheral backplane
 ---@param config rtu_config
@@ -48,6 +52,7 @@ function backplane.init(config, __shared_memory)
 
         _bp.wd_nic  = wd_nic
         _bp.act_nic = wd_nic -- set this as active for now
+        _bp.nic_map[_bp.lan_iface] = wd_nic
 
         wd_nic.closeAll()
         wd_nic.open(config.RTU_Channel)
@@ -68,6 +73,7 @@ function backplane.init(config, __shared_memory)
         end
 
         _bp.wl_nic = wl_nic
+        if iface then _bp.nic_map[iface] = wl_nic end
 
         wl_nic.closeAll()
         wl_nic.open(config.RTU_Channel)
@@ -132,6 +138,7 @@ function backplane.attach(type, device, iface, print_no_fp)
         if wd_nic and (_bp.lan_iface == iface) then
             -- connect this as the wired NIC
             wd_nic.connect(device)
+            _bp.nic_map[iface] = wd_nic
 
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             print_no_fp("wired comms modem reconnected")
@@ -148,6 +155,7 @@ function backplane.attach(type, device, iface, print_no_fp)
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
             wl_nic.connect(device)
+            _bp.nic_map[iface] = wl_nic
 
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
             print_no_fp("wireless comms modem reconnected")
@@ -201,6 +209,8 @@ function backplane.detach(type, device, iface, print_no_fp)
         ---@cast device Modem
 
         log.info(util.c("BKPLN: PHY_DETACH ", iface))
+
+        _bp.nic_map[iface] = nil
 
         if wd_nic and wd_nic.is_modem(device) then
             wd_nic.disconnect()
