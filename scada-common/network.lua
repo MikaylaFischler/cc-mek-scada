@@ -15,8 +15,8 @@ local stream = require("lockbox.util.stream")
 local array  = require("lockbox.util.array")
 
 local LINK_TIMEOUT_MS          = 5000
-local DISCOVERY_PERIOD_UP_MS   = 5000
-local DISCOVERY_PERIOD_DOWN_MS = 1000
+local DISCOVERY_PERIOD_UP_MS   = 3000
+local DISCOVERY_PERIOD_DOWN_MS = 500
 
 ---@class scada_net_interface
 local network = {}
@@ -109,12 +109,15 @@ function network.nic(modem, lld_tx_chan)
     ---@param dest_addr integer destination address
     ---@param r_chan integer remote channel
     ---@param l_chan integer local channel
-    local function _send_ll_discovery_frame(dest_addr, r_chan, l_chan)
+    ---@param ack boolean true if this is an acknowledgement
+    local function _send_ll_discovery_frame(dest_addr, r_chan, l_chan, ack)
         if not self.phy_up then return end
 
         local reply = comms.lld_frame()
 
-        reply.make(dest_addr, util.time_ms() + 5000)
+        reply.make(dest_addr, ack)
+
+        -- log.debug(util.c("_send_ll_discovery_frame { ", dest_addr, ", ", r_chan, ", ", l_chan, " }"))
 
 ---@diagnostic disable-next-line: need-check-nil
         modem.transmit(r_chan, l_chan, reply.raw_frame())
@@ -283,7 +286,9 @@ function network.nic(modem, lld_tx_chan)
                     self.link_up     = true
                     self.last_lld_rx = util.time_ms()
 
-                    _send_ll_discovery_frame(l_frame.src_addr(), l_frame.remote_channel(), l_frame.local_channel())
+                    if not l_frame.is_ack() then
+                        _send_ll_discovery_frame(l_frame.src_addr(), l_frame.remote_channel(), l_frame.local_channel(), true)
+                    end
                 end
             end
         end
@@ -292,20 +297,27 @@ function network.nic(modem, lld_tx_chan)
     end
 
     -- periodic NIC task to maintain network link detection
+    ---@return boolean link_up if the network link is still up
     function public.periodic()
         local now = util.time_ms()
 
         if now >= (self.last_lld_rx + LINK_TIMEOUT_MS) then
+            if self.link_up then log.debug("NET: network.nic.periodic(): link timeout") end
+
             self.link_up = false
         end
 
         if lld_tx_chan and self.phy_up then
             if (now - self.last_lld_tx) > util.trinary(self.link_up, DISCOVERY_PERIOD_UP_MS, DISCOVERY_PERIOD_DOWN_MS) then
+                self.last_lld_tx = now
+
                 for _, channel in ipairs(self.channels) do
-                    _send_ll_discovery_frame(comms.BROADCAST, channel, lld_tx_chan)
+                    _send_ll_discovery_frame(comms.BROADCAST, lld_tx_chan, channel, false)
                 end
             end
         end
+
+        return self.link_up
     end
 
     return public

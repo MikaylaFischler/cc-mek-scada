@@ -184,7 +184,7 @@ function comms.lld_frame()
 
         src_addr  = nil, ---@type integer|nil
         dest_addr = nil, ---@type integer|nil
-        ttl       = 0
+        ack       = false
     }
 
     ---@class lld_frame
@@ -192,15 +192,15 @@ function comms.lld_frame()
 
     -- make a link-layer discovery frame
     ---@param dest_addr integer destination computer address (ID)
-    ---@param ttl integer time to live (expiry time)
-    function public.make(dest_addr, ttl)
+    ---@param ack boolean if this is an acknowledgement
+    function public.make(dest_addr, ack)
         self.valid = true
 
         self.src_addr  = COMPUTER_ID
         self.dest_addr = dest_addr
-        self.ttl       = ttl
+        self.ack       = ack
 
-        self.raw = { COMPUTER_ID, dest_addr, ttl }
+        self.raw = { COMPUTER_ID, dest_addr, ack }
     end
 
     -- parse in modem frame fields as a link-layer discovery frame
@@ -225,12 +225,11 @@ function comms.lld_frame()
         elseif type(self.raw) == TYPE_TBL then
             self.src_addr  = self.raw[1]
             self.dest_addr = self.raw[2]
-            self.ttl       = self.raw[3]
+            self.ack       = self.raw[3] == true
 
             -- check if this frame is destined for this device, otherwise discard ASAP
-            if ((self.dest_addr == COMPUTER_ID) or (self.dest_addr == comms.BROADCAST)) and type(self.ttl) == TYPE_NUM then
-                self.valid = (self.ttl >= util.time_ms()) and (#self.raw == 3) and type(self.src_addr) == TYPE_NUM and
-                             type(self.dest_addr) == TYPE_NUM
+            if (self.dest_addr == COMPUTER_ID) or (self.dest_addr == comms.BROADCAST) then
+                self.valid = type(self.src_addr) == TYPE_NUM and type(self.dest_addr) == TYPE_NUM
             end
         end
 
@@ -258,6 +257,8 @@ function comms.lld_frame()
     function public.src_addr() return self.src_addr or comms.BROADCAST end
     ---@nodiscard
     function public.dest_addr() return self.dest_addr or comms.BROADCAST end
+    ---@nodiscard
+    function public.is_ack() return self.ack end
 
     return public
 end
