@@ -231,7 +231,7 @@ function network.nic(modem, lld_tx_chan)
 ---@diagnostic disable-next-line: need-check-nil
             modem.transmit(dest_channel, local_channel, tx_frame.raw_frame())
         else
-            log.debug("NET: network.transmit() tx dropped, phy is down")
+            log.debug("NET: " .. self.name ..".transmit() tx dropped, phy is down")
         end
     end
 
@@ -259,10 +259,10 @@ function network.nic(modem, lld_tx_chan)
                         local computed_hmac = compute_hmac(textutils.serialize(s_frame.raw_header(), { allow_repetitions = true, compact = true }))
 
                         if a_frame.mac() == computed_hmac then
-                            -- log.debug("NET: network.nic.receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: " .. self.name ..".receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
                             s_frame.stamp_authenticated()
                         else
-                            -- log.debug("NET: network.nic.receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: " .. self.name ..".receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                         end
                     end
                 end
@@ -302,7 +302,7 @@ function network.nic(modem, lld_tx_chan)
         local now = util.time_ms()
 
         if now >= (self.last_lld_rx + LINK_TIMEOUT_MS) then
-            if self.link_up then log.debug("NET: network.nic.periodic(): link timeout") end
+            if self.link_up then log.debug("NET: " .. self.name ..".periodic(): link timeout") end
 
             self.link_up = false
         end
