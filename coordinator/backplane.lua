@@ -31,7 +31,7 @@ local _bp = {
     wl_nic = nil,   ---@type nic|nil
     nic_map = {},   ---@type nic[] connected nics
 
-    speaker = nil, ---@type Speaker|nil
+    speaker = nil,  ---@type Speaker|nil
 
     ---@class crd_displays
     displays = {
@@ -289,7 +289,6 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wired
                 _bp.act_nic = wd_nic
 
-                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
             end
@@ -307,7 +306,6 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wireless
                 _bp.act_nic = wl_nic
 
-                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
             end
