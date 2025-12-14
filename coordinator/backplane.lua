@@ -261,7 +261,6 @@ end
 ---@param device table
 ---@param iface string
 function backplane.attach(type, device, iface)
-    local MQ__RENDER_CMD  = _bp.smem.q_types.MQ__RENDER_CMD
     local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
 
     local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic

@@ -87,7 +87,7 @@ local function init(panel, config)
         wd_modem.register(ps, "has_wd_modem", wd_modem_update)
         wd_modem.register(ps, "has_wd_net", wd_modem_update)
         wl_modem.register(ps, "has_wl_modem", wl_modem_update)
-        wl_modem.register(ps, "has_wl_net", wl_modem_update)    
+        wl_modem.register(ps, "has_wl_net", wl_modem_update)
     else
         local modem = LEDPair{parent=system,label="MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
 
