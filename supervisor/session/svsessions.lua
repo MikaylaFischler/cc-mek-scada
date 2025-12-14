@@ -106,7 +106,9 @@ local function _sv_handle_outq(session)
                         end
                     end
                 else
+                    -- notifications and acknowledgements to the coordinator
                     local crd_s = svsessions.get_crd_session()
+
                     if crd_s ~= nil then
                         if cmd.key == SV_Q_DATA.CRDN_ACK then
                             -- ack to be sent to coordinator

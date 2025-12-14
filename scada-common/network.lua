@@ -14,6 +14,10 @@ local hmac   = require("lockbox.mac.hmac")
 local stream = require("lockbox.util.stream")
 local array  = require("lockbox.util.array")
 
+local LINK_TIMEOUT_MS          = 5000
+local DISCOVERY_PERIOD_UP_MS   = 3000
+local DISCOVERY_PERIOD_DOWN_MS = 500
+
 ---@class scada_net_interface
 local network = {}
 
@@ -77,22 +81,47 @@ local function compute_hmac(message)
 end
 
 -- Network Interface Controller (NIC)<br>
--- sends and receives frames using a modem<br>
--- utilizes HMAC-MD5 for message authentication, if enabled and this is wireless
+-- sends and receives network frames using a modem<br>
+-- utilizes HMAC-MD5 for message authentication, if enabled and using a wireless modem
 ---@param modem Modem|nil modem to use
-function network.nic(modem)
+---@param lld_tx_chan integer? link layer discovery transmit channel, or nil to disable probing (will still reply)
+function network.nic(modem, lld_tx_chan)
     local self = {
         -- modem interface name
         iface = "?",
         -- phy name
         name = "?",
-        -- used to quickly return out of tx/rx functions if there is nothing to do
-        connected = false,
         -- used to avoid costly MAC calculations if not required
         use_hash = false,
+        -- used to quickly return out of tx/rx functions if there is nothing to do
+        phy_up = false,
+        -- monitor if this NIC appears to have network access
+        link_up = false,
+        -- last time a discovery reply or other traffic was received
+        last_lld_rx = 0,
+        -- last time of discovery transmit
+        last_lld_tx = 0,
         -- open channels
         channels = {}
     }
+
+    -- send a link-layer discovery frame
+    ---@param dest_addr integer destination address
+    ---@param r_chan integer remote channel
+    ---@param l_chan integer local channel
+    ---@param ack boolean true if this is an acknowledgement
+    local function _send_ll_discovery_frame(dest_addr, r_chan, l_chan, ack)
+        if not self.phy_up then return end
+
+        local reply = comms.lld_frame()
+
+        reply.make(dest_addr, ack)
+
+        -- log.debug(util.c("_send_ll_discovery_frame { ", dest_addr, ", ", r_chan, ", ", l_chan, " }"))
+
+---@diagnostic disable-next-line: need-check-nil
+        modem.transmit(r_chan, l_chan, reply.raw_frame())
+    end
 
     ---@class nic:Modem
     local public = {}
@@ -103,17 +132,22 @@ function network.nic(modem)
 
     -- check if this NIC has a connected modem
     ---@nodiscard
-    function public.is_connected() return self.connected end
+    function public.is_connected() return self.phy_up end
+
+    -- check if this NIC detected a network link
+    ---@nodiscard
+    function public.is_network_up() return self.link_up end
 
     -- connect to a modem peripheral
     ---@param reconnected_modem Modem
     function public.connect(reconnected_modem)
         modem = reconnected_modem
 
-        self.iface     = ppm.get_iface(modem)
-        self.name      = util.c(util.trinary(modem.isWireless(), "WLAN_PHY", "ETH_PHY"), "{", self.iface, "}")
-        self.connected = true
-        self.use_hash  = _crypt.hmac and modem.isWireless()
+        self.iface    = ppm.get_iface(modem)
+        self.name     = util.c(util.trinary(modem.isWireless(), "WLAN_PHY", "ETH_PHY"), "{", self.iface, "}")
+        self.use_hash = _crypt.hmac and modem.isWireless()
+        self.phy_up   = true
+        self.link_up  = false
 
         -- open only previously opened channels
         modem.closeAll()
@@ -128,7 +162,10 @@ function network.nic(modem)
     end
 
     -- flag this NIC as no longer having a connected modem (usually do to peripheral disconnect)
-    function public.disconnect() self.connected = false end
+    function public.disconnect()
+        self.phy_up  = false
+        self.link_up = false
+    end
 
     -- check if a peripheral is this modem
     ---@nodiscard
@@ -181,7 +218,7 @@ function network.nic(modem)
     ---@param local_channel integer local channel
     ---@param frame scada_frame frame
     function public.transmit(dest_channel, local_channel, frame)
-        if self.connected then
+        if self.phy_up then
             local tx_frame = frame ---@type authd_frame|scada_frame
 
             if self.use_hash then
@@ -194,7 +231,7 @@ function network.nic(modem)
 ---@diagnostic disable-next-line: need-check-nil
             modem.transmit(dest_channel, local_channel, tx_frame.raw_frame())
         else
-            log.debug("NET: network.transmit() tx dropped, phy is down")
+            log.debug("NET: " .. self.name ..".transmit() tx dropped, phy is down")
         end
     end
 
@@ -209,7 +246,7 @@ function network.nic(modem)
     function public.receive(side, sender, reply_to, message, distance)
         local frame = nil
 
-        if self.connected and side == self.iface then
+        if self.phy_up and side == self.iface then
             local s_frame = comms.scada_frame()
 
             if self.use_hash then
@@ -222,10 +259,10 @@ function network.nic(modem)
                         local computed_hmac = compute_hmac(textutils.serialize(s_frame.raw_header(), { allow_repetitions = true, compact = true }))
 
                         if a_frame.mac() == computed_hmac then
-                            -- log.debug("NET: network.nic.receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: " .. self.name ..".receive(): HMAC verified in " .. (util.time_ms() - start) .. "ms")
                             s_frame.stamp_authenticated()
                         else
-                            -- log.debug("NET: network.nic.receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
+                            -- log.debug("NET: " .. self.name ..".receive(): HMAC failed verification in " .. (util.time_ms() - start) .. "ms")
                         end
                     end
                 end
@@ -234,10 +271,53 @@ function network.nic(modem)
                 s_frame.receive(side, sender, reply_to, message, distance)
             end
 
-            if s_frame.is_valid() then frame = s_frame end
+            -- if valid, return it, otherwise try to handle it as a link-layer transaction
+            if s_frame.is_valid() then
+                self.link_up     = true
+                self.last_lld_rx = util.time_ms()
+
+                frame = s_frame
+            else
+                local l_frame = comms.lld_frame()
+
+                -- try instead to receive this as a link-layer discovery frame, then respond if valid
+                -- keep the returned value as nil; this is internal layer 2 logic to hide from the application
+                if l_frame.receive(side, sender, reply_to, message, distance) then
+                    self.link_up     = true
+                    self.last_lld_rx = util.time_ms()
+
+                    if not l_frame.is_ack() then
+                        _send_ll_discovery_frame(l_frame.src_addr(), l_frame.remote_channel(), l_frame.local_channel(), true)
+                    end
+                end
+            end
         end
 
         return frame
+    end
+
+    -- periodic NIC task to maintain network link detection
+    ---@return boolean link_up if the network link is still up
+    function public.periodic()
+        local now = util.time_ms()
+
+        if now >= (self.last_lld_rx + LINK_TIMEOUT_MS) then
+            if self.link_up then log.debug("NET: " .. self.name ..".periodic(): link timeout") end
+
+            self.link_up = false
+        end
+
+        if lld_tx_chan and self.phy_up then
+            if (now - self.last_lld_tx) > util.trinary(self.link_up, DISCOVERY_PERIOD_UP_MS, DISCOVERY_PERIOD_DOWN_MS) then
+                self.last_lld_tx = now
+
+                for _, channel in ipairs(self.channels) do
+                    _send_ll_discovery_frame(comms.BROADCAST, lld_tx_chan, channel, false)
+                end
+            end
+        end
+
+        return self.link_up
     end
 
     return public

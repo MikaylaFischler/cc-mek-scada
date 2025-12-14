@@ -38,6 +38,7 @@ function threads.thread__main(smem)
         local sv_wd        = smem.pkt_sys.sv_wd
         local api_wd       = smem.pkt_sys.api_wd
         local nav          = smem.pkt_sys.nav
+        local nic          = smem.pkt_sys.nic
 
         -- start connection watchdogs
         sv_wd.feed()
@@ -62,6 +63,10 @@ function threads.thread__main(smem)
                         for i = 1, #page_tasks do page_tasks[i]() end
                     end
 
+                    -- NIC periodic link-layer tasks
+                    nic.periodic()
+
+                    -- start next clock timer
                     loop_clock.start()
                 elseif sv_wd.is_timer(param1) then
                     -- supervisor watchdog timeout

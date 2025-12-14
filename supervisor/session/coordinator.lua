@@ -220,6 +220,9 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.SWITCH_NET then
+                -- request to change the network, passed sequence ID check
+                log.debug(log_tag .. "received valid connection switch request")
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()

@@ -211,6 +211,9 @@ function threads.thread__main(smem)
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
+                -- periodic hardware tasks
+                backplane.periodic()
+
                 -- update speaker states
                 for _, sounder in pairs(sounders) do
                     -- re-compute output if needed, then play audio if available
@@ -220,14 +223,22 @@ function threads.thread__main(smem)
                     end
                 end
 
+                -- period tick, if we are not linked send establish request
+                if rtu_state.linked then
+                    rtu_comms.manage_failover(backplane.active_nic())
+                else
+                    -- advertise units
+                    local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+
+                    if a_nic.is_network_up() then
+                        rtu_comms.send_establish(a_nic, units)
+                    elseif s_nic and s_nic.is_network_up() then
+                        rtu_comms.send_establish(s_nic, units)
+                    end
+                end
+
                 -- start next clock timer
                 loop_clock.start()
-
-                -- period tick, if we are not linked send establish request
-                if not rtu_state.linked then
-                    -- advertise units
-                    rtu_comms.send_establish(units)
-                end
             elseif event == "modem_message" then
                 -- got a packet
                 local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)

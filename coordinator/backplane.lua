@@ -31,7 +31,7 @@ local _bp = {
     wl_nic = nil,   ---@type nic|nil
     nic_map = {},   ---@type nic[] connected nics
 
-    speaker = nil, ---@type Speaker|nil
+    speaker = nil,  ---@type Speaker|nil
 
     ---@class crd_displays
     displays = {
@@ -164,7 +164,7 @@ function backplane.init(config, __shared_memory)
     -- init wired NIC
     if type(_bp.lan_iface) == "string" then
         local modem  = ppm.get_modem(_bp.lan_iface)
-        local wd_nic = network.nic(modem)
+        local wd_nic = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
         log_comms("wired comms modem " .. util.trinary(modem, "connected", "not found"))
@@ -182,7 +182,7 @@ function backplane.init(config, __shared_memory)
     -- init wireless NIC(s)
     if config.WirelessModem then
         local modem, iface = ppm.get_wireless_modem()
-        local wl_nic       = network.nic(modem)
+        local wl_nic       = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
         log_comms("wireless comms modem " .. util.trinary(modem, "connected", "not found"))
@@ -240,18 +240,27 @@ end
 -- get the active NIC
 function backplane.active_nic() return _bp.act_nic end
 
+-- get the standby NIC
+---@return nic|nil
+function backplane.standby_nic() return util.trinary(_bp.act_nic == _bp.wl_nic, _bp.wd_nic, _bp.wl_nic) end
+
 -- get the wireless NIC
 function backplane.wireless_nic() return _bp.wl_nic end
 
 -- get the configured displays
 function backplane.displays() return _bp.displays end
 
+-- periodic backplane peripheral tasks
+function backplane.periodic()
+    if _bp.wd_nic then iocontrol.fp_has_wd_net(_bp.wd_nic.periodic()) end
+    if _bp.wl_nic then iocontrol.fp_has_wl_net(_bp.wl_nic.periodic()) end
+end
+
 -- handle a backplane peripheral attach
 ---@param type string
 ---@param device table
 ---@param iface string
 function backplane.attach(type, device, iface)
-    local MQ__RENDER_CMD  = _bp.smem.q_types.MQ__RENDER_CMD
     local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
 
     local wl_nic, wd_nic = _bp.wl_nic, _bp.wd_nic
@@ -268,7 +277,7 @@ function backplane.attach(type, device, iface)
         if wd_nic and (_bp.lan_iface == iface) then
             -- connect this as the wired NIC
             wd_nic.connect(device)
-            _bp.nic_map[iface] = _bp.wd_nic
+            _bp.nic_map[iface] = wd_nic
 
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             log_sys("wired comms modem reconnected")
@@ -279,14 +288,13 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wired
                 _bp.act_nic = wd_nic
 
-                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wired modem (preferred)")
             end
         elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
             -- connect this as the wireless NIC
             wl_nic.connect(device)
-            _bp.nic_map[iface] = _bp.wl_nic
+            _bp.nic_map[iface] = wl_nic
 
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
             log_sys("wireless comms modem reconnected")
@@ -297,7 +305,6 @@ function backplane.attach(type, device, iface)
                 -- switch back to preferred wireless
                 _bp.act_nic = wl_nic
 
-                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
                 comms.switch_nic(_bp.act_nic)
                 log.info("BKPLN: switched comms to wireless modem (preferred)")
             end

@@ -17,6 +17,8 @@ local MGMT_TYPE = comms.MGMT_TYPE
 local PLC_AUTO_ACK = comms.PLC_AUTO_ACK
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
+local SV_Q_DATA = svqtypes.SV_Q_DATA
+
 -- retry time constants in ms
 local INITIAL_WAIT      = 1500
 local INITIAL_AUTO_WAIT = 1000
@@ -313,7 +315,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                     _copy_struct(pkt.data)
                     _compute_op_temps()
                     self.received_struct = true
-                    out_queue.push_data(svqtypes.SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
+                    out_queue.push_data(SV_Q_DATA.PLC_BUILD_CHANGED, reactor_id)
                 else
                     log.debug(log_tag .. "RPLC struct packet length mismatch")
                 end
@@ -335,7 +337,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
 
                 -- send acknowledgement to coordinator
-                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                out_queue.push_data(SV_Q_DATA.CRDN_ACK, {
                     unit = reactor_id,
                     cmd = UNIT_COMMAND.START,
                     ack = ack
@@ -360,7 +362,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
 
                 -- send acknowledgement to coordinator
-                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                out_queue.push_data(SV_Q_DATA.CRDN_ACK, {
                     unit = reactor_id,
                     cmd = UNIT_COMMAND.SCRAM,
                     ack = ack
@@ -432,7 +434,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
 
                 -- send acknowledgement to coordinator
-                out_queue.push_data(svqtypes.SV_Q_DATA.CRDN_ACK, {
+                out_queue.push_data(SV_Q_DATA.CRDN_ACK, {
                     unit = reactor_id,
                     cmd = UNIT_COMMAND.RESET_RPS,
                     ack = ack
@@ -486,6 +488,9 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.SWITCH_NET then
+                -- request to change the network, passed sequence ID check
+                log.debug(log_tag .. "received valid connection switch request")
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()

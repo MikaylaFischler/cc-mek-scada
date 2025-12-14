@@ -22,10 +22,14 @@ local _bp = {
 
     act_nic = nil,  ---@type nic
     wd_nic = nil,   ---@type nic|nil
-    wl_nic = nil    ---@type nic|nil
+    wl_nic = nil,   ---@type nic|nil
+    nic_map = {}    ---@type nic[] connected nics
 }
 
 local multi_reactor_warn = "BKPLN: do NOT share reactor connections between multiple PLCs! they may not all be protected and used as configured"
+
+-- network interfaces indexed by peripheral names
+backplane.nics = _bp.nic_map
 
 -- initialize the system peripheral backplane<br>
 ---@param config plc_config
@@ -47,12 +51,13 @@ function backplane.init(config, __shared_memory)
         -- init wired NIC
         if type(_bp.lan_iface) == "string" then
             local modem  = ppm.get_modem(_bp.lan_iface)
-            local wd_nic = network.nic(modem)
+            local wd_nic = network.nic(modem, config.SVR_Channel)
 
             log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
 
             _bp.wd_nic  = wd_nic
             _bp.act_nic = wd_nic -- set this as active for now
+            _bp.nic_map[_bp.lan_iface] = wd_nic
 
             wd_nic.closeAll()
             wd_nic.open(config.PLC_Channel)
@@ -63,7 +68,7 @@ function backplane.init(config, __shared_memory)
         -- init wireless NIC(s)
         if config.WirelessModem then
             local modem, iface = ppm.get_wireless_modem()
-            local wl_nic       = network.nic(modem)
+            local wl_nic       = network.nic(modem, config.SVR_Channel)
 
             log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
 
@@ -74,6 +79,7 @@ function backplane.init(config, __shared_memory)
             end
 
             _bp.wl_nic = wl_nic
+            if iface then _bp.nic_map[iface] = wl_nic end
 
             wl_nic.closeAll()
             wl_nic.open(config.PLC_Channel)
@@ -136,6 +142,16 @@ end
 
 -- get the active NIC
 function backplane.active_nic() return _bp.act_nic end
+
+-- get the standby NIC
+---@return nic|nil
+function backplane.standby_nic() return util.trinary(_bp.act_nic == _bp.wl_nic, _bp.wd_nic, _bp.wl_nic) end
+
+-- periodic backplane peripheral tasks
+function backplane.periodic()
+    if _bp.wd_nic then databus.tx_wd_net(_bp.wd_nic.periodic()) end
+    if _bp.wl_nic then databus.tx_wl_net(_bp.wl_nic.periodic()) end
+end
 
 -- handle a backplane peripheral attach
 ---@param iface string
@@ -200,6 +216,7 @@ function backplane.attach(iface, type, device, print_no_fp)
             if wd_nic and (_bp.lan_iface == iface) then
                 -- connect this as the wired NIC
                 wd_nic.connect(device)
+                _bp.nic_map[iface] = wd_nic
 
                 log.info("BKPLN: WIRED PHY_UP " .. iface)
                 print_no_fp("wired comms modem connected")
@@ -216,6 +233,7 @@ function backplane.attach(iface, type, device, print_no_fp)
             elseif wl_nic and (not wl_nic.is_connected()) and m_is_wl then
                 -- connect this as the wireless NIC
                 wl_nic.connect(device)
+                _bp.nic_map[iface] = wl_nic
 
                 log.info("BKPLN: WIRELESS PHY_UP " .. iface)
                 print_no_fp("wireless comms modem connected")
@@ -295,6 +313,8 @@ function backplane.detach(iface, type, device, print_no_fp)
         ---@cast device Modem
 
         log.info(util.c("BKPLN: PHY_DETACH ", iface))
+
+        _bp.nic_map[iface] = nil
 
         if wd_nic and wd_nic.is_modem(device) then
             wd_nic.disconnect()

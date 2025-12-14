@@ -326,6 +326,18 @@ function iocontrol.fp_has_wl_modem(has_modem)
     fp_eval_status()
 end
 
+-- report if the wired network is up
+---@param up boolean
+function iocontrol.fp_has_wd_net(up)
+    io.fp.ps.publish("has_wd_net", up)
+end
+
+-- report if the wireless network is up
+---@param up boolean
+function iocontrol.fp_has_wl_net(up)
+    io.fp.ps.publish("has_wl_net", up)
+end
+
 -- report presence of the speaker
 ---@param has_speaker boolean
 function iocontrol.fp_has_speaker(has_speaker)

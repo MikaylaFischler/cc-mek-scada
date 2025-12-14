@@ -23,7 +23,10 @@ local rtu = {}
 
 local PROTOCOL = comms.PROTOCOL
 local MGMT_TYPE = comms.MGMT_TYPE
+
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+
+local SV_Q_DATA = svqtypes.SV_Q_DATA
 
 local PERIODICS = {
     KEEP_ALIVE = 2000,
@@ -303,6 +306,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.SWITCH_NET then
+                -- request to change the network, passed sequence ID check
+                log.debug(log_tag .. "received valid connection switch request")
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()
@@ -435,7 +441,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data
                         if cmd.key == unit_session.RTU_US_DATA.BUILD_CHANGED then
-                            out_queue.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
+                            out_queue.push_data(SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
                         end
                     end
                 end
