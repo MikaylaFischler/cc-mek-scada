@@ -263,8 +263,7 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
 
     -- handle a packet
     ---@param pkt modbus_adu|mgmt_packet
-    ---@param new_nic nic? new NIC, used/required for SWITCH_NET
-    local function _handle_packet(pkt, new_nic)
+    local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
             log.warning(log_tag .. "sequence out-of-order: next = " .. self.r_seq_num .. ", new = " .. pkt.scada_frame.seq_num())
@@ -308,13 +307,8 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 -- close the session
                 _close()
             elseif pkt.type == MGMT_TYPE.SWITCH_NET then
-                -- request to change the network; passed a sequence ID check, so approve this
-                _send_mgmt(MGMT_TYPE.SWITCH_NET, { new_nic ~= nil })
-
-                if new_nic then
-                    log.debug(log_tag .. "approved connection switch to " .. new_nic.phy_name())
-                    out_queue.push_data(SV_Q_DATA.SWITCHED_NIC, new_nic)
-                end
+                -- request to change the network, passed sequence ID check
+                log.debug(log_tag .. "received valid connection switch request")
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()
@@ -380,14 +374,6 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                     if msg.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(msg.message)
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- instruction with body
-                        local cmd = msg.message ---@type queue_data
-
-                        if cmd.key == SV_Q_DATA.SWITCH_NIC then
-                            -- command to change to this new NIC
-                            _handle_packet(cmd.val[0], cmd.val[1])
-                        end
                     end
                 end
 

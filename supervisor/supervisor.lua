@@ -437,7 +437,10 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
+                        session.nic = nic
+                        session.in_queue.push_network(packet)
+
+                        log.info(util.c("switched session ", session, " to ", nic.phy_name()))
                     else
                         log.debug(util.c("unexpected packet for PLC @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -475,7 +478,10 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
+                        session.nic = nic
+                        session.in_queue.push_network(packet)
+
+                        log.info(util.c("switched session ", session, " to ", nic.phy_name()))
                     else
                         log.debug(util.c("unexpected packet for RTU_GW @ ", src_addr, " received on ", nic.phy_name()))
                     end
@@ -514,7 +520,10 @@ function supervisor.comms(_version, fp_ok, facility)
                     -- this is from the same device but on a different interface
                     -- drop unless it is a connection transfer
                     if (protocol == PROTOCOL.SCADA_MGMT) and (packet.type == MGMT_TYPE.SWITCH_NET) then
-                        session.in_queue.push_data(svqtypes.SV_Q_DATA.SWITCH_NIC, { packet, nic })
+                        session.nic = nic
+                        session.in_queue.push_network(packet)
+
+                        log.info(util.c("switched session ", session, " to ", nic.phy_name()))
                     else
                         log.debug(util.c("unexpected packet for CRD @ ", src_addr, " received on ", nic.phy_name()))
                     end
