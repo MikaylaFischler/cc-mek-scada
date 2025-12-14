@@ -20,6 +20,10 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local LINK_TIMEOUT = 60.0
 
+-- wait 5 seconds after initializing a network switch request before being allowed to send more,
+-- which avoids repeat duplicate requests
+local FAILOVER_GRACE_PERIOD_MS = 5000
+
 local coordinator = {}
 
 ---@type crd_config
@@ -171,6 +175,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
         sv_seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         sv_r_seq_num = nil,               ---@type nil|integer
         sv_config_err = false,
+        failover_init = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW,
         last_api_est_acks = {},
         est_start = 0,
@@ -179,7 +184,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
         est_task_done = nil
     }
 
-    local nic    = backplane.active_nic()
+    local tx_nic = backplane.active_nic()
     local wl_nic = backplane.wireless_nic()
 
     if config.WirelessModem then
@@ -209,7 +214,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
         cntnr.make(msg_type, msg)
         frame.make(self.sv_addr, self.sv_seq_num, protocol, cntnr.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.CRD_Channel, frame)
+        tx_nic.transmit(config.SVR_Channel, config.CRD_Channel, frame)
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
@@ -228,10 +233,16 @@ function coordinator.comms(version, backplane, sv_watchdog)
         self.last_api_est_acks[rx_frame.src_addr()] = ack
     end
 
-    -- attempt connection establishment
-    local function _send_establish()
+    -- send establish request
+    ---@param nic nic nic to transmit on
+    local function _send_establish(nic)
+        local ini_nic = tx_nic
+        tx_nic = nic
+
         self.sv_r_seq_num = nil
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRD })
+
+        tx_nic = ini_nic
     end
 
     -- keep alive ack
@@ -248,20 +259,59 @@ function coordinator.comms(version, backplane, sv_watchdog)
     local public = {}
 
     -- switch the current active NIC
-    ---@param act_nic nic
-    function public.switch_nic(act_nic)
-        public.close()
-        nic = act_nic
+    ---@param new_nic nic
+    function public.switch_nic(new_nic)
+        if tx_nic.is_connected() then
+            -- try to gracefully switch, we have an intact continuous connection
+            log.info(util.c("switching link to reconnected interface ", new_nic.phy_name(), " from ", tx_nic.phy_name()))
+
+            tx_nic = new_nic
+            _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.SWITCH_NET, {})
+        else
+            -- can't gracefully switch, the other NIC was lost
+            log.info(util.c("closing link on ", tx_nic.phy_name(), ", switching to ", new_nic.phy_name()))
+
+            tx_nic = new_nic
+            sv_watchdog.cancel()
+            public.unlink()
+        end
     end
 
-    -- try to connect to the supervisor if not already linked
+    -- maintain the supervisor connection, which consists of establishing it and handling link failover
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)
     ---@return boolean ok, boolean start_ui
-    function public.try_connect(abort)
-        local ok = true
-        local start_ui = false
+    function public.manage_link(abort)
+        local ok, start_ui = true, false
 
-        if not self.sv_linked then
+        if self.sv_linked then
+            -- handle connection failover
+            local act_nic = backplane.active_nic()
+            if (act_nic ~= tx_nic) and act_nic.is_network_up() and ((util.time_ms() - self.failover_init) > FAILOVER_GRACE_PERIOD_MS) then
+                log.info(util.c("primary interface ", act_nic.phy_name(), " is up, requesting link switch"))
+
+                tx_nic = act_nic
+                _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.SWITCH_NET, {})
+
+                self.failover_init = util.time_ms()
+            end
+
+            -- handle UI
+            if self.est_tick_waiting ~= nil then
+                self.est_task_done(true)
+                self.est_tick_waiting = nil
+                self.est_task_done = nil
+                start_ui = true
+            end
+        else
+            local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+            local e_nic = nil
+
+            if a_nic.is_network_up() then
+                e_nic = a_nic
+            elseif s_nic and s_nic.is_network_up() then
+                e_nic = s_nic
+            end
+
             if self.est_tick_waiting == nil then
                 self.est_start = os.clock()
                 self.est_last = self.est_start
@@ -269,7 +319,11 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 self.est_tick_waiting, self.est_task_done =
                     coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_Channel)
 
-                _send_establish()
+                if e_nic then
+                    _send_establish(e_nic)
+                else
+                    log.debug("skipping link attempt, no networks are up")
+                end
             else
                 self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (os.clock() - self.est_start)))
             end
@@ -299,26 +353,31 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
-                _send_establish()
+                if e_nic then
+                    _send_establish(e_nic)
+                else
+                    log.debug("skipping link attempt, no networks are up")
+                end
+
                 self.est_last = os.clock()
             end
-        elseif self.est_tick_waiting ~= nil then
-            self.est_task_done(true)
-            self.est_tick_waiting = nil
-            self.est_task_done = nil
-            start_ui = true
         end
 
         return ok, start_ui
     end
 
-    -- close the connection to the server
-    function public.close()
-        sv_watchdog.cancel()
+    -- unlink from the server
+    function public.unlink()
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
         self.sv_r_seq_num = nil
         iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+    end
+
+    -- close the connection to the server
+    function public.close()
+        sv_watchdog.cancel()
+        public.unlink()
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
     end
 
@@ -659,6 +718,10 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                     }
 
                                     if conf.num_units == config.UnitCount then
+                                        tx_nic = backplane.nics[packet.scada_frame.interface()]
+
+                                        log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
+
                                         -- init io controller
                                         iocontrol.init(conf, public, config.TempScale, config.EnergyScale)
 

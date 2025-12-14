@@ -240,6 +240,10 @@ end
 -- get the active NIC
 function backplane.active_nic() return _bp.act_nic end
 
+-- get the standby NIC
+---@return nic|nil
+function backplane.standby_nic() return util.trinary(_bp.act_nic == _bp.wl_nic, _bp.wd_nic, _bp.wl_nic) end
+
 -- get the wireless NIC
 function backplane.wireless_nic() return _bp.wl_nic end
 
@@ -248,8 +252,8 @@ function backplane.displays() return _bp.displays end
 
 -- periodic backplane peripheral tasks
 function backplane.periodic()
-    if _bp.wd_nic then _bp.wd_nic.periodic() end
-    if _bp.wl_nic then _bp.wl_nic.periodic() end
+    if _bp.wd_nic then iocontrol.fp_has_wd_net(_bp.wd_nic.periodic()) end
+    if _bp.wl_nic then iocontrol.fp_has_wl_net(_bp.wl_nic.periodic()) end
 end
 
 -- handle a backplane peripheral attach

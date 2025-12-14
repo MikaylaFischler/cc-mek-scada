@@ -65,13 +65,44 @@ local function init(panel, config)
     heartbeat.register(ps, "heartbeat", heartbeat.update)
 
     if config.WirelessModem and config.WiredModem then
-        local wd_modem = LED{parent=system,label="WD MODEM",colors=led_grn}
-        local wl_modem = LED{parent=system,label="WL MODEM",colors=led_grn}
-        wd_modem.register(ps, "has_wd_modem", wd_modem.update)
-        wl_modem.register(ps, "has_wl_modem", wl_modem.update)
+        local wd_modem = LEDPair{parent=system,label="WD MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+        local wl_modem = LEDPair{parent=system,label="WL MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+
+        local function wd_modem_update()
+            if ps.get("has_wd_modem") then
+                if ps.get("has_wd_net") then
+                    wd_modem.update(3)
+                else wd_modem.update(2) end
+            else wd_modem.update(1) end
+        end
+
+        local function wl_modem_update()
+            if ps.get("has_wl_modem") then
+                if ps.get("has_wl_net") then
+                    wl_modem.update(3)
+                else wl_modem.update(2) end
+            else wl_modem.update(1) end
+        end
+
+        wd_modem.register(ps, "has_wd_modem", wd_modem_update)
+        wd_modem.register(ps, "has_wd_net", wd_modem_update)
+        wl_modem.register(ps, "has_wl_modem", wl_modem_update)
+        wl_modem.register(ps, "has_wl_net", wl_modem_update)    
     else
-        local modem = LED{parent=system,label="MODEM",colors=led_grn}
-        modem.register(ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
+        local modem = LEDPair{parent=system,label="MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+
+        local pfx = util.trinary(config.WirelessModem, "has_wl_", "has_wd_")
+
+        local function modem_update()
+            if ps.get(pfx .. "modem") then
+                if ps.get(pfx .. "net") then
+                    modem.update(3)
+                else modem.update(2) end
+            else modem.update(1) end
+        end
+
+        modem.register(ps, pfx .. "modem", modem_update)
+        modem.register(ps, pfx .. "net", modem_update)
     end
 
     if not style.colorblind then

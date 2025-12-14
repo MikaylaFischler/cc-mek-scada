@@ -79,7 +79,7 @@ function threads.thread__main(smem)
                     backplane.periodic()
 
                     -- maintain connection
-                    local ok, start_ui = coord_comms.try_connect()
+                    local ok, start_ui = coord_comms.manage_link()
                     if not ok then
                         crd_state.link_fail = true
                         crd_state.shutdown = true
@@ -155,7 +155,7 @@ function threads.thread__main(smem)
 
             if crd_state.shutdown then
                 -- handle closing supervisor connection
-                coord_comms.try_connect(true)
+                coord_comms.manage_link(true)
 
                 if coord_comms.is_linked() then
                     log_comms("closing supervisor connection...")
