@@ -164,7 +164,7 @@ function backplane.init(config, __shared_memory)
     -- init wired NIC
     if type(_bp.lan_iface) == "string" then
         local modem  = ppm.get_modem(_bp.lan_iface)
-        local wd_nic = network.nic(modem)
+        local wd_nic = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRED PHY_" .. util.trinary(modem, "UP ", "DOWN ") .. _bp.lan_iface)
         log_comms("wired comms modem " .. util.trinary(modem, "connected", "not found"))
@@ -182,7 +182,7 @@ function backplane.init(config, __shared_memory)
     -- init wireless NIC(s)
     if config.WirelessModem then
         local modem, iface = ppm.get_wireless_modem()
-        local wl_nic       = network.nic(modem)
+        local wl_nic       = network.nic(modem, config.SVR_Channel)
 
         log.info("BKPLN: WIRELESS PHY_" .. util.trinary(modem, "UP ", "DOWN") .. (iface or ""))
         log_comms("wireless comms modem " .. util.trinary(modem, "connected", "not found"))
