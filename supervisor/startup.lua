@@ -159,9 +159,13 @@ local function main()
     -- init startup recovery
     sv_facility.boot_recovery_init(supervisor.boot_state)
 
+    -- local counters = {}
+
     -- event loop
     while true do
         local event, param1, param2, param3, param4, param5 = util.pull_event()
+
+        -- counters[event] = (counters[event] or 0) + 1
 
         -- handle event
         if event == "peripheral_detach" then
@@ -188,6 +192,8 @@ local function main()
 
             -- start next clock timer
             loop_clock.start()
+
+            -- log.debug(textutils.serialize(counters, { compact = true })); counters = {}
         elseif event == "timer" then
             -- a non-clock timer event, check watchdogs
             svsessions.check_all_watchdogs(param1)
