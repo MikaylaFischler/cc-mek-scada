@@ -68,17 +68,26 @@ function threads.thread__main(smem)
                 -- periodic hardware tasks
                 backplane.periodic()
 
-                -- send updated data
+                -- send updated data or try to link
                 if networked then
                     if plc_comms.is_linked() then
                         smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
-                    elseif backplane.active_nic().is_connected() then
-                        if ticks_to_update == 0 then
-                            plc_comms.send_link_req()
-                            ticks_to_update = LINK_TICKS
+
+                        plc_comms.manage_failover(backplane.active_nic())
+                    elseif ticks_to_update == 0 then
+                        local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+
+                        if a_nic.is_network_up() then
+                            plc_comms.send_link_req(a_nic)
+                        elseif s_nic and s_nic.is_network_up() then
+                            plc_comms.send_link_req(s_nic)
                         else
-                            ticks_to_update = ticks_to_update - 1
+                            log.debug("skipping link attempt, no networks are up")
                         end
+
+                        ticks_to_update = LINK_TICKS
+                    else
+                        ticks_to_update = ticks_to_update - 1
                     end
                 end
 

@@ -73,6 +73,18 @@ function databus.tx_hw_status(plc_state)
     eval_status()
 end
 
+-- transmit if the wired network is up
+---@param up boolean
+function databus.tx_wd_net(up)
+    databus.ps.publish("has_wd_net", up)
+end
+
+-- transmit if the wireless network is up
+---@param up boolean
+function databus.tx_wl_net(up)
+    databus.ps.publish("has_wl_net", up)
+end
+
 -- transmit if the reactor dangerously has multiple fission reactor logic adapters
 ---@param multi boolean has multiple reactors
 function databus.tx_multi_reactor(multi)
