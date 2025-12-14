@@ -19,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.10.6"
+local R_PLC_VERSION = "v1.10.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -93,8 +93,8 @@ local function main()
             degraded = true,
             no_reactor = true,
             reactor_formed = true,
-            wd_modem = false,
-            wl_modem = false
+            wd_modem = true,
+            wl_modem = true
         },
 
         -- control setpoints
