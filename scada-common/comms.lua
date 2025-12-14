@@ -208,7 +208,7 @@ function comms.lld_frame()
     ---@param reply_to integer reply channel
     ---@param message any message body
     ---@param distance integer transmission distance
-    ---@return boolean valid valid frame received (including not expired)
+    ---@return boolean valid valid frame received
     function public.receive(side, sender, reply_to, message, distance)
         ---@class modem_frame
         self.modem_frame = {
