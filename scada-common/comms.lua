@@ -2,8 +2,7 @@
 -- SCADA Network Communications Objects
 --
 
-local log  = require("scada-common.log")
-local util = require("scada-common.util")
+local log = require("scada-common.log")
 
 -- basic acceleration aliases
 

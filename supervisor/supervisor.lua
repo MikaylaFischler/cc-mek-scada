@@ -7,7 +7,6 @@ local themes     = require("graphics.themes")
 
 local backplane  = require("supervisor.backplane")
 
-local svqtypes   = require("supervisor.session.svqtypes")
 local svsessions = require("supervisor.session.svsessions")
 
 local supervisor = {}

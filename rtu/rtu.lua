@@ -457,9 +457,9 @@ function rtu.comms(version, backplane, conn_watchdog)
     ---@param distance integer
     ---@return modbus_adu|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, frame, nic = nil, nil, backplane.nics[side]
+        local pkt, nic = nil, backplane.nics[side]
 
-        frame = nic.receive(side, sender, reply_to, message, distance)
+        local frame = nic.receive(side, sender, reply_to, message, distance)
 
         if frame then
             if frame.protocol() == PROTOCOL.MODBUS_TCP then
