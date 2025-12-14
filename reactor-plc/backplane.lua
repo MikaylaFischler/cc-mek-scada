@@ -205,7 +205,7 @@ function backplane.attach(iface, type, device, print_no_fp)
 
             -- partial reset of RPS, specific to becoming formed/reconnected
             -- without this, auto control can't resume on chunk load
-            sys.rps.reset_reattach()
+            _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.RESET_REATTACH)
         elseif networked and type == "modem" then
             ---@cast device Modem
 

@@ -130,7 +130,8 @@ local function main()
             MQ__RPS_CMD = {
                 SCRAM = 1,
                 DEGRADED_SCRAM = 2,
-                TRIP_TIMEOUT = 3
+                TRIP_TIMEOUT = 3,
+                RESET_REATTACH = 4
             },
             MQ__COMM_CMD = {
                 SEND_STATUS = 1

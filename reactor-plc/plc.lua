@@ -518,8 +518,6 @@ function plc.rps_init(reactor, is_formed)
         self.tripped = false
         self.trip_cause = RPS_TRIP_CAUSE.OK
 
-        self.formed = true
-
         self.state[CHK.FAULT] = false
         self.state[CHK.SYS_FAIL] = false
 

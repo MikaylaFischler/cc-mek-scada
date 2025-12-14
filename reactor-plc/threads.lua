@@ -107,7 +107,7 @@ function threads.thread__main(smem)
 
                     -- partial reset of RPS, specific to becoming formed
                     -- without this, auto control can't resume on chunk load
-                    rps.reset_reattach()
+                    smem.q.mq_rps.push_command(MQ__RPS_CMD.RESET_REATTACH)
                 elseif plc_state.reactor_formed and (rps.is_formed() == false) then
                     -- reactor no longer formed
                     println_ts("reactor is no longer formed")
@@ -275,6 +275,9 @@ function threads.thread__rps(smem)
                             println_ts("RPS: supervisor timeout")
                             log.warning("RPS: received supervisor timeout alert")
                             rps.trip_timeout()
+                        elseif msg.message == MQ__RPS_CMD.RESET_REATTACH then
+                            -- reset on reactor re-connect
+                            rps.reset_reattach()
                         end
                     end
                 end
