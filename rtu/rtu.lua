@@ -1,14 +1,15 @@
-local audio   = require("scada-common.audio")
-local comms   = require("scada-common.comms")
-local ppm     = require("scada-common.ppm")
-local log     = require("scada-common.log")
-local types   = require("scada-common.types")
-local util    = require("scada-common.util")
+local audio     = require("scada-common.audio")
+local comms     = require("scada-common.comms")
+local ppm       = require("scada-common.ppm")
+local log       = require("scada-common.log")
+local types     = require("scada-common.types")
+local util      = require("scada-common.util")
 
-local themes  = require("graphics.themes")
+local themes    = require("graphics.themes")
 
-local databus = require("rtu.databus")
-local modbus  = require("rtu.modbus")
+local backplane = require("rtu.backplane")
+local databus   = require("rtu.databus")
+local modbus    = require("rtu.modbus")
 
 local rtu = {}
 
@@ -17,6 +18,10 @@ local DEVICE_TYPE = comms.DEVICE_TYPE
 local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+
+-- wait 5 seconds after initializing a network switch request before being allowed to send more,
+-- which avoids repeat duplicate requests
+local FAILOVER_GRACE_PERIOD_MS = 5000
 
 ---@type rtu_config
 ---@diagnostic disable-next-line: missing-fields
@@ -293,14 +298,15 @@ end
 -- RTU Communications
 ---@nodiscard
 ---@param version string RTU version
----@param nic nic network interface device
+---@param tx_nic nic network interface device
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, nic, conn_watchdog)
+function rtu.comms(version, tx_nic, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         r_seq_num = nil,               ---@type nil|integer
         txn_id = 0,
+        failover_init = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
 
@@ -321,7 +327,7 @@ function rtu.comms(version, nic, conn_watchdog)
         mgmt.make(msg_type, msg)
         frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
+        tx_nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -357,11 +363,36 @@ function rtu.comms(version, nic, conn_watchdog)
     local public = {}
 
     -- switch the current active NIC
-    ---@param act_nic nic
+    ---@param new_nic nic
     ---@param rtu_state rtu_state
-    function public.switch_nic(act_nic, rtu_state)
-        public.close(rtu_state)
-        nic = act_nic
+    function public.switch_nic(new_nic, rtu_state)
+        if tx_nic.is_connected() then
+            -- try to gracefully switch, we have an intact continuous connection
+            log.info(util.c("switching link to reconnected interface ", new_nic.phy_name(), " from ", tx_nic.phy_name()))
+
+            tx_nic = new_nic
+            _send(MGMT_TYPE.SWITCH_NET, {})
+        else
+            -- can't gracefully switch, the other NIC was lost
+            log.info(util.c("closing link on ", tx_nic.phy_name(), ", switching to ", new_nic.phy_name()))
+
+            tx_nic = new_nic
+            conn_watchdog.cancel()
+            public.unlink(rtu_state)
+        end
+    end
+
+    -- check if the provided NIC is currently active, and if not, switch back to it
+    ---@param act_nic nic
+    function public.manage_failover(act_nic)
+        if (act_nic ~= tx_nic) and act_nic.is_network_up() and ((util.time_ms() - self.failover_init) > FAILOVER_GRACE_PERIOD_MS) then
+            log.info(util.c("primary interface ", act_nic.phy_name(), " is up, requesting link switch"))
+
+            tx_nic = act_nic
+            _send(MGMT_TYPE.SWITCH_NET, {})
+
+            self.failover_init = util.time_ms()
+        end
     end
 
     -- unlink from the server
@@ -388,15 +419,20 @@ function rtu.comms(version, nic, conn_watchdog)
 
         frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
+        tx_nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
     -- send establish request (includes advertisement)
     ---@param units table
-    function public.send_establish(units)
+    function public.send_establish(nic, units)
+        local ini_nic = tx_nic
+        tx_nic = nic
+
         self.r_seq_num = nil
         _send(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
+
+        tx_nic = ini_nic
     end
 
     -- send capability advertisement
@@ -420,8 +456,9 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param distance integer
     ---@return modbus_adu|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local frame = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, frame, nic = nil, nil, backplane.nics[side]
+
+        frame = nic.receive(side, sender, reply_to, message, distance)
 
         if frame then
             if frame.protocol() == PROTOCOL.MODBUS_TCP then
@@ -561,10 +598,13 @@ function rtu.comms(version, nic, conn_watchdog)
 
                         if est_ack == ESTABLISH_ACK.ALLOW then
                             -- establish allowed
+                            tx_nic = backplane.nics[packet.scada_frame.interface()]
+
                             rtu_state.linked = true
                             self.sv_addr = packet.scada_frame.src_addr()
+
                             println_ts("supervisor connection established")
-                            log.info("supervisor connection established")
+                            log.info(util.c("supervisor connection established, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
                         else
                             -- establish denied
                             if est_ack ~= self.last_est_ack then

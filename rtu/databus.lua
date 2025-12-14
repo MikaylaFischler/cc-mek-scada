@@ -63,6 +63,18 @@ function databus.tx_hw_wl_modem(has_modem)
     eval_status()
 end
 
+-- transmit if the wired network is up
+---@param up boolean
+function databus.tx_wd_net(up)
+    databus.ps.publish("has_wd_net", up)
+end
+
+-- transmit if the wireless network is up
+---@param up boolean
+function databus.tx_wl_net(up)
+    databus.ps.publish("has_wl_net", up)
+end
+
 -- transmit the number of speakers connected
 ---@param count integer
 function databus.tx_hw_spkr_count(count)
