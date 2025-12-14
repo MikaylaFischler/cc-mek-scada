@@ -234,8 +234,6 @@ function threads.thread__main(smem)
                         rtu_comms.send_establish(a_nic, units)
                     elseif s_nic and s_nic.is_network_up() then
                         rtu_comms.send_establish(s_nic, units)
-                    else
-                        log.debug("skipping link attempt, no networks are up")
                     end
                 end
 

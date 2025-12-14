@@ -81,8 +81,6 @@ function threads.thread__main(smem)
                             plc_comms.send_link_req(a_nic)
                         elseif s_nic and s_nic.is_network_up() then
                             plc_comms.send_link_req(s_nic)
-                        else
-                            log.debug("skipping link attempt, no networks are up")
                         end
 
                         ticks_to_update = LINK_TICKS

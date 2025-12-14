@@ -319,11 +319,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 self.est_tick_waiting, self.est_task_done =
                     coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_Channel)
 
-                if e_nic then
-                    _send_establish(e_nic)
-                else
-                    log.debug("skipping link attempt, no networks are up")
-                end
+                if e_nic then _send_establish(e_nic) end
             else
                 self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (os.clock() - self.est_start)))
             end
@@ -353,12 +349,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
-                if e_nic then
-                    _send_establish(e_nic)
-                else
-                    log.debug("skipping link attempt, no networks are up")
-                end
-
+                if e_nic then _send_establish(e_nic) end
                 self.est_last = os.clock()
             end
         end
