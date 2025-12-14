@@ -21,7 +21,7 @@ local rtu       = require("rtu.rtu")
 local threads   = require("rtu.threads")
 local uinit     = require("rtu.uinit")
 
-local RTU_VERSION = "v1.13.4"
+local RTU_VERSION = "v1.13.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -137,7 +137,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- setup comms
-        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, backplane.active_nic(), smem_sys.conn_watchdog)
+        smem_sys.rtu_comms = rtu.comms(RTU_VERSION, backplane, smem_sys.conn_watchdog)
         log.debug("startup> comms init")
 
         -- init threads

@@ -1,15 +1,14 @@
-local audio     = require("scada-common.audio")
-local comms     = require("scada-common.comms")
-local ppm       = require("scada-common.ppm")
-local log       = require("scada-common.log")
-local types     = require("scada-common.types")
-local util      = require("scada-common.util")
+local audio   = require("scada-common.audio")
+local comms   = require("scada-common.comms")
+local ppm     = require("scada-common.ppm")
+local log     = require("scada-common.log")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
-local themes    = require("graphics.themes")
+local themes  = require("graphics.themes")
 
-local backplane = require("rtu.backplane")
-local databus   = require("rtu.databus")
-local modbus    = require("rtu.modbus")
+local databus = require("rtu.databus")
+local modbus  = require("rtu.modbus")
 
 local rtu = {}
 
@@ -298,9 +297,9 @@ end
 -- RTU Communications
 ---@nodiscard
 ---@param version string RTU version
----@param tx_nic nic network interface device
+---@param backplane rtu_backplane RTU backplane
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, tx_nic, conn_watchdog)
+function rtu.comms(version, backplane, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
@@ -311,6 +310,8 @@ function rtu.comms(version, tx_nic, conn_watchdog)
     }
 
     local insert = table.insert
+
+    local tx_nic = backplane.active_nic()
 
     if config.WirelessModem then
         comms.set_trusted_range(config.TrustedRange)
