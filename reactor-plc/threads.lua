@@ -146,20 +146,20 @@ function threads.thread__main(smem)
                    event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-            elseif event == "peripheral_detach" then
-                -- peripheral disconnect
-                local type, device = ppm.handle_unmount(param1)
-                if type ~= nil and device ~= nil then
-                    backplane.detach(param1, type, device, println_ts)
-                end
-
-                -- update indicators
-                databus.tx_hw_status(plc_state)
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
                 if type ~= nil and device ~= nil then
                     backplane.attach(param1, type, device, println_ts)
+                end
+
+                -- update indicators
+                databus.tx_hw_status(plc_state)
+            elseif event == "peripheral_detach" then
+                -- peripheral disconnect
+                local type, device = ppm.handle_unmount(param1)
+                if type ~= nil and device ~= nil then
+                    backplane.detach(param1, type, device, println_ts)
                 end
 
                 -- update indicators

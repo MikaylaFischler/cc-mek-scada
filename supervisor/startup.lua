@@ -203,15 +203,15 @@ local function main()
                event == "double_click" then
             -- handle a mouse event
             renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-        elseif event == "peripheral_detach" then
-            local type, device = ppm.handle_unmount(param1)
-            if type ~= nil and device ~= nil then
-                backplane.detach(param1, type, device, println_ts)
-            end
         elseif event == "peripheral" then
             local type, device = ppm.mount(param1)
             if type ~= nil and device ~= nil then
                 backplane.attach(param1, type, device, println_ts)
+            end
+        elseif event == "peripheral_detach" then
+            local type, device = ppm.handle_unmount(param1)
+            if type ~= nil and device ~= nil then
+                backplane.detach(param1, type, device, println_ts)
             end
         end
 

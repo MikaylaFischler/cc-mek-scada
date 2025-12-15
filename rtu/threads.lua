@@ -274,6 +274,20 @@ function threads.thread__main(smem)
                    event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+            elseif event == "peripheral" then
+                -- peripheral connect
+                local type, device = ppm.mount(param1)
+
+                if type ~= nil and device ~= nil then
+                    if type == "modem" or type == "speaker" then
+                        backplane.attach(type, device, param1, println_ts)
+                    else
+                        -- relink lost peripheral to correct unit entry
+                        for i = 1, #units do
+                            handle_unit_mount(smem, println_ts, param1, type, device, units[i])
+                        end
+                    end
+                end
             elseif event == "peripheral_detach" then
                 -- handle loss of a device
                 local type, device = ppm.handle_unmount(param1)
@@ -296,20 +310,6 @@ function threads.thread__main(smem)
                                 databus.tx_unit_hw_status(unit.uid, unit.hw_state)
                                 break
                             end
-                        end
-                    end
-                end
-            elseif event == "peripheral" then
-                -- peripheral connect
-                local type, device = ppm.mount(param1)
-
-                if type ~= nil and device ~= nil then
-                    if type == "modem" or type == "speaker" then
-                        backplane.attach(type, device, param1, println_ts)
-                    else
-                        -- relink lost peripheral to correct unit entry
-                        for i = 1, #units do
-                            handle_unit_mount(smem, println_ts, param1, type, device, units[i])
                         end
                     end
                 end

@@ -135,15 +135,15 @@ function threads.thread__main(smem)
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             elseif event == "monitor_resize" then
                 smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_RESIZE, param1)
-            elseif event == "peripheral_detach" then
-                local type, device = ppm.handle_unmount(param1)
-                if type ~= nil and device ~= nil then
-                    backplane.detach(type, device, param1)
-                end
             elseif event == "peripheral" then
                 local type, device = ppm.mount(param1)
                 if type ~= nil and device ~= nil then
                     backplane.attach(type, device, param1)
+                end
+            elseif event == "peripheral_detach" then
+                local type, device = ppm.handle_unmount(param1)
+                if type ~= nil and device ~= nil then
+                    backplane.detach(type, device, param1)
                 end
             end
 
