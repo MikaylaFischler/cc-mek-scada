@@ -63,7 +63,7 @@ local function new_view(root, x, y)
 
     local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
-    local scram = HazardButton{parent=main,x=1,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=db.process.fac_scram,fg_bg=hzd_fg_bg}
+    local scram = HazardButton{parent=main,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=db.process.fac_scram,fg_bg=hzd_fg_bg}
     local ack_a = HazardButton{parent=main,x=16,y=1,text="ACK \x13",accent=colors.orange,dis_colors=dis_colors,callback=db.process.fac_ack_alarms,fg_bg=hzd_fg_bg}
 
     db.process.fac_ack.on_scram = scram.on_response
@@ -125,9 +125,9 @@ local function new_view(root, x, y)
     -- process control targets --
     -----------------------------
 
-    local targets = Div{parent=proc,width=31,height=24,x=1,y=1}
+    local targets = Div{parent=proc,width=31,height=24,y=1}
 
-    local burn_tag = Div{parent=targets,x=1,y=1,width=8,height=4,fg_bg=blk_pur}
+    local burn_tag = Div{parent=targets,y=1,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=burn_tag,x=2,y=2,text="Burn Target",width=7,height=2}
 
     local burn_target = Div{parent=targets,x=9,y=1,width=23,height=3,fg_bg=s_hi_box}
@@ -138,7 +138,7 @@ local function new_view(root, x, y)
     b_target.register(facility.ps, "process_burn_target", b_target.set_value)
     burn_sum.register(facility.ps, "burn_sum", burn_sum.update)
 
-    local chg_tag = Div{parent=targets,x=1,y=6,width=8,height=4,fg_bg=blk_pur}
+    local chg_tag = Div{parent=targets,y=6,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
 
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
@@ -149,7 +149,7 @@ local function new_view(root, x, y)
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
     cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
 
-    local gen_tag = Div{parent=targets,x=1,y=11,width=8,height=4,fg_bg=blk_pur}
+    local gen_tag = Div{parent=targets,y=11,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
 
     local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=s_hi_box}
@@ -187,7 +187,7 @@ local function new_view(root, x, y)
 
         local _y = ((i - 1) * 5) + 1
 
-        local unit_tag = Div{parent=limit_div,x=1,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
+        local unit_tag = Div{parent=limit_div,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Limit",width=7,height=2}
 
         local lim_ctl = Div{parent=limit_div,x=9,y=_y,width=14,height=3,fg_bg=s_hi_box}
@@ -226,7 +226,7 @@ local function new_view(root, x, y)
 
         local _y = ((i - 1) * 5) + 1
 
-        local unit_tag = Div{parent=stat_div,x=1,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
+        local unit_tag = Div{parent=stat_div,y=_y,width=8,height=4,fg_bg=tag_fg_bg}
         TextBox{parent=unit_tag,x=2,y=2,text="Unit "..i.." Status",width=7,height=2}
 
         local lights   = Div{parent=stat_div,x=9,y=_y,width=14,height=4,fg_bg=ind_fg_bg}
@@ -250,14 +250,14 @@ local function new_view(root, x, y)
 
     mode.register(facility.ps, "process_mode", mode.set_value)
 
-    local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,x=1,y=16,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=31,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=31,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.white)}
+    local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,y=16,fg_bg=bw_fg_bg}
+    local stat_line_1 = TextBox{parent=u_stat,y=1,text="UNKNOWN",width=31,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,y=2,text="awaiting data...",width=31,alignment=ALIGN.CENTER,fg_bg=cpair(colors.gray,colors.white)}
 
     stat_line_1.register(facility.ps, "status_line_1", stat_line_1.set_value)
     stat_line_2.register(facility.ps, "status_line_2", stat_line_2.set_value)
 
-    local auto_controls = Div{parent=proc,x=1,y=20,width=31,height=5,fg_bg=s_hi_box}
+    local auto_controls = Div{parent=proc,y=20,width=31,height=5,fg_bg=s_hi_box}
 
     -- save the automatic process control configuration without starting
     local function _save_cfg()
@@ -335,10 +335,10 @@ local function new_view(root, x, y)
 
     local cutout_fg_bg = cpair(style.theme.bg, colors.brown)
 
-    TextBox{parent=waste_sel,text=" ",width=21,x=1,y=1,fg_bg=cutout_fg_bg}
-    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,x=1,y=2,fg_bg=cutout_fg_bg}
+    TextBox{parent=waste_sel,text=" ",width=21,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=waste_sel,text="WASTE PRODUCTION",alignment=ALIGN.CENTER,width=21,y=2,fg_bg=cutout_fg_bg}
 
-    local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,x=1,y=3}
+    local rect   = Rectangle{parent=waste_sel,border=border(1,colors.brown,true),width=21,height=22,y=3}
     local status = StateIndicator{parent=rect,x=2,y=1,states=style.get_waste().states,value=1,min_width=17}
 
     status.register(facility.ps, "current_waste_product", status.update)

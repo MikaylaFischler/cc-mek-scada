@@ -45,10 +45,10 @@ local function new_view(root, x, y, ps, id)
     -- black has low contrast with dark gray, so if background is black use white instead
     local cutout_fg_bg = cpair(util.trinary(style.theme.bg == colors.black, colors.white, style.theme.bg), colors.gray)
 
-    TextBox{parent=matrix,text=" ",width=33,x=1,y=1,fg_bg=cutout_fg_bg}
-    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,x=1,y=2,fg_bg=cutout_fg_bg}
+    TextBox{parent=matrix,text=" ",width=33,y=1,fg_bg=cutout_fg_bg}
+    TextBox{parent=matrix,text=title,alignment=ALIGN.CENTER,width=33,y=2,fg_bg=cutout_fg_bg}
 
-    local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,x=1,y=3}
+    local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,y=3}
 
     local status    = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
     local capacity  = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}

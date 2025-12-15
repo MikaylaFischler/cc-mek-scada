@@ -22,10 +22,10 @@ local cpair = core.cpair
 ---@param y integer y offset
 local function init(parent, y, is_api)
     -- root div
-    local root = Div{parent=parent,x=1,y=1}
+    local root = Div{parent=parent,y=1}
 
     -- bounding box div
-    local box = Div{parent=root,x=1,y=y,height=12}
+    local box = Div{parent=root,y=y,height=12}
 
     local waiting_x = math.floor(parent.get_width() / 2) - 1
 

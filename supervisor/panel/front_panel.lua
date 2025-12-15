@@ -48,13 +48,13 @@ local function init(panel, config)
 
     TextBox{parent=panel,y=1,text="SCADA SUPERVISOR",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
 
-    local page_div = Div{parent=panel,x=1,y=3}
+    local page_div = Div{parent=panel,y=3}
 
     --
     -- system indicators
     --
 
-    local main_page = Div{parent=page_div,x=1,y=1}
+    local main_page = Div{parent=page_div,y=1}
 
     local system = Div{parent=main_page,width=18,height=17,x=2,y=2}
 
@@ -94,16 +94,16 @@ local function init(panel, config)
 
     -- plc sessions page
 
-    local plc_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local plc_page = Div{parent=page_div,y=1,hidden=true}
     local plc_list = Div{parent=plc_page,x=2,y=2,width=term_w-2}
 
     for i = 1, supervisor.config.UnitCount do
         local ps_prefix = "plc_" .. i .. "_"
         local plc_entry = Div{parent=plc_list,height=3,fg_bg=s_hi_bright}
 
-        TextBox{parent=plc_entry,x=1,y=1,text="",width=8,fg_bg=s_hi_box}
-        TextBox{parent=plc_entry,x=1,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box}
-        TextBox{parent=plc_entry,x=1,y=3,text="",width=8,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,y=1,text="",width=8,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,y=2,text="UNIT "..i,alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box}
+        TextBox{parent=plc_entry,y=3,text="",width=8,fg_bg=s_hi_box}
 
         local conn = LED{parent=plc_entry,x=10,y=2,label="LINK",colors=cpair(colors.green_hc,colors.green_off)}
         conn.register(databus.ps, ps_prefix .. "conn", conn.update)
@@ -126,13 +126,13 @@ local function init(panel, config)
 
     -- rtu sessions page
 
-    local rtu_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local rtu_page = Div{parent=page_div,y=1,hidden=true}
     local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=rtu_list,height=1} -- padding
 
     -- coordinator session page
 
-    local crd_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local crd_page = Div{parent=page_div,y=1,hidden=true}
     local crd_box = Div{parent=crd_page,x=2,y=2,width=term_w-2,height=4,fg_bg=s_hi_bright}
 
     local crd_conn = LED{parent=crd_box,x=2,y=2,label="CONNECTION",colors=cpair(colors.green_hc,colors.green_off)}
@@ -184,7 +184,7 @@ local function init(panel, config)
 
     local panes = { main_page, plc_page, rtu_page, crd_page, pkt_page, chk_page, info_page }
 
-    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+    local page_pane = MultiPane{parent=page_div,y=1,panes=panes}
 
     local tabs = {
         { name = "SVR", color = style.fp.text },

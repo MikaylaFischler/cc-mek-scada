@@ -72,11 +72,11 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
     local peri_c_6 = Div{parent=peri_cfg,x=2,y=4,width=49}
     local peri_c_7 = Div{parent=peri_cfg,x=2,y=4,width=49}
 
-    local peri_pane = MultiPane{parent=peri_cfg,x=1,y=4,panes={peri_c_1,peri_c_2,peri_c_3,peri_c_4,peri_c_5,peri_c_6,peri_c_7}}
+    local peri_pane = MultiPane{parent=peri_cfg,y=4,panes={peri_c_1,peri_c_2,peri_c_3,peri_c_4,peri_c_5,peri_c_6,peri_c_7}}
 
-    TextBox{parent=peri_cfg,x=1,y=2,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
+    TextBox{parent=peri_cfg,y=2,text=" Peripheral Connections",fg_bg=cpair(colors.black,colors.purple)}
 
-    local peri_list = ListBox{parent=peri_c_1,x=1,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local peri_list = ListBox{parent=peri_c_1,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function peri_revert()
         tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
@@ -99,22 +99,22 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         end
     end
 
-    PushButton{parent=peri_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     local peri_revert_btn = PushButton{parent=peri_c_1,x=8,y=14,min_width=16,text="Revert Changes",callback=peri_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=peri_c_1,x=35,y=14,min_width=7,text="Add +",callback=function()peri_pane.set_value(2)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     local peri_apply_btn = PushButton{parent=peri_c_1,x=43,y=14,min_width=7,text="Apply",callback=peri_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
-    TextBox{parent=peri_c_2,x=1,y=1,text="Select one of the below devices to use."}
+    TextBox{parent=peri_c_2,y=1,text="Select one of the below devices to use."}
 
-    self.ppm_devs = ListBox{parent=peri_c_2,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.ppm_devs = ListBox{parent=peri_c_2,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=peri_c_2,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_2,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=8,y=14,min_width=10,text="Manual +",callback=function()peri_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_2,x=26,y=14,min_width=24,text="I don't see my device!",callback=function()peri_pane.set_value(7)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_7,x=1,y=1,height=10,text="Make sure your device is either touching the RTU or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
-    TextBox{parent=peri_c_7,x=1,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
-    PushButton{parent=peri_c_7,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=peri_c_7,y=1,height=10,text="Make sure your device is either touching the RTU or connected via wired modems. There should be a wired modem on a side of the RTU then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
+    TextBox{parent=peri_c_7,y=9,height=4,text="If it still does not show, it may not be compatible. Currently only Boilers, Turbines, Dynamic Tanks, SNAs, SPSs, Induction Matricies, and Environment Detectors are supported."}
+    PushButton{parent=peri_c_7,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local new_peri_attrs = { "", "" }
     local function new_peri(name, type)
@@ -201,7 +201,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
 
                 ---@cast entry ppm_entry
                 local line = Div{parent=self.ppm_devs,height=2,fg_bg=cpair(colors.black,bkg)}
-                PushButton{parent=line,x=1,y=1,min_width=9,alignment=LEFT,height=1,text="> SELECT",callback=function()new_peri(name,entry.type)end,fg_bg=cpair(colors.black,colors.purple),active_fg_bg=cpair(colors.white,colors.black)}
+                PushButton{parent=line,y=1,min_width=9,alignment=LEFT,height=1,text="> SELECT",callback=function()new_peri(name,entry.type)end,fg_bg=cpair(colors.black,colors.purple),active_fg_bg=cpair(colors.white,colors.black)}
                 TextBox{parent=line,x=11,y=1,text=name,fg_bg=cpair(colors.black,bkg)}
                 TextBox{parent=line,x=11,y=2,text=entry.type,fg_bg=cpair(colors.gray,bkg)}
 
@@ -212,10 +212,10 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
 
     tool_ctl.update_peri_list()
 
-    TextBox{parent=peri_c_3,x=1,y=1,height=4,text="This feature is intended for advanced users. If you just can't see your device, click 'I don't see my device!' instead."}
-    TextBox{parent=peri_c_3,x=1,y=5,height=4,text="Peripheral Name"}
-    local p_name = TextField{parent=peri_c_3,x=1,y=6,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
-    local p_type = Radio2D{parent=peri_c_3,x=1,y=8,rows=5,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    TextBox{parent=peri_c_3,y=1,height=4,text="This feature is intended for advanced users. If you just can't see your device, click 'I don't see my device!' instead."}
+    TextBox{parent=peri_c_3,y=5,height=4,text="Peripheral Name"}
+    local p_name = TextField{parent=peri_c_3,y=6,width=49,height=1,max_len=128,fg_bg=bw_fg_bg}
+    local p_type = Radio2D{parent=peri_c_3,y=8,rows=5,columns=2,default=1,options=RTU_DEV_TYPES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
     local man_p_err = TextBox{parent=peri_c_3,x=8,y=14,width=35,text="Please enter a peripheral name.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     man_p_err.hide(true)
 
@@ -228,13 +228,13 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         else man_p_err.show() end
     end
 
-    PushButton{parent=peri_c_3,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_3,y=14,text="\x1b Back",callback=function()peri_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_3,x=44,y=14,text="Next \x1a",callback=submit_manual_peri,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    self.p_name_msg = TextBox{parent=peri_c_4,x=1,y=1,height=2,text=""}
-    self.p_prompt = TextBox{parent=peri_c_4,x=1,y=4,height=2,text=""}
+    self.p_name_msg = TextBox{parent=peri_c_4,y=1,height=2,text=""}
+    self.p_prompt = TextBox{parent=peri_c_4,y=4,height=2,text=""}
     self.p_idx = NumberField{parent=peri_c_4,x=31,y=4,width=4,max_chars=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    self.p_assign_btn = RadioButton{parent=peri_c_4,x=1,y=5,default=1,options={"the facility","reactor unit #"},callback=function(v)self.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    self.p_assign_btn = RadioButton{parent=peri_c_4,y=5,default=1,options={"the facility","reactor unit #"},callback=function(v)self.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
 
     self.p_unit = NumberField{parent=peri_c_4,x=23,y=4,width=4,max_chars=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     self.p_unit.disable()
@@ -252,8 +252,8 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         end
     end
 
-    self.p_desc = TextBox{parent=peri_c_4,x=1,y=7,height=6,text="",fg_bg=g_lg_fg_bg}
-    self.p_desc_ext = TextBox{parent=peri_c_4,x=1,y=6,height=7,text="",fg_bg=g_lg_fg_bg}
+    self.p_desc = TextBox{parent=peri_c_4,y=7,height=6,text="",fg_bg=g_lg_fg_bg}
+    self.p_desc_ext = TextBox{parent=peri_c_4,y=6,height=7,text="",fg_bg=g_lg_fg_bg}
 
     self.p_err = TextBox{parent=peri_c_4,x=8,y=14,width=32,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     self.p_err.hide(true)
@@ -337,15 +337,15 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         self.p_idx.set_value(1)
     end
 
-    PushButton{parent=peri_c_4,x=1,y=14,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=peri_c_4,y=14,text="\x1b Back",callback=back_from_peri_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_peri_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_5,x=1,y=1,text="Settings saved!"}
-    PushButton{parent=peri_c_5,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=peri_c_5,y=1,text="Settings saved!"}
+    PushButton{parent=peri_c_5,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=peri_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=peri_c_6,x=1,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=peri_c_6,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=peri_c_6,y=14,text="\x1b Back",callback=function()peri_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=peri_c_6,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -405,9 +405,9 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             end
 
             local entry = Div{parent=peri_list,height=3}
-            TextBox{parent=entry,x=1,y=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
-            TextBox{parent=entry,x=1,y=2,text="  \x1a "..t_str,fg_bg=cpair(colors.gray,colors.white)}
-            TextBox{parent=entry,x=1,y=3,text=desc,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=entry,y=1,text="@ "..def.name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=entry,y=2,text="  \x1a "..t_str,fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=entry,y=3,text=desc,fg_bg=cpair(colors.gray,colors.white)}
             local edit_btn = PushButton{parent=entry,x=41,y=2,min_width=8,height=1,text="EDIT",callback=function()edit_peri_entry(i,def,t or "")end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
             PushButton{parent=entry,x=41,y=3,min_width=8,height=1,text="DELETE",callback=function()delete_peri_entry(i)end,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
 

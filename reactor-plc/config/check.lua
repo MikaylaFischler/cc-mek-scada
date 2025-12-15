@@ -209,9 +209,9 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     local sc = Div{parent=check_sys,x=2,y=4,width=49}
 
-    TextBox{parent=check_sys,x=1,y=2,text=" Reactor PLC Self-Check",fg_bg=bw_fg_bg}
+    TextBox{parent=check_sys,y=2,text=" Reactor PLC Self-Check",fg_bg=bw_fg_bg}
 
-    self.sc_log = ListBox{parent=sc,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    self.sc_log = ListBox{parent=sc,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local last_check = { nil, nil }
 
@@ -234,7 +234,7 @@ function check.create(main_pane, settings_cfg, check_sys, style)
         end
     end
 
-    PushButton{parent=sc,x=1,y=14,text="\x1b Back",callback=function()exit_self_check(main_pane)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sc,y=14,text="\x1b Back",callback=function()exit_self_check(main_pane)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.run_test_btn = PushButton{parent=sc,x=40,y=14,min_width=10,text="Run Test",callback=function()self_check()end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 end
 

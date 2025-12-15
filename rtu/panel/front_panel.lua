@@ -173,7 +173,7 @@ local function init(panel, config, units)
 
     -- show routine statuses
     for i = 1, list_length do
-        TextBox{parent=threads,x=1,y=i,text=util.sprintf("%02d",i)}
+        TextBox{parent=threads,y=i,text=util.sprintf("%02d",i)}
         local rt_unit = LED{parent=threads,x=4,y=i,label="RT",colors=util.trinary(units[i].type~=RTU_UNIT_TYPE.REDSTONE,ind_grn,cpair(style.ind_bkg,style.ind_bkg))}
         rt_unit.register(databus.ps, "routine__unit_" .. i, rt_unit.update)
     end

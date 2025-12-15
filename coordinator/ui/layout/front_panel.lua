@@ -47,13 +47,13 @@ local function init(panel, config)
 
     TextBox{parent=panel,y=1,text="SCADA COORDINATOR",alignment=ALIGN.CENTER,fg_bg=style.fp_theme.header}
 
-    local page_div = Div{parent=panel,x=1,y=3}
+    local page_div = Div{parent=panel,y=3}
 
     --
     -- system indicators
     --
 
-    local main_page = Div{parent=page_div,x=1,y=1}
+    local main_page = Div{parent=page_div,y=1}
 
     local system = Div{parent=main_page,width=14,height=17,x=2,y=2}
 
@@ -185,7 +185,7 @@ local function init(panel, config)
 
     -- API page
 
-    local api_page = Div{parent=page_div,x=1,y=1,hidden=true}
+    local api_page = Div{parent=page_div,y=1,hidden=true}
     local api_list = ListBox{parent=api_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=style.fp.text_fg,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=api_list,height=1} -- padding
 
@@ -193,7 +193,7 @@ local function init(panel, config)
 
     local panes = { main_page, api_page }
 
-    local page_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+    local page_pane = MultiPane{parent=page_div,y=1,panes=panes}
 
     local tabs = {
         { name = "CRD", color = style.fp.text },

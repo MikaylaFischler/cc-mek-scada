@@ -65,7 +65,7 @@ local function init(parent, id)
     local unit = db.units[id]
     local f_ps = db.facility.ps
 
-    local main = Div{parent=parent,x=1,y=1}
+    local main = Div{parent=parent,y=1}
 
     if unit == nil then return main end
 
@@ -146,8 +146,8 @@ local function init(parent, id)
     -------------------
 
     local u_stat = Rectangle{parent=main,border=border(1,colors.gray,true),thin=true,width=33,height=4,x=46,y=3,fg_bg=bw_fg_bg}
-    local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",width=33,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
-    local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",width=33,alignment=ALIGN.CENTER,fg_bg=gry_wht}
+    local stat_line_1 = TextBox{parent=u_stat,y=1,text="UNKNOWN",width=33,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
+    local stat_line_2 = TextBox{parent=u_stat,y=2,text="awaiting data...",width=33,alignment=ALIGN.CENTER,fg_bg=gry_wht}
 
     stat_line_1.register(u_ps, "U_StatusLine1", stat_line_1.set_value)
     stat_line_2.register(u_ps, "U_StatusLine2", stat_line_2.set_value)
@@ -238,7 +238,7 @@ local function init(parent, id)
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,x=46,y=22}
     local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
     local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
-    local rcs_tags = Div{parent=rcs,width=2,height=16,x=1,y=7}
+    local rcs_tags = Div{parent=rcs,width=2,height=16,y=7}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=ind_yel}
     local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=ind_bkg,c2=ind_wht.fgd,c3=ind_grn.fgd}
@@ -267,7 +267,7 @@ local function init(parent, id)
     if unit.num_boilers > 0 then
         if available_space > 0 then _add_space() end
 
-        TextBox{parent=rcs_tags,x=1,text="B1",width=2,fg_bg=hc_text}
+        TextBox{parent=rcs_tags,text="B1",width=2,fg_bg=hc_text}
         local b1_wll = IndicatorLight{parent=rcs_annunc,label="Water Level Low",colors=ind_red}
         b1_wll.register(b_ps[1], "WaterLevelLow", b1_wll.update)
 
@@ -398,7 +398,7 @@ local function init(parent, id)
     local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
     local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
-    local waste_mode = MultiButton{parent=waste_div,x=1,y=1,options=style.get_waste().unit_opts,callback=unit.set_waste,min_width=6}
+    local waste_mode = MultiButton{parent=waste_div,y=1,options=style.get_waste().unit_opts,callback=unit.set_waste,min_width=6}
 
     waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
 
@@ -484,7 +484,7 @@ local function init(parent, id)
 
     TextBox{parent=main,text="AUTO CTRL",fg_bg=cpair(colors.black,colors.purple),alignment=ALIGN.CENTER,width=13,x=32,y=36}
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
-    local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
+    local auto_div = Div{parent=auto_ctl,width=13,height=15,y=1}
 
     local group = RadioButton{parent=auto_div,options=types.AUTO_GROUP_NAMES,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 

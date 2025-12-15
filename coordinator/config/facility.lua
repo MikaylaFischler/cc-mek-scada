@@ -219,17 +219,17 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local fac_c_2 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_3 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=fac_cfg,x=1,y=4,panes={fac_c_1,fac_c_2,fac_c_3}}
+    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3}}
 
-    TextBox{parent=fac_cfg,x=1,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
+    TextBox{parent=fac_cfg,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
-    TextBox{parent=fac_c_1,x=1,y=1,height=4,text="This tool can attempt to connect to your supervisor computer. This would load facility information in order to get the unit count and aid monitor setup."}
-    TextBox{parent=fac_c_1,x=1,y=6,height=2,text="The supervisor startup app must be running and fully configured on your supervisor computer."}
+    TextBox{parent=fac_c_1,y=1,height=4,text="This tool can attempt to connect to your supervisor computer. This would load facility information in order to get the unit count and aid monitor setup."}
+    TextBox{parent=fac_c_1,y=6,height=2,text="The supervisor startup app must be running and fully configured on your supervisor computer."}
 
     self.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,text=""}
-    self.sv_conn_detail = TextBox{parent=fac_c_1,x=1,y=11,height=2,text=""}
+    self.sv_conn_detail = TextBox{parent=fac_c_1,y=11,height=2,text=""}
 
-    self.sv_conn_button = PushButton{parent=fac_c_1,x=1,y=9,text="Connect",min_width=9,callback=function()sv_connect(tmp_cfg)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    self.sv_conn_button = PushButton{parent=fac_c_1,y=9,text="Connect",min_width=9,callback=function()sv_connect(tmp_cfg)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
     local function sv_skip()
         tcd.abort(handle_timeout)
@@ -244,15 +244,15 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         fac_pane.set_value(3)
     end
 
-    PushButton{parent=fac_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.sv_skip = PushButton{parent=fac_c_1,x=44,y=14,text="Skip \x1a",callback=sv_skip,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     self.sv_next = PushButton{parent=fac_c_1,x=44,y=14,text="Next \x1a",callback=sv_next,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,hidden=true}
 
-    TextBox{parent=fac_c_2,x=1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
-    tool_ctl.num_units = NumberField{parent=fac_c_2,x=1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
+    TextBox{parent=fac_c_2,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
+    tool_ctl.num_units = NumberField{parent=fac_c_2,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_2,x=7,y=5,text="reactors"}
-    TextBox{parent=fac_c_2,x=1,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
-    TextBox{parent=fac_c_2,x=1,y=10,height=3,text="Since you skipped supervisor sync, the main monitor minimum height can't be determined precisely. It is marked with * on the next page.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_2,y=7,height=3,text="This will decide how many monitors you need. If this does not match the supervisor's number of reactor units, the coordinator will not connect.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+    TextBox{parent=fac_c_2,y=10,height=3,text="Since you skipped supervisor sync, the main monitor minimum height can't be determined precisely. It is marked with * on the next page.",fg_bg=g_lg_fg_bg}
 
     local nu_error = TextBox{parent=fac_c_2,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -266,14 +266,14 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         else nu_error.show() end
     end
 
-    PushButton{parent=fac_c_2,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_2,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_2,x=44,y=14,text="Next \x1a",callback=submit_num_units,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=fac_c_3,x=1,y=1,height=2,text="The following facility configuration was fetched from your supervisor computer."}
+    TextBox{parent=fac_c_3,y=1,height=2,text="The following facility configuration was fetched from your supervisor computer."}
 
-    local fac_config_list = ListBox{parent=fac_c_3,x=1,y=4,height=9,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local fac_config_list = ListBox{parent=fac_c_3,y=4,height=9,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    PushButton{parent=fac_c_3,x=1,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_3,y=14,text="\x1b Back",callback=function()fac_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_3,x=44,y=14,text="Next \x1a",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion

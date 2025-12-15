@@ -340,7 +340,7 @@ local function init(main)
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
-            TextBox{parent=tank,text=" ",x=1,y=1,fg_bg=style.lg_gray}
+            TextBox{parent=tank,text=" ",y=1,fg_bg=style.lg_gray}
             TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=ALIGN.CENTER,fg_bg=style.wh_gray}
 
             local tank_box = Rectangle{parent=tank,border=border(1,colors.gray,true),width=20,height=12}
@@ -394,7 +394,7 @@ local function init(main)
 
     local sps = Div{parent=main,x=140,y=3,height=12}
 
-    TextBox{parent=sps,text=" ",width=24,x=1,y=1,fg_bg=style.lg_gray}
+    TextBox{parent=sps,text=" ",width=24,y=1,fg_bg=style.lg_gray}
     TextBox{parent=sps,text="SPS",alignment=ALIGN.CENTER,width=24,fg_bg=wh_gray}
 
     local sps_box = Rectangle{parent=sps,border=border(1,colors.gray,true),width=24,height=10}

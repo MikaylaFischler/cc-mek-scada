@@ -95,7 +95,7 @@ return function (app, panes, matrix_pane, ps, update)
     local chging = IconIndicator{parent=mtx_ext_div,y=3,label="Charging",states=wht_ind_s}
     local dischg = IconIndicator{parent=mtx_ext_div,y=4,label="Discharging",states=wht_ind_s}
 
-    TextBox{parent=mtx_ext_div,text="Energy Fill",x=1,y=6,width=13,fg_bg=label}
+    TextBox{parent=mtx_ext_div,text="Energy Fill",y=6,width=13,fg_bg=label}
     local fill = DataIndicator{parent=mtx_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
 
     chging.register(ps, "is_charging", chging.update)
@@ -104,18 +104,18 @@ return function (app, panes, matrix_pane, ps, update)
 
     local max_io = IconIndicator{parent=mtx_ext_div,y=8,label="Max I/O Rate",states=yel_ind_s}
 
-    TextBox{parent=mtx_ext_div,text="Input Util.",x=1,y=10,width=13,fg_bg=label}
+    TextBox{parent=mtx_ext_div,text="Input Util.",y=10,width=13,fg_bg=label}
     local in_util = DataIndicator{parent=mtx_ext_div,x=14,y=10,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    TextBox{parent=mtx_ext_div,text="Output Util.",x=1,y=11,width=13,fg_bg=label}
+    TextBox{parent=mtx_ext_div,text="Output Util.",y=11,width=13,fg_bg=label}
     local out_util = DataIndicator{parent=mtx_ext_div,x=14,y=11,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
 
     max_io.register(ps, "at_max_io", max_io.update)
     in_util.register(ps, "last_input", function (x) in_util.update(calc_saturation(x) * 100) end)
     out_util.register(ps, "last_output", function (x) out_util.update(calc_saturation(x) * 100) end)
 
-    TextBox{parent=mtx_ext_div,text="Capacity ("..db.energy_label..")",x=1,y=13,fg_bg=label}
+    TextBox{parent=mtx_ext_div,text="Capacity ("..db.energy_label..")",y=13,fg_bg=label}
     local capacity  = DataIndicator{parent=mtx_ext_div,y=14,lu_colors=lu_col,label="",unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
-    TextBox{parent=mtx_ext_div,text="Max In/Out ("..db.energy_label.."/t)",x=1,y=15,fg_bg=label}
+    TextBox{parent=mtx_ext_div,text="Max In/Out ("..db.energy_label.."/t)",y=15,fg_bg=label}
     local trans_cap = DataIndicator{parent=mtx_ext_div,y=16,lu_colors=lu_col,label="",unit="",format="%21d",rate=true,value=0,width=21,fg_bg=text_fg}
 
     capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert(val)) end)
