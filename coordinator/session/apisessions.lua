@@ -123,6 +123,7 @@ end
 
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
+---@return boolean was_watchdog if this event was one of the watchdogs
 function apisessions.check_all_watchdogs(timer_event)
     for i = 1, #self.sessions do
         local session = self.sessions[i]
@@ -131,9 +132,12 @@ function apisessions.check_all_watchdogs(timer_event)
             if triggered then
                 log.debug(util.c("API: watchdog closing session ", session, "..."))
                 _shutdown(session)
+                return true
             end
         end
     end
+
+    return false
 end
 
 -- iterate all the API sessions
