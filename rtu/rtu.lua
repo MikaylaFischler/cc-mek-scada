@@ -409,8 +409,8 @@ function rtu.comms(version, backplane, conn_watchdog)
     ---@param rtu_state rtu_state
     function public.close(rtu_state)
         conn_watchdog.cancel()
-        public.unlink(rtu_state)
         _send(MGMT_TYPE.CLOSE, {})
+        public.unlink(rtu_state)
     end
 
     -- send a MODBUS TCP packet

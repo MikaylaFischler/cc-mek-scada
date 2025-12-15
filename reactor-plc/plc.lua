@@ -885,8 +885,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     -- close the connection to the server
     function public.close()
         conn_watchdog.cancel()
-        public.unlink()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
+        public.unlink()
     end
 
     -- attempt to establish link with supervisor
