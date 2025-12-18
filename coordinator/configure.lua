@@ -36,7 +36,8 @@ local changes = {
     { "v1.2.12", { "Added main UI theme", "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.5.1", { "Added energy scale options" } },
-    { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } }
+    { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
+    { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } }
 }
 
 ---@class crd_configurator
@@ -89,7 +90,9 @@ local tool_ctl = {
     is_int_min_max = nil,     ---@type function
 
     update_mon_reqs = nil,    ---@type function
-    gen_mon_list = function () end
+
+    gen_mon_list = function () end,
+    gen_modem_list = function () end
 }
 
 ---@class crd_config
@@ -104,6 +107,10 @@ local tmp_cfg = {
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
+    WirelessModem = true,
+    WiredModem = false,     ---@type string|false
+    PreferWireless = true,
+    API_Enabled = true,
     SVR_Channel = nil,      ---@type integer
     CRD_Channel = nil,      ---@type integer
     PKT_Channel = nil,      ---@type integer
@@ -136,6 +143,10 @@ local fields = {
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PreferWireless", "Prefer Wireless Modem", true },
+    { "API_Enabled", "Pocket API Connectivity", true },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "CRD_Channel", "CRD Channel", 16243 },
     { "PKT_Channel", "PKT Channel", 16244 },
@@ -327,6 +338,9 @@ function configurator.configure(start_code, message)
     -- copy in some important values to start with
     preset_monitor_fields()
 
+    -- this needs to be initialized as it is used before being set
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
+
     reset_term()
 
     ppm.mount_all()
@@ -341,6 +355,7 @@ function configurator.configure(start_code, message)
         config_view(display)
 
         tool_ctl.gen_mon_list()
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -364,8 +379,10 @@ function configurator.configure(start_code, message)
 ---@diagnostic disable-next-line: discard-returns
                 ppm.mount(param1)
                 tool_ctl.gen_mon_list()
+                tool_ctl.gen_modem_list()
             elseif event == "monitor_resize" then
                 tool_ctl.gen_mon_list()
+                tool_ctl.gen_modem_list()
             elseif event == "modem_message" then
                 facility.receive_sv(param1, param2, param3, param4, param5)
             end

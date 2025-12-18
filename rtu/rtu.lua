@@ -18,6 +18,10 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 
+-- wait 5 seconds after initializing a network switch request before being allowed to send more,
+-- which avoids repeat duplicate requests
+local FAILOVER_GRACE_PERIOD_MS = 5000
+
 ---@type rtu_config
 ---@diagnostic disable-next-line: missing-fields
 local config = {}
@@ -33,6 +37,9 @@ function rtu.load_config()
 
     config.SpeakerVolume = settings.get("SpeakerVolume")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.RTU_Channel = settings.get("RTU_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
@@ -57,6 +64,10 @@ function rtu.validate_config(cfg)
     cfv.assert_type_num(cfg.SpeakerVolume)
     cfv.assert_range(cfg.SpeakerVolume, 0, 3)
 
+    cfv.assert_type_bool(cfg.WirelessModem)
+    cfv.assert((cfg.WiredModem == false) or (type(cfg.WiredModem) == "string"))
+    cfv.assert(cfg.WirelessModem or (type(cfg.WiredModem) == "string"))
+    cfv.assert_type_bool(cfg.PreferWireless)
     cfv.assert_channel(cfg.SVR_Channel)
     cfv.assert_channel(cfg.RTU_Channel)
     cfv.assert_type_num(cfg.ConnTimeout)
@@ -286,38 +297,38 @@ end
 -- RTU Communications
 ---@nodiscard
 ---@param version string RTU version
----@param nic nic network interface device
+---@param backplane rtu_backplane RTU backplane
 ---@param conn_watchdog watchdog watchdog reference
-function rtu.comms(version, nic, conn_watchdog)
+function rtu.comms(version, backplane, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         r_seq_num = nil,               ---@type nil|integer
         txn_id = 0,
+        failover_init = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW
     }
 
     local insert = table.insert
 
-    comms.set_trusted_range(config.TrustedRange)
+    local tx_nic = backplane.active_nic()
 
-    -- PRIVATE FUNCTIONS --
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
-    -- configure modem channels
-    nic.closeAll()
-    nic.open(config.RTU_Channel)
+    --#region PRIVATE FUNCTIONS --
 
-    -- send a scada management packet
+    -- send a SCADA management packet
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
+        tx_nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -345,18 +356,44 @@ function rtu.comms(version, nic, conn_watchdog)
         return advertisement
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class rtu_comms
     local public = {}
 
-    -- send a MODBUS TCP packet
-    ---@param m_pkt modbus_packet
-    function public.send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
-        nic.transmit(config.SVR_Channel, config.RTU_Channel, s_pkt)
-        self.seq_num = self.seq_num + 1
+    -- switch the current active NIC
+    ---@param new_nic nic
+    ---@param rtu_state rtu_state
+    function public.switch_nic(new_nic, rtu_state)
+        if tx_nic.is_connected() then
+            -- try to gracefully switch, we have an intact continuous connection
+            log.info(util.c("switching link to reconnected interface ", new_nic.phy_name(), " from ", tx_nic.phy_name()))
+
+            tx_nic = new_nic
+            _send(MGMT_TYPE.SWITCH_NET, {})
+        else
+            -- can't gracefully switch, the other NIC was lost
+            log.info(util.c("closing link on ", tx_nic.phy_name(), ", switching to ", new_nic.phy_name()))
+
+            tx_nic = new_nic
+            conn_watchdog.cancel()
+            public.unlink(rtu_state)
+        end
+    end
+
+    -- check if the provided NIC is currently active, and if not, switch back to it
+    ---@param act_nic nic
+    function public.manage_failover(act_nic)
+        if (act_nic ~= tx_nic) and act_nic.is_network_up() and ((util.time_ms() - self.failover_init) > FAILOVER_GRACE_PERIOD_MS) then
+            log.info(util.c("primary interface ", act_nic.phy_name(), " is up, requesting link switch"))
+
+            tx_nic = act_nic
+            _send(MGMT_TYPE.SWITCH_NET, {})
+
+            self.failover_init = util.time_ms()
+        end
     end
 
     -- unlink from the server
@@ -376,11 +413,27 @@ function rtu.comms(version, nic, conn_watchdog)
         _send(MGMT_TYPE.CLOSE, {})
     end
 
+    -- send a MODBUS TCP packet
+    ---@param m_cnt modbus_container
+    function public.send_modbus(m_cnt)
+        local frame = comms.scada_frame()
+
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
+
+        tx_nic.transmit(config.SVR_Channel, config.RTU_Channel, frame)
+        self.seq_num = self.seq_num + 1
+    end
+
     -- send establish request (includes advertisement)
     ---@param units table
-    function public.send_establish(units)
+    function public.send_establish(nic, units)
+        local ini_nic = tx_nic
+        tx_nic = nic
+
         self.r_seq_num = nil
         _send(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.RTU, _generate_advertisement(units) })
+
+        tx_nic = ini_nic
     end
 
     -- send capability advertisement
@@ -402,34 +455,31 @@ function rtu.comms(version, nic, conn_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return modbus_frame|mgmt_frame|nil packet
+    ---@return modbus_adu|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, nic = nil, backplane.nics[side]
 
-        if s_pkt then
-            -- get as MODBUS TCP packet
-            if s_pkt.protocol() == PROTOCOL.MODBUS_TCP then
-                local m_pkt = comms.modbus_packet()
-                if m_pkt.decode(s_pkt) then
-                    pkt = m_pkt.get()
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
+
+            if frame then
+                if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                    pkt = comms.modbus_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                else
+                    log.debug("illegal packet type " .. frame.protocol(), true)
                 end
-            -- get as SCADA management packet
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_pkt.get()
-                end
-            else
-                log.debug("illegal packet type " .. s_pkt.protocol(), true)
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt
     end
 
     -- handle a MODBUS/SCADA packet
-    ---@param packet modbus_frame|mgmt_frame
+    ---@param packet modbus_adu|mgmt_packet
     ---@param units rtu_registry_entry[] RTU entries
     ---@param rtu_state rtu_state
     ---@param sounders rtu_speaker_sounder[] speaker alarm sounders
@@ -461,10 +511,10 @@ function rtu.comms(version, nic, conn_watchdog)
 
             -- handle packet
             if protocol == PROTOCOL.MODBUS_TCP then
-                ---@cast packet modbus_frame
+                ---@cast packet modbus_adu
                 if rtu_state.linked then
                     local return_code   ---@type boolean
-                    local reply         ---@type modbus_packet
+                    local reply         ---@type modbus_container
 
                     -- handle MODBUS instruction
                     if packet.unit_id <= #units then
@@ -473,7 +523,7 @@ function rtu.comms(version, nic, conn_watchdog)
 
                         if unit.type == RTU_UNIT_TYPE.REDSTONE then
                             -- immediately execute redstone RTU requests
-                            return_code, reply = unit.modbus_io.handle_packet(packet)
+                            return_code, reply = unit.modbus_io.handle_adu(packet)
 
                             if not return_code then
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
@@ -488,7 +538,7 @@ function rtu.comms(version, nic, conn_watchdog)
                                     log.warning("device busy, discarding new request" .. unit_dbg_tag)
                                 else
                                     -- queue the command if not busy
-                                    unit.pkt_queue.push_packet(packet)
+                                    unit.pkt_queue.push_network(packet)
                                 end
                             else
                                 log.warning("requested MODBUS operation failed" .. unit_dbg_tag)
@@ -505,7 +555,7 @@ function rtu.comms(version, nic, conn_watchdog)
                     log.debug("discarding MODBUS packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- SCADA management packet
                 if rtu_state.linked then
                     if packet.type == MGMT_TYPE.KEEP_ALIVE then
@@ -553,10 +603,13 @@ function rtu.comms(version, nic, conn_watchdog)
 
                         if est_ack == ESTABLISH_ACK.ALLOW then
                             -- establish allowed
+                            tx_nic = backplane.nics[packet.scada_frame.interface()]
+
                             rtu_state.linked = true
                             self.sv_addr = packet.scada_frame.src_addr()
+
                             println_ts("supervisor connection established")
-                            log.info("supervisor connection established")
+                            log.info(util.c("supervisor connection established, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
                         else
                             -- establish denied
                             if est_ack ~= self.last_est_ack then
@@ -593,6 +646,8 @@ function rtu.comms(version, nic, conn_watchdog)
             log.debug("received packet on unconfigured channel " .. l_chan, true)
         end
     end
+
+    --#endregion
 
     return public
 end

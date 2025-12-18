@@ -1,8 +1,12 @@
+-- message queue types used in session queues
+
 local svqtypes = {}
 
+---@enum SV_Q_CMDS
 local SV_Q_CMDS = {
 }
 
+---@enum SV_Q_DATA
 local SV_Q_DATA = {
     START = 1,
     SCRAM = 2,

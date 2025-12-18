@@ -2,6 +2,7 @@
 -- Supervisor Sessions Handler
 --
 
+local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
 local mqueue      = require("scada-common.mqueue")
 local types       = require("scada-common.types")
@@ -41,9 +42,8 @@ svsessions.SESSION_TYPE = SESSION_TYPE
 
 local self = {
     -- references to supervisor state and other data
-    nic = nil,              ---@type nic|nil
     fp_ok = false,
-    config = nil,           ---@type svr_config
+    config = nil,           ---@type svr_config|nil
     facility = nil,         ---@type facility|nil
     plc_ini_reset = {},
     -- lists of connected sessions
@@ -55,7 +55,6 @@ local self = {
         crd = {},           ---@type crd_session_struct[]
         pdg = {}            ---@type pdg_session_struct[]
     },
----@diagnostic enable: missing-fields
     -- next session IDs
     next_ids = { rtu = 0, plc = 0, crd = 0, pdg = 0 },
     -- rtu device tracking and invalid assignment detection
@@ -82,11 +81,9 @@ local function _sv_handle_outq(session)
         local msg = session.out_queue.pop()
 
         if msg ~= nil then
-            if msg.qtype == mqueue.TYPE.PACKET then
-                -- handle a packet to be sent
-                self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
-            elseif msg.qtype == mqueue.TYPE.COMMAND then
-                -- handle instruction/notification
+            if msg.qtype == mqueue.TYPE.NETWORK then
+                -- handle a SCADA frame to be sent
+                session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
             elseif msg.qtype == mqueue.TYPE.DATA then
                 -- instruction/notification with body
                 local cmd = msg.message ---@type queue_data
@@ -109,7 +106,9 @@ local function _sv_handle_outq(session)
                         end
                     end
                 else
+                    -- notifications and acknowledgements to the coordinator
                     local crd_s = svsessions.get_crd_session()
+
                     if crd_s ~= nil then
                         if cmd.key == SV_Q_DATA.CRDN_ACK then
                             -- ack to be sent to coordinator
@@ -140,12 +139,9 @@ end
 local function _iterate(sessions)
     for i = 1, #sessions do
         local session = sessions[i]
-
         if session.open and session.instance.iterate() then
             _sv_handle_outq(session)
-        else
-            session.open = false
-        end
+        else session.open = false end
     end
 end
 
@@ -155,11 +151,11 @@ local function _shutdown(session)
     session.open = false
     session.instance.close()
 
-    -- send packets in out queue (for the close packet)
+    -- send frames in the out queue (for the close packet)
     while session.out_queue.ready() do
         local msg = session.out_queue.pop()
-        if msg ~= nil and msg.qtype == mqueue.TYPE.PACKET then
-            self.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
+        if msg ~= nil and msg.qtype == mqueue.TYPE.NETWORK then
+            session.nic.transmit(session.r_chan, self.config.SVR_Channel, msg.message)
         end
     end
 
@@ -359,12 +355,10 @@ function svsessions.check_rtu_id(unit, list, max)
 end
 
 -- initialize svsessions
----@param nic nic network interface device
 ---@param fp_ok boolean front panel active
 ---@param config svr_config supervisor configuration
 ---@param facility facility
-function svsessions.init(nic, fp_ok, config, facility)
-    self.nic = nic
+function svsessions.init(fp_ok, config, facility)
     self.fp_ok = fp_ok
     self.config = config
     self.facility = facility
@@ -467,19 +461,24 @@ end
 
 -- establish a new PLC session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer PLC computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param for_reactor integer unit ID
 ---@param version string PLC version
----@return integer|false session_id
-function svsessions.establish_plc_session(source_addr, i_seq_num, for_reactor, version)
+---@return integer|boolean session_id session ID, false if unit is already connected, and true if this is a successful connection test
+function svsessions.establish_plc_session(nic, source_addr, i_seq_num, for_reactor, version)
     if svsessions.get_reactor_session(for_reactor) == nil and for_reactor >= 1 and for_reactor <= self.config.UnitCount then
+        -- don't actually establish this if it is a connection test
+        if version == comms.CONN_TEST_FWV then return true end
+
         ---@class plc_session_struct
         local plc_s = {
             s_type = "plc",
             open = true,
             reactor = for_reactor,
             version = version,
+            nic = nic,
             r_chan = self.config.PLC_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
@@ -517,17 +516,19 @@ end
 
 -- establish a new RTU gateway session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer RTU gateway computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param advertisement table RTU capability advertisement
 ---@param version string RTU gateway version
 ---@return integer session_id
-function svsessions.establish_rtu_session(source_addr, i_seq_num, advertisement, version)
+function svsessions.establish_rtu_session(nic, source_addr, i_seq_num, advertisement, version)
     ---@class rtu_session_struct
     local rtu_s = {
         s_type = "rtu",
         open = true,
         version = version,
+        nic = nic,
         r_chan = self.config.RTU_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),
@@ -558,17 +559,19 @@ end
 
 -- establish a new coordinator session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer coordinator computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string coordinator version
 ---@return integer|false session_id
-function svsessions.establish_crd_session(source_addr, i_seq_num, version)
+function svsessions.establish_crd_session(nic, source_addr, i_seq_num, version)
     if svsessions.get_crd_session() == nil then
         ---@class crd_session_struct
         local crd_s = {
             s_type = "crd",
             open = true,
             version = version,
+            nic = nic,
             r_chan = self.config.CRD_Channel,
             s_addr = source_addr,
             in_queue = mqueue.new(),
@@ -603,16 +606,18 @@ end
 
 -- establish a new pocket diagnostics session
 ---@nodiscard
+---@param nic nic interface to use for this session
 ---@param source_addr integer pocket computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
 ---@param version string pocket version
 ---@return integer|false session_id
-function svsessions.establish_pdg_session(source_addr, i_seq_num, version)
+function svsessions.establish_pdg_session(nic, source_addr, i_seq_num, version)
     ---@class pdg_session_struct
     local pdg_s = {
         s_type = "pkt",
         open = true,
         version = version,
+        nic = nic,
         r_chan = self.config.PKT_Channel,
         s_addr = source_addr,
         in_queue = mqueue.new(),
@@ -622,7 +627,7 @@ function svsessions.establish_pdg_session(source_addr, i_seq_num, version)
 
     local id = self.next_ids.pdg
 
-    pdg_s.instance = pocket.new_session(id, source_addr, i_seq_num, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.sessions, self.facility, self.fp_ok)
+    pdg_s.instance = pocket.new_session(id, source_addr, i_seq_num, pdg_s.in_queue, pdg_s.out_queue, self.config.PKT_Timeout, self.sessions, self.facility, self.fp_ok, self.config.PocketTest)
     table.insert(self.sessions.pdg, pdg_s)
 
     local mt = {

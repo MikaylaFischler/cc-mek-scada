@@ -16,7 +16,7 @@ local mqueue = {}
 local TYPE = {
     COMMAND = 0,
     DATA = 1,
-    PACKET = 2
+    NETWORK = 2
 }
 
 mqueue.TYPE = TYPE
@@ -60,9 +60,9 @@ function mqueue.new()
     ---@param value any
     function public.push_data(key, value) _push(TYPE.DATA, { key = key, val = value }) end
 
-    -- push a packet onto the queue
-    ---@param packet packet|frame
-    function public.push_packet(packet) _push(TYPE.PACKET, packet) end
+    -- push a SCADA frame, packet, or packet container onto the queue
+    ---@param object frame|packet|packet_container
+    function public.push_network(object) _push(TYPE.NETWORK, object) end
 
     -- get an item off the queue
     ---@nodiscard

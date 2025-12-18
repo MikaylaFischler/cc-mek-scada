@@ -37,7 +37,8 @@ local changes = {
     { "v1.9.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.10.2", { "Re-organized peripheral configuration UI, resulting in some input fields being re-ordered" } },
     { "v1.11.8", { "Added advanced option to invert digital redstone signals" } },
-    { "v1.12.0", { "Added support for redstone relays" } }
+    { "v1.12.0", { "Added support for redstone relays" } },
+    { "v1.13.0", { "Added support for wired communications modems" } }
 }
 
 ---@class rtu_configurator
@@ -64,39 +65,44 @@ local tool_ctl = {
     viewing_config = false,
     jumped_to_color = false,
 
-    view_gw_cfg = nil,        ---@type PushButton
-    dev_cfg = nil,            ---@type PushButton
-    rs_cfg = nil,             ---@type PushButton
-    color_cfg = nil,          ---@type PushButton
-    color_next = nil,         ---@type PushButton
-    color_apply = nil,        ---@type PushButton
-    settings_apply = nil,     ---@type PushButton
-    settings_confirm = nil,   ---@type PushButton
+    view_gw_cfg = nil,       ---@type PushButton
+    dev_cfg = nil,           ---@type PushButton
+    rs_cfg = nil,            ---@type PushButton
+    color_cfg = nil,         ---@type PushButton
+    color_next = nil,        ---@type PushButton
+    color_apply = nil,       ---@type PushButton
+    settings_apply = nil,    ---@type PushButton
+    settings_confirm = nil,  ---@type PushButton
 
-    go_home = nil,            ---@type function
-    gen_summary = nil,        ---@type function
-    load_legacy = nil,        ---@type function
-    update_peri_list = nil,   ---@type function
-    update_relay_list = nil,  ---@type function
-    gen_peri_summary = nil,   ---@type function
-    gen_rs_summary = nil,     ---@type function
+    go_home = nil,           ---@type function
+    gen_summary = nil,       ---@type function
+    load_legacy = nil,       ---@type function
+    update_peri_list = nil,  ---@type function
+    update_relay_list = nil, ---@type function
+    gen_peri_summary = nil,  ---@type function
+    gen_rs_summary = nil,    ---@type function
+
+    gen_modem_list = function () end
 }
 
 ---@class rtu_config
 local tmp_cfg = {
     SpeakerVolume = 1.0,
-    Peripherals = {},    ---@type rtu_peri_definition[]
-    Redstone = {},       ---@type rtu_rs_definition[]
-    SVR_Channel = nil,   ---@type integer
-    RTU_Channel = nil,   ---@type integer
-    ConnTimeout = nil,   ---@type number
-    TrustedRange = nil,  ---@type number
-    AuthKey = nil,       ---@type string|nil
-    LogMode = 0,         ---@type LOG_MODE
+    Peripherals = {},     ---@type rtu_peri_definition[]
+    Redstone = {},        ---@type rtu_rs_definition[]
+    WirelessModem = true,
+    WiredModem = false,   ---@type string|false
+    PreferWireless = true,
+    SVR_Channel = nil,    ---@type integer
+    RTU_Channel = nil,    ---@type integer
+    ConnTimeout = nil,    ---@type number
+    TrustedRange = nil,   ---@type number
+    AuthKey = nil,        ---@type string
+    LogMode = 0,          ---@type LOG_MODE
     LogPath = "",
     LogDebug = false,
-    FrontPanelTheme = 1, ---@type FP_THEME
-    ColorMode = 1        ---@type COLOR_MODE
+    FrontPanelTheme = 1,  ---@type FP_THEME
+    ColorMode = 1         ---@type COLOR_MODE
 }
 
 ---@class rtu_config
@@ -106,6 +112,9 @@ local settings_cfg = {}
 
 local fields = {
     { "SpeakerVolume", "Speaker Volume", 1.0 },
+    { "WirelessModem", "Wireless/Ender Comms Modem", true },
+    { "WiredModem", "Wired Comms Modem", false },
+    { "PreferWireless", "Prefer Wireless Modem", true },
     { "SVR_Channel", "SVR Channel", 16240 },
     { "RTU_Channel", "RTU Channel", 16242 },
     { "ConnTimeout", "Connection Timeout", 5 },
@@ -313,6 +322,9 @@ function configurator.configure(ask_config)
 
     load_settings(settings_cfg, true)
     tool_ctl.has_config = load_settings(ini_cfg)
+
+    -- set tmp_cfg so interface lists are correct
+    tmp_cfg.WiredModem = ini_cfg.WiredModem
     tmp_cfg.Peripherals = tool_ctl.deep_copy_peri(ini_cfg.Peripherals)
     tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
 
@@ -328,6 +340,8 @@ function configurator.configure(ask_config)
     local status, error = pcall(function ()
         local display = DisplayBox{window=term.current(),fg_bg=style.root}
         config_view(display)
+
+        tool_ctl.gen_modem_list()
 
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
@@ -345,16 +359,20 @@ function configurator.configure(ask_config)
                 display.handle_paste(param1)
             elseif event == "modem_message" then
                 check.receive_sv(param1, param2, param3, param4, param5)
+            elseif event == "conn_test_complete" then
+                check.conn_test_callback(param1)
             elseif event == "peripheral_detach" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.handle_unmount(param1)
                 tool_ctl.update_peri_list()
                 tool_ctl.update_relay_list()
+                tool_ctl.gen_modem_list()
             elseif event == "peripheral" then
 ---@diagnostic disable-next-line: discard-returns
                 ppm.mount(param1)
                 tool_ctl.update_peri_list()
                 tool_ctl.update_relay_list()
+                tool_ctl.gen_modem_list()
             end
 
             if event == "terminate" then return end

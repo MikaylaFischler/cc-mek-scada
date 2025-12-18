@@ -35,14 +35,14 @@ keyd.finish()
 util.println("pbkdf2: took " .. (util.time() - start) .. "ms")
 util.println(keyd.asHex())
 
-local pkt = comms.modbus_packet()
+local modbus = comms.modbus_container()
 ---@diagnostic disable-next-line: param-type-mismatch
-pkt.make(1, 2, 7, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
-local spkt = comms.scada_packet()
-spkt.make(0, 1, 1, pkt.raw_sendable())
+modbus.make(1, 2, 7, {0, 1, 2, 3, 4, 5, 6, 7, 8, 9})
+local frame = comms.scada_frame()
+frame.make(0, 1, 1, modbus.raw_packet())
 
 start = util.time()
-local data = textutils.serialize(spkt.raw_sendable(), { allow_repetitions = true, compact = true })
+local data = textutils.serialize(frame.raw_frame(), { allow_repetitions = true, compact = true })
 
 util.println("packet serialize: took " .. (util.time() - start) .. "ms")
 util.println("message: " .. data)

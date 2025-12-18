@@ -27,12 +27,16 @@ local ESTABLISH_ACK = comms.ESTABLISH_ACK
 local MGMT_TYPE = comms.MGMT_TYPE
 
 local self = {
+    checking_wl = true,
+    wd_modem = nil,      ---@type Modem|nil
+    wl_modem = nil,      ---@type Modem|nil
+
     nic = nil,           ---@type nic
     net_listen = false,
-    sv_addr = comms.BROADCAST,
-    sv_seq_num = util.time_ms() * 10,
 
     self_check_pass = true,
+
+    self_check_wireless = true,
 
     settings = nil,      ---@type rtu_config
 
@@ -55,18 +59,16 @@ end
 ---@param msg_type MGMT_TYPE
 ---@param msg table
 local function send_sv(msg_type, msg)
-    local s_pkt = comms.scada_packet()
-    local pkt = comms.mgmt_packet()
+    local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-    pkt.make(msg_type, msg)
-    s_pkt.make(self.sv_addr, self.sv_seq_num, PROTOCOL.SCADA_MGMT, pkt.raw_sendable())
+    mgmt.make(msg_type, msg)
+    frame.make(comms.BROADCAST, util.time_ms() * 10, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-    self.nic.transmit(self.settings.SVR_Channel, self.settings.RTU_Channel, s_pkt)
-    self.sv_seq_num = self.sv_seq_num + 1
+    self.nic.transmit(self.settings.SVR_Channel, self.settings.RTU_Channel, frame)
 end
 
 -- handle an establish message from the supervisor
----@param packet mgmt_frame
+---@param packet mgmt_packet
 local function handle_packet(packet)
     local error_msg = nil
 
@@ -78,10 +80,7 @@ local function handle_packet(packet)
                 local est_ack = packet.data[1]
 
                 if est_ack== ESTABLISH_ACK.ALLOW then
-                    self.self_check_msg(nil, true, "")
-                    self.sv_addr = packet.scada_frame.src_addr()
-                    send_sv(MGMT_TYPE.CLOSE, {})
-                    if self.self_check_pass then check_complete() end
+                    -- OK
                 elseif est_ack == ESTABLISH_ACK.DENY then
                     error_msg = "error: supervisor connection denied"
                 elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
@@ -98,18 +97,20 @@ local function handle_packet(packet)
     end
 
     self.net_listen = false
-    self.run_test_btn.enable()
 
     if error_msg then
         self.self_check_msg(nil, false, error_msg)
+    else
+        self.self_check_msg(nil, true, "")
     end
+
+    util.push_event("conn_test_complete", error_msg == nil)
 end
 
 -- handle supervisor connection failure
 local function handle_timeout()
     self.net_listen = false
-    self.run_test_btn.enable()
-    self.self_check_msg(nil, false, "make sure your supervisor is running, your channels are correct, trusted ranges are set properly (if enabled), facility keys match (if set), and if you are using wireless modems rather than ender modems, that your devices are close together in the same dimension")
+    util.push_event("conn_test_complete", false)
 end
 
 
@@ -129,10 +130,18 @@ local function self_check()
     self.self_check_pass = true
 
     local cfg = self.settings
-    local modem = ppm.get_wireless_modem()
+    self.wd_modem = ppm.get_modem(cfg.WiredModem)
+    self.wl_modem = ppm.get_wireless_modem()
     local valid_cfg = rtu.validate_config(cfg)
 
-    self.self_check_msg("> check wireless/ender modem connected...", modem ~= nil, "you must connect an ender or wireless modem to the RTU gateway")
+    if cfg.WiredModem then
+        self.self_check_msg("> check wired comms modem connected...", self.wd_modem, "please connect the wired comms modem " .. cfg.WiredModem)
+    end
+
+    if cfg.WirelessModem then
+        self.self_check_msg("> check wireless/ender modem connected...", self.wl_modem, "please connect an ender or wireless modem for wireless comms")
+    end
+
     self.self_check_msg("> check gateway configuration...", valid_cfg, "go through Configure Gateway and apply settings to set any missing settings and repair any corrupted ones")
 
     -- check redstone configurations
@@ -211,27 +220,37 @@ local function self_check()
         end
     end
 
-    if valid_cfg and modem then
-        self.self_check_msg("> check supervisor connection...")
+    if valid_cfg then
+        self.checking_wl = true
 
-        -- init mac as needed
-        if cfg.AuthKey and string.len(cfg.AuthKey) >= 8 then
-            network.init_mac(cfg.AuthKey)
+        if cfg.WirelessModem and self.wl_modem then
+            self.self_check_msg("> check wireless supervisor connection...")
+
+            -- init mac as needed
+            if cfg.AuthKey and string.len(cfg.AuthKey) >= 8 then
+                network.init_mac(cfg.AuthKey)
+            else
+                network.deinit_mac()
+            end
+
+            comms.set_trusted_range(cfg.TrustedRange)
+
+            self.nic = network.nic(self.wl_modem)
+
+            self.nic.closeAll()
+            self.nic.open(cfg.RTU_Channel)
+
+            self.net_listen = true
+
+            send_sv(MGMT_TYPE.ESTABLISH, { comms.version, comms.CONN_TEST_FWV, DEVICE_TYPE.RTU, {} })
+
+            tcd.dispatch_unique(8, handle_timeout)
+        elseif cfg.WiredModem and self.wd_modem then
+            -- skip to wired
+            util.push_event("conn_test_complete", true)
         else
-            network.deinit_mac()
+            self.self_check_msg("> no modem, can't test supervisor connection", false)
         end
-
-        self.nic = network.nic(modem)
-
-        self.nic.closeAll()
-        self.nic.open(cfg.RTU_Channel)
-
-        self.sv_addr = comms.BROADCAST
-        self.net_listen = true
-
-        send_sv(MGMT_TYPE.ESTABLISH, { comms.version, "0.0.0", DEVICE_TYPE.RTU, {} })
-
-        tcd.dispatch_unique(8, handle_timeout)
     else
         if self.self_check_pass then check_complete() end
         self.run_test_btn.enable()
@@ -303,15 +322,55 @@ end
 ---@param distance integer
 function check.receive_sv(side, sender, reply_to, message, distance)
     if self.nic ~= nil and self.net_listen then
-        local s_pkt = self.nic.receive(side, sender, reply_to, message, distance)
+        local frame = self.nic.receive(side, sender, reply_to, message, distance)
 
-        if s_pkt and s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-            local mgmt_pkt = comms.mgmt_packet()
-            if mgmt_pkt.decode(s_pkt) then
+        if frame and frame.protocol() == PROTOCOL.SCADA_MGMT then
+            local pkt = comms.mgmt_container().decode(frame)
+            if pkt then
                 tcd.abort(handle_timeout)
-                handle_packet(mgmt_pkt.get())
+                handle_packet(pkt)
             end
         end
+    end
+end
+
+-- handle completed connection tests
+---@param pass boolean
+function check.conn_test_callback(pass)
+    local cfg = self.settings
+
+    if self.checking_wl then
+        if not pass then
+            self.self_check_msg(nil, false, "make sure your supervisor is running, listening on the wireless interface, your channels are correct, trusted ranges are set properly (if enabled), facility keys match (if set), and if you are using wireless modems rather than ender modems, that your devices are close together in the same dimension")
+        end
+
+        if cfg.WiredModem and self.wd_modem then
+            self.checking_wl = false
+            self.self_check_msg("> check wired supervisor connection...")
+
+            comms.set_trusted_range(0)
+
+            self.nic = network.nic(self.wd_modem)
+
+            self.nic.closeAll()
+            self.nic.open(cfg.RTU_Channel)
+
+            self.net_listen = true
+
+            send_sv(MGMT_TYPE.ESTABLISH, { comms.version, comms.CONN_TEST_FWV, DEVICE_TYPE.RTU, {} })
+
+            tcd.dispatch_unique(8, handle_timeout)
+        else
+            if self.self_check_pass then check_complete() end
+            self.run_test_btn.enable()
+        end
+    else
+        if not pass then
+            self.self_check_msg(nil, false, "make sure your supervisor is running, listening on the wired interface, the wire is intact, and your channels are correct")
+        end
+
+        if self.self_check_pass then check_complete() end
+        self.run_test_btn.enable()
     end
 end
 

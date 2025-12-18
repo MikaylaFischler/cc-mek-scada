@@ -486,7 +486,7 @@ local function init(parent, id)
     local auto_ctl = Rectangle{parent=main,border=border(1,colors.purple,true),thin=true,width=13,height=15,x=32,y=37}
     local auto_div = Div{parent=auto_ctl,width=13,height=15,x=1,y=1}
 
-    local group = RadioButton{parent=auto_div,options=types.AUTO_GROUP_NAMES,callback=function()end,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
+    local group = RadioButton{parent=auto_div,options=types.AUTO_GROUP_NAMES,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
 
     group.register(u_ps, "auto_group_id", function (gid) group.set_value(gid + 1) end)
 

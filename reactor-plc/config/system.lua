@@ -1,4 +1,5 @@
 local log         = require("scada-common.log")
+local ppm         = require("scada-common.ppm")
 local rsio        = require("scada-common.rsio")
 local util        = require("scada-common.util")
 
@@ -20,6 +21,8 @@ local TextField   = require("graphics.elements.form.TextField")
 
 local IndLight    = require("graphics.elements.indicators.IndicatorLight")
 
+local tri = util.trinary
+
 local cpair = core.cpair
 
 local RIGHT = core.ALIGN.RIGHT
@@ -30,6 +33,10 @@ local self = {
     set_networked = nil,    ---@type function
     bundled_emcool = nil,   ---@type function
 
+    wireless = nil,         ---@type Checkbox
+    wl_pref = nil,          ---@type Checkbox
+    wired = nil,            ---@type Checkbox
+    range = nil,            ---@type NumberField
     show_auth_key = nil,    ---@type function
     show_key_btn = nil,     ---@type PushButton
     auth_key_textbox = nil, ---@type TextBox
@@ -154,14 +161,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     function self.bundled_emcool(en) if en then color.enable() else color.disable() end end
 
     TextBox{parent=plc_c_5,x=1,y=1,height=5,text="Advanced Options"}
-    local invert = Checkbox{parent=plc_c_5,x=1,y=3,label="Invert",default=ini_cfg.EmerCoolInvert,box_fg_bg=cpair(colors.orange,colors.black),callback=function()end}
-    TextBox{parent=plc_c_5,x=10,y=3,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+    local invert = Checkbox{parent=plc_c_5,x=1,y=3,label="Invert",default=ini_cfg.EmerCoolInvert,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_5,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
     PushButton{parent=plc_c_5,x=1,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local function submit_emcool()
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
-        tmp_cfg.EmerCoolColor = util.trinary(bundled.get_value(), color_options_map[color.get_value()], nil)
+        tmp_cfg.EmerCoolColor = tri(bundled.get_value(), color_options_map[color.get_value()], nil)
         tmp_cfg.EmerCoolInvert = invert.get_value()
         next_from_plc()
     end
@@ -177,22 +183,88 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local net_c_1 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_2 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_3 = Div{parent=net_cfg,x=2,y=4,width=49}
+    local net_c_4 = Div{parent=net_cfg,x=2,y=4,width=49}
 
-    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3}}
+    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4}}
 
     TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,text="Please set the network channels below."}
-    TextBox{parent=net_c_1,x=1,y=3,height=4,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_1,x=1,y=1,text="Please select the network interface(s)."}
+    TextBox{parent=net_c_1,x=41,y=1,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
-    TextBox{parent=net_c_1,x=1,y=8,text="Supervisor Channel"}
-    local svr_chan = NumberField{parent=net_c_1,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_1,x=1,y=11,text="PLC Channel"}
-    local plc_chan = NumberField{parent=net_c_1,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_1,x=9,y=12,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
+    local function en_dis_pref()
+        if self.wireless.get_value() and self.wired.get_value() then
+            self.wl_pref.enable()
+        else
+            self.wl_pref.set_value(self.wireless.get_value())
+            self.wl_pref.disable()
+        end
+    end
 
-    local chan_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local function on_wired_change(_)
+        en_dis_pref()
+        tool_ctl.gen_modem_list()
+    end
+
+    self.wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=en_dis_pref}
+    self.wl_pref = Checkbox{parent=net_c_1,x=30,y=3,label="Prefer Wireless",default=ini_cfg.PreferWireless,box_fg_bg=cpair(colors.lightBlue,colors.black),disable_fg_bg=g_lg_fg_bg}
+    self.wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
+    TextBox{parent=net_c_1,x=3,y=6,text="this one MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
+    TextBox{parent=net_c_1,x=3,y=7,text="connecting it to peripherals will cause issues",fg_bg=g_lg_fg_bg}
+    local modem_list = ListBox{parent=net_c_1,x=1,y=8,height=5,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+
+    local modem_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
+    en_dis_pref()
+
+    local function submit_interfaces()
+        tmp_cfg.WirelessModem = self.wireless.get_value()
+
+        if tmp_cfg.WirelessModem and tmp_cfg.WiredModem then
+            tmp_cfg.PreferWireless = self.wl_pref.get_value()
+        else
+            tmp_cfg.PreferWireless = tmp_cfg.WirelessModem
+            self.wl_pref.set_value(tmp_cfg.PreferWireless)
+        end
+
+        if not self.wired.get_value() then
+            tmp_cfg.WiredModem = false
+            tool_ctl.gen_modem_list()
+        end
+
+        if not (self.wired.get_value() or self.wireless.get_value()) then
+            modem_err.set_value("Please select a modem type.")
+            modem_err.show()
+        elseif self.wired.get_value() and type(tmp_cfg.WiredModem) ~= "string" then
+            modem_err.set_value("Please select a wired modem.")
+            modem_err.show()
+        else
+            if tmp_cfg.WirelessModem then
+                self.range.enable()
+            else
+                self.range.set_value(0)
+                self.range.disable()
+            end
+
+            net_pane.set_value(2)
+            modem_err.hide(true)
+        end
+    end
+
+    PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=net_c_2,x=1,y=1,text="Please set the network channels below."}
+    TextBox{parent=net_c_2,x=1,y=3,height=4,text="Each of the 5 uniquely named channels, including the 2 below, must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
+
+    TextBox{parent=net_c_2,x=1,y=8,text="Supervisor Channel"}
+    local svr_chan = NumberField{parent=net_c_2,x=1,y=9,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_2,x=9,y=9,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,x=1,y=11,text="PLC Channel"}
+    local plc_chan = NumberField{parent=net_c_2,x=1,y=12,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_2,x=9,y=12,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
+
+    local chan_err = TextBox{parent=net_c_2,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_channels()
         local svr_c = tonumber(svr_chan.get_value())
@@ -200,7 +272,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         if svr_c ~= nil and plc_c ~= nil then
             tmp_cfg.SVR_Channel = svr_c
             tmp_cfg.PLC_Channel = plc_c
-            net_pane.set_value(2)
+            net_pane.set_value(3)
             chan_err.hide(true)
         elseif svr_c == nil then
             chan_err.set_value("Please set the supervisor channel.")
@@ -211,54 +283,62 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         end
     end
 
-    PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,text="Connection Timeout"}
-    local timeout = NumberField{parent=net_c_2,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=1,text="Connection Timeout"}
+    local timeout = NumberField{parent=net_c_3,x=1,y=2,width=7,default=ini_cfg.ConnTimeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_3,x=9,y=2,height=2,text="seconds (default 5)",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=3,height=4,text="You generally do not want or need to modify this. On slow servers, you can increase this to make the system wait longer before assuming a disconnection.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=8,text="Trusted Range"}
-    local range = NumberField{parent=net_c_2,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
-    TextBox{parent=net_c_2,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,x=1,y=8,text="Trusted Range (Wireless Only)"}
+    self.range = NumberField{parent=net_c_3,x=1,y=9,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=net_c_3,x=1,y=10,height=4,text="Setting this to a value larger than 0 prevents wireless connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
 
-    local p2_err = TextBox{parent=net_c_2,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local n3_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_ct_tr()
         local timeout_val = tonumber(timeout.get_value())
-        local range_val = tonumber(range.get_value())
-        if timeout_val ~= nil and range_val ~= nil then
-            tmp_cfg.ConnTimeout = timeout_val
-            tmp_cfg.TrustedRange = range_val
-            net_pane.set_value(3)
-            p2_err.hide(true)
-        elseif timeout_val == nil then
-            p2_err.set_value("Please set the connection timeout.")
-            p2_err.show()
+        local range_val = tonumber(self.range.get_value())
+
+        if timeout_val == nil then
+            n3_err.set_value("Please set the connection timeout.")
+            n3_err.show()
+        elseif tmp_cfg.WirelessModem and (range_val == nil) then
+            n3_err.set_value("Please set the trusted range.")
+            n3_err.show()
         else
-            p2_err.set_value("Please set the trusted range.")
-            p2_err.show()
+            tmp_cfg.ConnTimeout = timeout_val
+            tmp_cfg.TrustedRange = tri(tmp_cfg.WirelessModem, range_val, 0)
+
+            if tmp_cfg.WirelessModem then
+                net_pane.set_value(4)
+            else
+                main_pane.set_value(4)
+                tmp_cfg.AuthKey = ""
+            end
+
+            n3_err.hide(true)
         end
     end
 
-    PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_ct_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_3,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for security on multiplayer servers. All devices on the same network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_4,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
+    TextBox{parent=net_c_4,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for wireless security on multiplayer servers. All devices on the same wireless network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=11,text="Facility Auth Key"}
-    local key, _ = TextField{parent=net_c_3,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_4,x=1,y=11,text="Auth Key (Wireless Only, Not Used for Wired)"}
+    local key, _ = TextField{parent=net_c_4,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
-    local function censor_key(enable) key.censor(util.trinary(enable, "*", nil)) end
+    local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
 
-    local hide_key = Checkbox{parent=net_c_3,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
+    local hide_key = Checkbox{parent=net_c_4,x=34,y=12,label="Hide",box_fg_bg=cpair(colors.lightBlue,colors.black),callback=censor_key}
 
     hide_key.set_value(true)
     censor_key(true)
 
-    local key_err = TextBox{parent=net_c_3,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+    local key_err = TextBox{parent=net_c_4,x=8,y=14,width=35,text="Key must be at least 8 characters.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
     local function submit_auth()
         local v = key.get_value()
@@ -269,8 +349,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_4,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_4,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -283,7 +363,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=log_c_1,x=1,y=1,text="Please configure logging below."}
 
     TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
-    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
+    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
     TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
     local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
@@ -329,7 +409,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
 
     TextBox{parent=clr_c_1,x=1,y=7,text="Front Panel Theme"}
-    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,callback=function()end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=1,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
 
@@ -368,7 +448,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=clr_c_2,x=44,y=14,min_width=6,text="Done",callback=function()clr_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     local function back_from_colors()
-        main_pane.set_value(util.trinary(tool_ctl.jumped_to_color, 1, 4))
+        main_pane.set_value(tri(tool_ctl.jumped_to_color, 1, 4))
         tool_ctl.jumped_to_color = false
         recolor(1)
     end
@@ -471,10 +551,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
             if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
             try_set(invert, ini_cfg.EmerCoolInvert)
+            try_set(self.wireless, ini_cfg.WirelessModem)
+            try_set(self.wired, ini_cfg.WiredModem ~= false)
+            try_set(self.wl_pref, ini_cfg.PreferWireless)
             try_set(svr_chan, ini_cfg.SVR_Channel)
             try_set(plc_chan, ini_cfg.PLC_Channel)
             try_set(timeout, ini_cfg.ConnTimeout)
-            try_set(range, ini_cfg.TrustedRange)
+            try_set(self.range, ini_cfg.TrustedRange)
             try_set(key, ini_cfg.AuthKey)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
@@ -591,7 +674,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             local val = util.strval(raw)
 
             if f[1] == "AuthKey" and raw then val = string.rep("*", string.len(val))
-            elseif f[1] == "LogMode" then val = util.trinary(raw == log.MODE.APPEND, "append", "replace")
+            elseif f[1] == "LogMode" then val = tri(raw == log.MODE.APPEND, "append", "replace")
             elseif f[1] == "EmerCoolColor" and raw ~= nil then val = rsio.color_name(raw)
             elseif f[1] == "FrontPanelTheme" then
                 val = util.strval(themes.fp_theme_name(raw))
@@ -601,7 +684,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
             if val == "nil" then val = "<not set>" end
 
-            local c = util.trinary(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
+            local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
             alternate = not alternate
 
             if (string.len(val) > val_max_w) or string.find(val, "\n") then
@@ -620,6 +703,59 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             end
 
             if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
+        end
+    end
+
+    -- generate the list of available/assigned wired modems
+    function tool_ctl.gen_modem_list()
+        modem_list.remove_all()
+
+        local enable = self.wired.get_value()
+
+        local function select(iface)
+            tmp_cfg.WiredModem = iface
+            tool_ctl.gen_modem_list()
+        end
+
+        local modems  = ppm.get_wired_modem_list()
+        local missing = { tmp = true, ini = true }
+
+        for iface, _ in pairs(modems) do
+            if ini_cfg.WiredModem == iface then missing.ini = false end
+            if tmp_cfg.WiredModem == iface then missing.tmp = false end
+        end
+
+        if missing.tmp and tmp_cfg.WiredModem then
+            local line = Div{parent=modem_list,x=1,y=1,height=1}
+
+            TextBox{parent=line,x=1,y=1,width=4,text="Used",fg_bg=cpair(tri(enable,colors.blue,colors.gray),colors.white)}
+            PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}.disable()
+            TextBox{parent=line,x=15,y=1,text="[missing]",fg_bg=cpair(colors.red,colors.white)}
+            TextBox{parent=line,x=25,y=1,text=tmp_cfg.WiredModem}
+        end
+
+        if missing.ini and ini_cfg.WiredModem and (tmp_cfg.WiredModem ~= ini_cfg.WiredModem) then
+            local line = Div{parent=modem_list,x=1,y=1,height=1}
+            local used = tmp_cfg.WiredModem == ini_cfg.WiredModem
+
+            TextBox{parent=line,x=1,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
+            local select_btn = PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()select(ini_cfg.WiredModem)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}
+            TextBox{parent=line,x=15,y=1,text="[missing]",fg_bg=cpair(colors.red,colors.white)}
+            TextBox{parent=line,x=25,y=1,text=ini_cfg.WiredModem}
+
+            if used or not enable then select_btn.disable() end
+        end
+
+        -- list wired modems
+        for iface, _ in pairs(modems) do
+            local line = Div{parent=modem_list,x=1,y=1,height=1}
+            local used = tmp_cfg.WiredModem == iface
+
+            TextBox{parent=line,x=1,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
+            local select_btn = PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()select(iface)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}
+            TextBox{parent=line,x=15,y=1,text=iface}
+
+            if used or not enable then select_btn.disable() end
         end
     end
 

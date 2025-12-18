@@ -163,7 +163,7 @@ local function new_view(root)
 
     TextBox{parent=info_div,x=2,y=1,text="This app provides tools to test alarm sounds by alarm and by tone (1-8)."}
     TextBox{parent=info_div,x=2,y=6,text="The system must be idle (all units stopped with no alarms active) for testing to run."}
-    TextBox{parent=info_div,x=2,y=12,text="Currently, testing will be denied unless you have a Facility Authentication Key set (this will change in the future)."}
+    TextBox{parent=info_div,x=2,y=12,text="Testing will be denied unless you enabled it in the Supervisor's configuration."}
 
     --#endregion
 

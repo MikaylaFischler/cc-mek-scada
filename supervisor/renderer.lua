@@ -19,15 +19,14 @@ local ui = {
 }
 
 -- try to start the UI
----@param theme FP_THEME front panel theme
----@param color_mode COLOR_MODE color mode
+---@param config svr_config configuration
 ---@return boolean success, any error_msg
-function renderer.try_start_ui(theme, color_mode)
+function renderer.try_start_ui(config)
     local status, msg = true, nil
 
     if ui.display == nil then
         -- set theme
-        style.set_theme(theme, color_mode)
+        style.set_theme(config.FrontPanelTheme, config.ColorMode)
 
         -- reset terminal
         term.setTextColor(colors.white)
@@ -41,7 +40,7 @@ function renderer.try_start_ui(theme, color_mode)
         end
 
         -- apply color mode
-        local c_mode_overrides = style.theme.color_modes[color_mode]
+        local c_mode_overrides = style.theme.color_modes[config.ColorMode]
         for i = 1, #c_mode_overrides do
             term.setPaletteColor(c_mode_overrides[i].c, c_mode_overrides[i].hex)
         end
@@ -49,7 +48,7 @@ function renderer.try_start_ui(theme, color_mode)
         -- init front panel view
         status, msg = pcall(function ()
             ui.display = DisplayBox{window=term.current(),fg_bg=style.fp.root}
-            panel_view(ui.display)
+            panel_view(ui.display, config)
         end)
 
         if status then

@@ -18,8 +18,6 @@ local tri = util.trinary
 local cpair = core.cpair
 
 local self = {
-    tank_fluid_opts = {}, ---@type Radio2D[]
-
     vis_draw = nil,       ---@type function
     draw_fluid_ops = nil, ---@type function
 
@@ -621,7 +619,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
             if type == 0 then type = 1 end
 
-            self.tank_fluid_opts[i] = nil
+            tool_ctl.tank_fluid_opts[i] = nil
 
             if tank_list[i] == 1 then
                 local row = Div{parent=tank_fluid_list,height=2}
@@ -636,7 +634,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                     tank_fluid.disable()
                 end
 
-                self.tank_fluid_opts[i] = tank_fluid
+                tool_ctl.tank_fluid_opts[i] = tank_fluid
             elseif tank_list[i] == 2 then
                 local row = Div{parent=tank_fluid_list,height=2}
 
@@ -661,7 +659,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                     tank_fluid.disable()
                 end
 
-                self.tank_fluid_opts[i] = tank_fluid
+                tool_ctl.tank_fluid_opts[i] = tank_fluid
 
                 next_f = next_f + 1
             end
@@ -676,11 +674,9 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         tmp_cfg.TankFluidTypes = {}
 
         for i = 1, #tmp_cfg.FacilityTankList do
-            if self.tank_fluid_opts[i] ~= nil then
-                tmp_cfg.TankFluidTypes[i] = self.tank_fluid_opts[i].get_value()
-            else
-                tmp_cfg.TankFluidTypes[i] = 0
-            end
+            if tool_ctl.tank_fluid_opts[i] ~= nil then
+                tmp_cfg.TankFluidTypes[i] = tool_ctl.tank_fluid_opts[i].get_value()
+            else tmp_cfg.TankFluidTypes[i] = 0 end
         end
 
         fac_pane.set_value(8)

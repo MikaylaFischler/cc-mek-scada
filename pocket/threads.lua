@@ -11,8 +11,8 @@ local core     = require("graphics.core")
 
 local threads = {}
 
-local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
-local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
+local MAIN_CLOCK   = 0.5 -- 2Hz,   10 ticks
+local RENDER_SLEEP = 100 -- 100ms, 2 ticks
 
 local MQ__RENDER_DATA = pocket.MQ__RENDER_DATA
 
@@ -38,6 +38,7 @@ function threads.thread__main(smem)
         local sv_wd        = smem.pkt_sys.sv_wd
         local api_wd       = smem.pkt_sys.api_wd
         local nav          = smem.pkt_sys.nav
+        local nic          = smem.pkt_sys.nic
 
         -- start connection watchdogs
         sv_wd.feed()
@@ -62,6 +63,10 @@ function threads.thread__main(smem)
                         for i = 1, #page_tasks do page_tasks[i]() end
                     end
 
+                    -- NIC periodic link-layer tasks
+                    nic.periodic()
+
+                    -- start next clock timer
                     loop_clock.start()
                 elseif sv_wd.is_timer(param1) then
                     -- supervisor watchdog timeout
@@ -156,9 +161,7 @@ function threads.thread__render(smem)
                 local msg = render_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
+                    if msg.qtype == mqueue.TYPE.DATA then
                         -- received data
                         local cmd = msg.message ---@type queue_data
 
@@ -177,8 +180,6 @@ function threads.thread__render(smem)
                                 if type(cmd.val[2]) == "function" then cmd.val[2]() end
                             end
                         end
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 

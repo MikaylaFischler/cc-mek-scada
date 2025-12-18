@@ -23,7 +23,10 @@ local rtu = {}
 
 local PROTOCOL = comms.PROTOCOL
 local MGMT_TYPE = comms.MGMT_TYPE
+
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
+
+local SV_Q_DATA = svqtypes.SV_Q_DATA
 
 local PERIODICS = {
     KEEP_ALIVE = 2000,
@@ -235,13 +238,13 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     end
 
     -- send a MODBUS packet
-    ---@param m_pkt modbus_packet MODBUS packet
-    local function _send_modbus(m_pkt)
-        local s_pkt = comms.scada_packet()
+    ---@param m_cnt modbus_container MODBUS container
+    local function _send_modbus(m_cnt)
+        local frame = comms.scada_frame()
 
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_pkt.raw_sendable())
+        frame.make(s_addr, self.seq_num, PROTOCOL.MODBUS_TCP, m_cnt.raw_packet())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -249,18 +252,17 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
     -- handle a packet
-    ---@param pkt modbus_frame|mgmt_frame
+    ---@param pkt modbus_adu|mgmt_packet
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -275,12 +277,12 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.MODBUS_TCP then
-            ---@cast pkt modbus_frame
+            ---@cast pkt modbus_adu
             if self.units[pkt.unit_id] ~= nil then
-                self.units[pkt.unit_id].handle_packet(pkt)
+                self.units[pkt.unit_id].handle_adu(pkt)
             end
         elseif pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_frame
+            ---@cast pkt mgmt_packet
             -- handle management packet
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
@@ -304,6 +306,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
             elseif pkt.type == MGMT_TYPE.CLOSE then
                 -- close the session
                 _close()
+            elseif pkt.type == MGMT_TYPE.SWITCH_NET then
+                -- request to change the network, passed sequence ID check
+                log.debug(log_tag .. "received valid connection switch request")
             elseif pkt.type == MGMT_TYPE.ESTABLISH then
                 -- something is wrong, kill the session
                 _close()
@@ -366,13 +371,9 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 local msg = in_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.PACKET then
+                    if msg.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(msg.message)
-                    elseif msg.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- instruction with body
                     end
                 end
 
@@ -433,16 +434,14 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                 local msg = self.modbus_q.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.PACKET then
-                        -- handle a packet
+                    if msg.qtype == mqueue.TYPE.NETWORK then
+                        -- handle a MODBUS container
                         _send_modbus(msg.message)
-                    elseif msg.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
                     elseif msg.qtype == mqueue.TYPE.DATA then
                         -- instruction with body
                         local cmd = msg.message ---@type queue_data
                         if cmd.key == unit_session.RTU_US_DATA.BUILD_CHANGED then
-                            out_queue.push_data(svqtypes.SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
+                            out_queue.push_data(SV_Q_DATA.RTU_BUILD_CHANGED, cmd.val)
                         end
                     end
                 end

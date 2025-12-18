@@ -1,14 +1,15 @@
-local comms   = require("scada-common.comms")
-local const   = require("scada-common.constants")
-local log     = require("scada-common.log")
-local ppm     = require("scada-common.ppm")
-local rsio    = require("scada-common.rsio")
-local types   = require("scada-common.types")
-local util    = require("scada-common.util")
+local comms     = require("scada-common.comms")
+local const     = require("scada-common.constants")
+local log       = require("scada-common.log")
+local ppm       = require("scada-common.ppm")
+local rsio      = require("scada-common.rsio")
+local types     = require("scada-common.types")
+local util      = require("scada-common.util")
 
-local themes  = require("graphics.themes")
+local themes    = require("graphics.themes")
 
-local databus = require("reactor-plc.databus")
+local backplane = require("reactor-plc.backplane")
+local databus   = require("reactor-plc.databus")
 
 local plc = {}
 
@@ -26,6 +27,10 @@ local RPS_LIMITS = const.RPS_LIMITS
 -- specific errors thrown when scram/start is used that still count as success
 local PCALL_SCRAM_MSG = "Scram requires the reactor to be active."
 local PCALL_START_MSG = "Reactor is already active."
+
+-- wait 5 seconds after initializing a network switch request before being allowed to send more,
+-- which avoids repeat duplicate requests
+local FAILOVER_GRACE_PERIOD_MS = 5000
 
 ---@type plc_config
 ---@diagnostic disable-next-line: missing-fields
@@ -45,6 +50,9 @@ function plc.load_config()
     config.EmerCoolColor = settings.get("EmerCoolColor")
     config.EmerCoolInvert = settings.get("EmerCoolInvert")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.PLC_Channel = settings.get("PLC_Channel")
     config.ConnTimeout = settings.get("ConnTimeout")
@@ -70,7 +78,11 @@ function plc.validate_config(cfg)
     cfv.assert_type_int(cfg.UnitID)
     cfv.assert_type_bool(cfg.EmerCoolEnable)
 
-    if cfg.Networked == true then
+    if cfg.Networked then
+        cfv.assert_type_bool(cfg.WirelessModem)
+        cfv.assert((cfg.WiredModem == false) or (type(cfg.WiredModem) == "string"))
+        cfv.assert(cfg.WirelessModem or (type(cfg.WiredModem) == "string"))
+        cfv.assert_type_bool(cfg.PreferWireless)
         cfv.assert_channel(cfg.SVR_Channel)
         cfv.assert_channel(cfg.PLC_Channel)
         cfv.assert_type_num(cfg.ConnTimeout)
@@ -534,17 +546,18 @@ end
 -- Reactor PLC Communications
 ---@nodiscard
 ---@param version string PLC version
----@param nic nic network interface device
+---@param tx_nic nic network interface device
 ---@param reactor table reactor device
 ---@param rps rps RPS reference
 ---@param conn_watchdog watchdog watchdog reference
-function plc.comms(version, nic, reactor, rps, conn_watchdog)
+function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         r_seq_num = nil,               ---@type nil|integer
         scrammed = false,
         linked = false,
+        failover_init = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW,
         resend_build = false,
         auto_ack_token = 0,
@@ -552,25 +565,22 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         max_burn_rate = nil
     }
 
-    comms.set_trusted_range(config.TrustedRange)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
-    -- PRIVATE FUNCTIONS --
-
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.PLC_Channel)
+    --#region PRIVATE FUNCTIONS --
 
     -- send an RPLC packet
     ---@param msg_type RPLC_TYPE
     ---@param msg table
     local function _send(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local r_pkt = comms.rplc_packet()
+        local frame, rplc = comms.scada_frame(), comms.rplc_container()
 
-        r_pkt.make(config.UnitID, msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, r_pkt.raw_sendable())
+        rplc.make(config.UnitID, msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.RPLC, rplc.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
+        tx_nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -578,13 +588,12 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(self.sv_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.PLC_Channel, s_pkt)
+        tx_nic.transmit(config.SVR_Channel, config.PLC_Channel, frame)
         self.seq_num = self.seq_num + 1
     end
 
@@ -711,7 +720,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- handle a burn rate command
-    ---@param packet rplc_frame
+    ---@param packet rplc_packet
     ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
     local function _handle_burn_rate(packet, setpoints)
@@ -748,7 +757,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- handle an auto burn rate command
-    ---@param packet rplc_frame
+    ---@param packet rplc_packet
     ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
     local function _handle_auto_burn_rate(packet, setpoints)
@@ -816,10 +825,44 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
         end
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class plc_comms
     local public = {}
+
+    -- switch the current active NIC
+    ---@param new_nic nic
+    function public.switch_nic(new_nic)
+        if tx_nic.is_connected() then
+            -- try to gracefully switch, we have an intact continuous connection
+            log.info(util.c("switching link to reconnected interface ", new_nic.phy_name(), " from ", tx_nic.phy_name()))
+
+            tx_nic = new_nic
+            _send_mgmt(MGMT_TYPE.SWITCH_NET, {})
+        else
+            -- can't gracefully switch, the other NIC was lost
+            log.info(util.c("closing link on ", tx_nic.phy_name(), ", switching to ", new_nic.phy_name()))
+
+            tx_nic = new_nic
+            conn_watchdog.cancel()
+            public.unlink()
+        end
+    end
+
+    -- check if the provided NIC is currently active, and if not, switch back to it
+    ---@param act_nic nic
+    function public.manage_failover(act_nic)
+        if (act_nic ~= tx_nic) and act_nic.is_network_up() and ((util.time_ms() - self.failover_init) > FAILOVER_GRACE_PERIOD_MS) then
+            log.info(util.c("primary interface ", act_nic.phy_name(), " is up, requesting link switch"))
+
+            tx_nic = act_nic
+            _send_mgmt(MGMT_TYPE.SWITCH_NET, {})
+
+            self.failover_init = util.time_ms()
+        end
+    end
 
     -- reconnect a newly connected reactor
     ---@param new_reactor table
@@ -847,9 +890,15 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     end
 
     -- attempt to establish link with supervisor
-    function public.send_link_req()
+    ---@param nic nic nic to transmit on
+    function public.send_link_req(nic)
+        local ini_nic = tx_nic
+        tx_nic = nic
+
         self.r_seq_num = nil
         _send_mgmt(MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.PLC, config.UnitID })
+
+        tx_nic = ini_nic
     end
 
     -- send live status information
@@ -903,30 +952,31 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return rplc_frame|mgmt_frame|nil packet
+    ---@return rplc_packet|mgmt_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, nic = nil, backplane.nics[side]
 
-        if s_pkt then
-            -- get as RPLC packet
-            if s_pkt.protocol() == PROTOCOL.RPLC then
-                local rplc_pkt = comms.rplc_packet()
-                if rplc_pkt.decode(s_pkt) then pkt = rplc_pkt.get() end
-            -- get as SCADA management packet
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then pkt = mgmt_pkt.get() end
-            else
-                log.debug("unsupported packet type " .. s_pkt.protocol(), true)
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
+
+            if frame then
+                if frame.protocol() == PROTOCOL.RPLC then
+                    pkt = comms.rplc_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                else
+                    log.debug("unsupported packet type " .. frame.protocol(), true)
+                end
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt
     end
 
     -- handle RPLC and MGMT packets
-    ---@param packet rplc_frame|mgmt_frame packet frame
+    ---@param packet rplc_packet|mgmt_packet packet frame
     ---@param plc_state plc_state PLC state
     ---@param setpoints plc_setpoints setpoint control table
     ---@param println_ts function console print, when UI isn't running
@@ -955,7 +1005,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
 
             -- handle packet
             if protocol == PROTOCOL.RPLC then
-                ---@cast packet rplc_frame
+                ---@cast packet rplc_packet
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == RPLC_TYPE.STATUS then
@@ -1006,7 +1056,7 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                     log.debug("discarding RPLC packet before linked")
                 end
             elseif protocol == PROTOCOL.SCADA_MGMT then
-                ---@cast packet mgmt_frame
+                ---@cast packet mgmt_packet
                 -- if linked, only accept packets from configured supervisor
                 if self.linked then
                     if packet.type == MGMT_TYPE.KEEP_ALIVE then
@@ -1040,8 +1090,10 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
                         local est_ack = packet.data[1]
 
                         if est_ack == ESTABLISH_ACK.ALLOW then
+                            tx_nic = backplane.nics[packet.scada_frame.interface()]
+
                             println_ts("linked!")
-                            log.info("supervisor establish request approved, linked to SV (CID#" .. src_addr .. ")")
+                            log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
 
                             -- link + reset cache
                             self.sv_addr = src_addr
@@ -1097,6 +1149,8 @@ function plc.comms(version, nic, reactor, rps, conn_watchdog)
     function public.is_scrammed() return self.scrammed end
     ---@nodiscard
     function public.is_linked() return self.linked end
+
+    --#endregion
 
     return public
 end

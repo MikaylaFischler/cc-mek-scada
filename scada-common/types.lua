@@ -212,6 +212,13 @@ end
 
 --#region ENUMERATION TYPES
 
+---@enum LISTEN_MODE
+types.LISTEN_MODE = {
+    WIRELESS = 1,
+    WIRED = 2,
+    ALL = 3
+}
+
 ---@enum TEMP_SCALE
 types.TEMP_SCALE = {
     KELVIN = 1,
@@ -561,7 +568,7 @@ types.ALARM_STATE_NAMES = {
 ---| "websocket_failure"
 ---| "websocket_message"
 ---| "websocket_success"
----| "clock_start" (custom)
+---| "conn_test_complete" (custom)
 
 ---@alias fluid
 ---| "mekanism:empty_gas"

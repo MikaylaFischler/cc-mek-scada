@@ -1,6 +1,5 @@
 local comms       = require("scada-common.comms")
 local log         = require("scada-common.log")
-local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
 local types       = require("scada-common.types")
 
@@ -21,6 +20,10 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local LINK_TIMEOUT = 60.0
 
+-- wait 5 seconds after initializing a network switch request before being allowed to send more,
+-- which avoids repeat duplicate requests
+local FAILOVER_GRACE_PERIOD_MS = 5000
+
 local coordinator = {}
 
 ---@type crd_config
@@ -29,11 +32,9 @@ local config = {}
 
 coordinator.config = config
 
--- load the coordinator configuration<br>
--- status of 0 is OK, 1 is bad config, 2 is bad monitor config
----@return 0|1|2 status, nil|monitors_struct|string monitors (or error message)
+-- load the coordinator configuration
 function coordinator.load_config()
-    if not settings.load("/coordinator.settings") then return 1 end
+    if not settings.load("/coordinator.settings") then return false end
 
     config.UnitCount = settings.get("UnitCount")
     config.SpeakerVolume = settings.get("SpeakerVolume")
@@ -47,6 +48,10 @@ function coordinator.load_config()
     config.FlowDisplay = settings.get("FlowDisplay")
     config.UnitDisplays = settings.get("UnitDisplays")
 
+    config.WirelessModem = settings.get("WirelessModem")
+    config.WiredModem = settings.get("WiredModem")
+    config.PreferWireless = settings.get("PreferWireless")
+    config.API_Enabled = settings.get("API_Enabled")
     config.SVR_Channel = settings.get("SVR_Channel")
     config.CRD_Channel = settings.get("CRD_Channel")
     config.PKT_Channel = settings.get("PKT_Channel")
@@ -80,6 +85,13 @@ function coordinator.load_config()
     cfv.assert_type_num(config.SpeakerVolume)
     cfv.assert_range(config.SpeakerVolume, 0, 3)
 
+    cfv.assert_type_bool(config.WirelessModem)
+    cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))
+    cfv.assert(config.WirelessModem or (type(config.WiredModem) == "string"))
+    cfv.assert_type_bool(config.PreferWireless)
+
+    cfv.assert_type_bool(config.API_Enabled)
+
     cfv.assert_channel(config.SVR_Channel)
     cfv.assert_channel(config.CRD_Channel)
     cfv.assert_channel(config.PKT_Channel)
@@ -110,85 +122,7 @@ function coordinator.load_config()
     cfv.assert_type_int(config.ColorMode)
     cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
 
-    -- Monitor Setup
-
-    ---@class monitors_struct
-    local monitors = {
-        main = nil,         ---@type Monitor|nil
-        main_name = "",
-        flow = nil,         ---@type Monitor|nil
-        flow_name = "",
-        unit_displays = {}, ---@type Monitor[]
-        unit_name_map = {}  ---@type string[]
-    }
-
-    local mon_cfv = util.new_validator()
-
-    -- get all interface names
-    local names = {}
-    for iface, _ in pairs(ppm.get_monitor_list()) do table.insert(names, iface) end
-
-    local function setup_monitors()
-        mon_cfv.assert_type_str(config.MainDisplay)
-        if not config.DisableFlowView then mon_cfv.assert_type_str(config.FlowDisplay) end
-        mon_cfv.assert_eq(#config.UnitDisplays, config.UnitCount)
-
-        if mon_cfv.valid() then
-            local w, h, _
-
-            if not util.table_contains(names, config.MainDisplay) then
-                return 2, "Main monitor is not connected."
-            end
-
-            monitors.main = ppm.get_periph(config.MainDisplay)
-            monitors.main_name = config.MainDisplay
-
-            monitors.main.setTextScale(0.5)
-            w, _ = ppm.monitor_block_size(monitors.main.getSize())
-            if w ~= 8 then
-                return 2, util.c("Main monitor width is incorrect (was ", w, ", must be 8).")
-            end
-
-            if not config.DisableFlowView then
-                if not util.table_contains(names, config.FlowDisplay) then
-                    return 2, "Flow monitor is not connected."
-                end
-
-                monitors.flow = ppm.get_periph(config.FlowDisplay)
-                monitors.flow_name = config.FlowDisplay
-
-                monitors.flow.setTextScale(0.5)
-                w, _ = ppm.monitor_block_size(monitors.flow.getSize())
-                if w ~= 8 then
-                    return 2, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
-                end
-            end
-
-            for i = 1, config.UnitCount do
-                local display = config.UnitDisplays[i]
-                if type(display) ~= "string" or not util.table_contains(names, display) then
-                    return 2, "Unit " .. i .. " monitor is not connected."
-                end
-
-                monitors.unit_displays[i] = ppm.get_periph(display)
-                monitors.unit_name_map[i] = display
-
-                monitors.unit_displays[i].setTextScale(0.5)
-                w, h = ppm.monitor_block_size(monitors.unit_displays[i].getSize())
-                if w ~= 4 or h ~= 4 then
-                    return 2, util.c("Unit ", i, " monitor size is incorrect (was ", w, " by ", h,", must be 4 by 4).")
-                end
-            end
-        else return 2, "Monitor configuration invalid." end
-    end
-
-    if cfv.valid() then
-        local ok, result, message = pcall(setup_monitors)
-        assert(ok, util.c("fatal error while trying to verify monitors: ", result))
-        if result == 2 then return 2, message end
-    else return 1 end
-
-    return 0, monitors
+    return cfv.valid()
 end
 
 -- dmesg print wrapper
@@ -232,15 +166,16 @@ end
 -- coordinator communications
 ---@nodiscard
 ---@param version string coordinator version
----@param nic nic network interface device
+---@param backplane crd_backplane coordinator backplane
 ---@param sv_watchdog watchdog
-function coordinator.comms(version, nic, sv_watchdog)
+function coordinator.comms(version, backplane, sv_watchdog)
     local self = {
         sv_linked = false,
         sv_addr = comms.BROADCAST,
         sv_seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
         sv_r_seq_num = nil,               ---@type nil|integer
         sv_config_err = false,
+        failover_init = 0,
         last_est_ack = ESTABLISH_ACK.ALLOW,
         last_api_est_acks = {},
         est_start = 0,
@@ -249,58 +184,65 @@ function coordinator.comms(version, nic, sv_watchdog)
         est_task_done = nil
     }
 
-    comms.set_trusted_range(config.TrustedRange)
+    local tx_nic = backplane.active_nic()
+    local wl_nic = backplane.wireless_nic()
 
-    -- configure network channels
-    nic.closeAll()
-    nic.open(config.CRD_Channel)
+    if config.WirelessModem then
+        comms.set_trusted_range(config.TrustedRange)
+    end
 
     -- pass config to apisessions
-    apisessions.init(nic, config)
+    if config.API_Enabled and wl_nic then
+        apisessions.init(wl_nic, config)
+    end
 
-    -- PRIVATE FUNCTIONS --
+    --#region PRIVATE FUNCTIONS --
 
     -- send a packet to the supervisor
     ---@param msg_type MGMT_TYPE|CRDN_TYPE
     ---@param msg table
     local function _send_sv(protocol, msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local pkt   ---@type mgmt_packet|crdn_packet
+        local frame = comms.scada_frame()
+        local cntnr ---@type mgmt_container|crdn_container
 
         if protocol == PROTOCOL.SCADA_MGMT then
-            pkt = comms.mgmt_packet()
+            cntnr = comms.mgmt_container()
         elseif protocol == PROTOCOL.SCADA_CRDN then
-            pkt = comms.crdn_packet()
-        else
-            return
-        end
+            cntnr = comms.crdn_container()
+        else return end
 
-        pkt.make(msg_type, msg)
-        s_pkt.make(self.sv_addr, self.sv_seq_num, protocol, pkt.raw_sendable())
+        cntnr.make(msg_type, msg)
+        frame.make(self.sv_addr, self.sv_seq_num, protocol, cntnr.raw_packet())
 
-        nic.transmit(config.SVR_Channel, config.CRD_Channel, s_pkt)
+        tx_nic.transmit(config.SVR_Channel, config.CRD_Channel, frame)
         self.sv_seq_num = self.sv_seq_num + 1
     end
 
     -- send an API establish request response
-    ---@param packet scada_packet
+    ---@param rx_frame scada_frame
     ---@param ack ESTABLISH_ACK
     ---@param data any?
-    local function _send_api_establish_ack(packet, ack, data)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+    local function _send_api_establish_ack(rx_frame, ack, data)
+        local tx_frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(MGMT_TYPE.ESTABLISH, { ack, data })
-        s_pkt.make(packet.src_addr(), packet.seq_num() + 1, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(MGMT_TYPE.ESTABLISH, { ack, data })
+        tx_frame.make(rx_frame.src_addr(), rx_frame.seq_num() + 1, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        nic.transmit(config.PKT_Channel, config.CRD_Channel, s_pkt)
-        self.last_api_est_acks[packet.src_addr()] = ack
+---@diagnostic disable-next-line: need-check-nil
+        wl_nic.transmit(config.PKT_Channel, config.CRD_Channel, tx_frame)
+        self.last_api_est_acks[rx_frame.src_addr()] = ack
     end
 
-    -- attempt connection establishment
-    local function _send_establish()
+    -- send establish request
+    ---@param nic nic nic to transmit on
+    local function _send_establish(nic)
+        local ini_nic = tx_nic
+        tx_nic = nic
+
         self.sv_r_seq_num = nil
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.ESTABLISH, { comms.version, version, DEVICE_TYPE.CRD })
+
+        tx_nic = ini_nic
     end
 
     -- keep alive ack
@@ -309,19 +251,67 @@ function coordinator.comms(version, nic, sv_watchdog)
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.KEEP_ALIVE, { srv_time, util.time() })
     end
 
-    -- PUBLIC FUNCTIONS --
+    --#endregion
+
+    --#region PUBLIC FUNCTIONS --
 
     ---@class coord_comms
     local public = {}
 
-    -- try to connect to the supervisor if not already linked
+    -- switch the current active NIC
+    ---@param new_nic nic
+    function public.switch_nic(new_nic)
+        if tx_nic.is_connected() then
+            -- try to gracefully switch, we have an intact continuous connection
+            log.info(util.c("switching link to reconnected interface ", new_nic.phy_name(), " from ", tx_nic.phy_name()))
+
+            tx_nic = new_nic
+            _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.SWITCH_NET, {})
+        else
+            -- can't gracefully switch, the other NIC was lost
+            log.info(util.c("closing link on ", tx_nic.phy_name(), ", switching to ", new_nic.phy_name()))
+
+            tx_nic = new_nic
+            sv_watchdog.cancel()
+            public.unlink()
+        end
+    end
+
+    -- maintain the supervisor connection, which consists of establishing it and handling link failover
     ---@param abort boolean? true to print out cancel info if not linked (use on program terminate)
     ---@return boolean ok, boolean start_ui
-    function public.try_connect(abort)
-        local ok = true
-        local start_ui = false
+    function public.manage_link(abort)
+        local ok, start_ui = true, false
 
-        if not self.sv_linked then
+        if self.sv_linked then
+            -- handle connection failover
+            local act_nic = backplane.active_nic()
+            if (act_nic ~= tx_nic) and act_nic.is_network_up() and ((util.time_ms() - self.failover_init) > FAILOVER_GRACE_PERIOD_MS) then
+                log.info(util.c("primary interface ", act_nic.phy_name(), " is up, requesting link switch"))
+
+                tx_nic = act_nic
+                _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.SWITCH_NET, {})
+
+                self.failover_init = util.time_ms()
+            end
+
+            -- handle UI
+            if self.est_tick_waiting ~= nil then
+                self.est_task_done(true)
+                self.est_tick_waiting = nil
+                self.est_task_done = nil
+                start_ui = true
+            end
+        else
+            local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+            local e_nic = nil
+
+            if a_nic.is_network_up() then
+                e_nic = a_nic
+            elseif s_nic and s_nic.is_network_up() then
+                e_nic = s_nic
+            end
+
             if self.est_tick_waiting == nil then
                 self.est_start = os.clock()
                 self.est_last = self.est_start
@@ -329,7 +319,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                 self.est_tick_waiting, self.est_task_done =
                     coordinator.log_comms_connecting("attempting to connect to configured supervisor on channel " .. config.SVR_Channel)
 
-                _send_establish()
+                if e_nic then _send_establish(e_nic) end
             else
                 self.est_tick_waiting(math.max(0, LINK_TIMEOUT - (os.clock() - self.est_start)))
             end
@@ -359,26 +349,26 @@ function coordinator.comms(version, nic, sv_watchdog)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
-                _send_establish()
+                if e_nic then _send_establish(e_nic) end
                 self.est_last = os.clock()
             end
-        elseif self.est_tick_waiting ~= nil then
-            self.est_task_done(true)
-            self.est_tick_waiting = nil
-            self.est_task_done = nil
-            start_ui = true
         end
 
         return ok, start_ui
     end
 
-    -- close the connection to the server
-    function public.close()
-        sv_watchdog.cancel()
+    -- unlink from the server
+    function public.unlink()
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
         self.sv_r_seq_num = nil
         iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+    end
+
+    -- close the connection to the server
+    function public.close()
+        sv_watchdog.cancel()
+        public.unlink()
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
     end
 
@@ -427,34 +417,31 @@ function coordinator.comms(version, nic, sv_watchdog)
     ---@param reply_to integer
     ---@param message any
     ---@param distance integer
-    ---@return mgmt_frame|crdn_frame|nil packet
+    ---@return mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local s_pkt = nic.receive(side, sender, reply_to, message, distance)
-        local pkt = nil
+        local pkt, nic = nil, backplane.nics[side]
 
-        if s_pkt then
-            -- get as SCADA management packet
-            if s_pkt.protocol() == PROTOCOL.SCADA_MGMT then
-                local mgmt_pkt = comms.mgmt_packet()
-                if mgmt_pkt.decode(s_pkt) then
-                    pkt = mgmt_pkt.get()
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
+
+            if frame then
+                if frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                    pkt = comms.crdn_container().decode(frame)
+                else
+                    log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
                 end
-            -- get as coordinator packet
-            elseif s_pkt.protocol() == PROTOCOL.SCADA_CRDN then
-                local crdn_pkt = comms.crdn_packet()
-                if crdn_pkt.decode(s_pkt) then
-                    pkt = crdn_pkt.get()
-                end
-            else
-                log.debug("attempted parse of illegal packet type " .. s_pkt.protocol(), true)
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt
     end
 
     -- handle a packet
-    ---@param packet mgmt_frame|crdn_frame|nil
+    ---@param packet mgmt_packet|crdn_packet|nil
     ---@return boolean close_ui
     function public.handle_packet(packet)
         local was_linked = self.sv_linked
@@ -468,30 +455,32 @@ function coordinator.comms(version, nic, sv_watchdog)
             if l_chan ~= config.CRD_Channel then
                 log.debug("received packet on unconfigured channel " .. l_chan, true)
             elseif r_chan == config.PKT_Channel then
-                if not self.sv_linked then
+                if not config.API_Enabled then
+                    -- log.debug("discarding pocket API packet due to the API being disabled")
+                elseif not self.sv_linked then
                     log.debug("discarding pocket API packet before linked to supervisor")
                 elseif protocol == PROTOCOL.SCADA_CRDN then
-                    ---@cast packet crdn_frame
+                    ---@cast packet crdn_packet
                     -- look for an associated session
                     local session = apisessions.find_session(src_addr)
 
                     -- coordinator packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
-                        session.in_queue.push_packet(packet)
+                        session.in_queue.push_network(packet)
                     else
                         -- any other packet should be session related, discard it
                         log.debug("discarding SCADA_CRDN packet without a known session")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_frame
+                    ---@cast packet mgmt_packet
                     -- look for an associated session
                     local session = apisessions.find_session(src_addr)
 
                     -- SCADA management packet
                     if session ~= nil then
                         -- pass the packet onto the session handler
-                        session.in_queue.push_packet(packet)
+                        session.in_queue.push_network(packet)
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- establish a new session
                         -- validate packet and continue
@@ -554,7 +543,7 @@ function coordinator.comms(version, nic, sv_watchdog)
 
                 -- handle packet
                 if protocol == PROTOCOL.SCADA_CRDN then
-                    ---@cast packet crdn_frame
+                    ---@cast packet crdn_packet
                     if self.sv_linked then
                         if packet.type == CRDN_TYPE.INITIAL_BUILDS then
                             if packet.length == 2 then
@@ -669,7 +658,7 @@ function coordinator.comms(version, nic, sv_watchdog)
                         log.debug("discarding SCADA_CRDN packet before linked")
                     end
                 elseif protocol == PROTOCOL.SCADA_MGMT then
-                    ---@cast packet mgmt_frame
+                    ---@cast packet mgmt_packet
                     if self.sv_linked then
                         if packet.type == MGMT_TYPE.KEEP_ALIVE then
                             -- keep alive request received, echo back
@@ -720,6 +709,10 @@ function coordinator.comms(version, nic, sv_watchdog)
                                     }
 
                                     if conf.num_units == config.UnitCount then
+                                        tx_nic = backplane.nics[packet.scada_frame.interface()]
+
+                                        log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
+
                                         -- init io controller
                                         iocontrol.init(conf, public, config.TempScale, config.EnergyScale)
 
@@ -783,6 +776,8 @@ function coordinator.comms(version, nic, sv_watchdog)
     -- check if the coordinator is still linked to the supervisor
     ---@nodiscard
     function public.is_linked() return self.sv_linked end
+
+    --#endregion
 
     return public
 end

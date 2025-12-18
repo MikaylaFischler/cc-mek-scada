@@ -4,6 +4,7 @@ local ppm         = require("scada-common.ppm")
 local tcd         = require("scada-common.tcd")
 local util        = require("scada-common.util")
 
+local backplane   = require("coordinator.backplane")
 local coordinator = require("coordinator.coordinator")
 local iocontrol   = require("coordinator.iocontrol")
 local process     = require("coordinator.process")
@@ -20,19 +21,8 @@ local log_comms  = coordinator.log_comms
 
 local threads = {}
 
-local MAIN_CLOCK   = 0.5 -- (2Hz,   10 ticks)
-local RENDER_SLEEP = 100 -- (100ms, 2 ticks)
-
-local MQ__RENDER_CMD = {
-    START_MAIN_UI = 1,
-    CLOSE_MAIN_UI = 2
-}
-
-local MQ__RENDER_DATA = {
-    MON_CONNECT = 1,
-    MON_DISCONNECT = 2,
-    MON_RESIZE = 3
-}
+local MAIN_CLOCK   = 0.5 -- 2Hz,   10 ticks
+local RENDER_SLEEP = 100 -- 100ms, 2 ticks
 
 -- main thread
 ---@nodiscard
@@ -44,7 +34,7 @@ function threads.thread__main(smem)
     -- execute thread
     function public.exec()
         iocontrol.fp_rt_status("main", true)
-        log.debug("main thread start")
+        log.debug("OS: main thread start")
 
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
@@ -54,10 +44,12 @@ function threads.thread__main(smem)
         log_sys("system started successfully")
 
         -- load in from shared memory
-        local crd_state     = smem.crd_state
-        local nic           = smem.crd_sys.nic
-        local coord_comms   = smem.crd_sys.coord_comms
-        local conn_watchdog = smem.crd_sys.conn_watchdog
+        local crd_state       = smem.crd_state
+        local coord_comms     = smem.crd_sys.coord_comms
+        local conn_watchdog   = smem.crd_sys.conn_watchdog
+
+        local MQ__RENDER_CMD  = smem.q_types.MQ__RENDER_CMD
+        local MQ__RENDER_DATA = smem.q_types.MQ__RENDER_DATA
 
         -- event loop
         while true do
@@ -66,66 +58,13 @@ function threads.thread__main(smem)
             -- handle event
             if event == "peripheral_detach" then
                 local type, device = ppm.handle_unmount(param1)
-
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        -- we only really care if this is our wireless modem
-                        -- if it is another modem, handle other peripheral losses separately
-                        if nic.is_modem(device) then
-                            nic.disconnect()
-                            log_sys("comms modem disconnected")
-
-                            local other_modem = ppm.get_wireless_modem()
-                            if other_modem then
-                                log_sys("found another wireless modem, using it for comms")
-                                nic.connect(other_modem)
-                            else
-                                -- close out main UI
-                                smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
-
-                                -- alert user to status
-                                log_sys("awaiting comms modem reconnect...")
-
-                                iocontrol.fp_has_modem(false)
-                            end
-                        else
-                            log_sys("non-comms modem disconnected")
-                        end
-                    elseif type == "monitor" then
-                        ---@cast device Monitor
-                        smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_DISCONNECT, device)
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        log_sys("lost alarm sounder speaker")
-                        iocontrol.fp_has_speaker(false)
-                    end
+                    backplane.detach(type, device, param1)
                 end
             elseif event == "peripheral" then
                 local type, device = ppm.mount(param1)
-
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        if device.isWireless() and not nic.is_connected() then
-                            -- reconnected modem
-                            log_sys("comms modem reconnected")
-                            nic.connect(device)
-                            iocontrol.fp_has_modem(true)
-                        elseif device.isWireless() then
-                            log.info("unused wireless modem reconnected")
-                        else
-                            log_sys("wired modem reconnected")
-                        end
-                    elseif type == "monitor" then
-                        ---@cast device Monitor
-                        smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_CONNECT, { name = param1, device = device })
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        log_sys("alarm sounder speaker reconnected")
-                        sounder.reconnect(device)
-                        iocontrol.fp_has_speaker(true)
-                    end
+                    backplane.attach(type, device, param1)
                 end
             elseif event == "monitor_resize" then
                 smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_RESIZE, param1)
@@ -136,19 +75,20 @@ function threads.thread__main(smem)
                     -- toggle heartbeat
                     iocontrol.heartbeat()
 
+                    -- periodic hardware tasks
+                    backplane.periodic()
+
                     -- maintain connection
-                    if nic.is_connected() then
-                        local ok, start_ui = coord_comms.try_connect()
-                        if not ok then
-                            crd_state.link_fail = true
-                            crd_state.shutdown = true
-                            log_sys("supervisor connection failed, shutting down...")
-                            log.fatal("failed to connect to supervisor")
-                            break
-                        elseif start_ui then
-                            log_sys("supervisor connected, dispatching main UI start")
-                            smem.q.mq_render.push_command(MQ__RENDER_CMD.START_MAIN_UI)
-                        end
+                    local ok, start_ui = coord_comms.manage_link()
+                    if not ok then
+                        crd_state.link_fail = true
+                        crd_state.shutdown = true
+                        log_sys("supervisor connection failed, shutting down...")
+                        log.fatal("failed to connect to supervisor")
+                        break
+                    elseif start_ui then
+                        log_sys("supervisor connected, dispatching main UI start")
+                        smem.q.mq_render.push_command(MQ__RENDER_CMD.START_MAIN_UI)
                     end
 
                     -- iterate sessions and free any closed ones
@@ -163,6 +103,7 @@ function threads.thread__main(smem)
                         iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
                     end
 
+                    -- start next clock timer
                     loop_clock.start()
                 elseif conn_watchdog.is_timer(param1) then
                     -- supervisor watchdog timeout
@@ -206,15 +147,15 @@ function threads.thread__main(smem)
             -- check for termination request or UI crash
             if event == "terminate" or ppm.should_terminate() then
                 crd_state.shutdown = true
-                log.info("terminate requested, main thread exiting")
+                log.info("OS: terminate requested, main thread exiting")
             elseif not crd_state.ui_ok then
                 crd_state.shutdown = true
-                log.info("terminating due to fatal UI error")
+                log.info("OS: terminating due to fatal UI error")
             end
 
             if crd_state.shutdown then
                 -- handle closing supervisor connection
-                coord_comms.try_connect(true)
+                coord_comms.manage_link(true)
 
                 if coord_comms.is_linked() then
                     log_comms("closing supervisor connection...")
@@ -247,7 +188,7 @@ function threads.thread__main(smem)
             -- if status is true, then we are probably exiting, so this won't matter
             -- this thread cannot be slept because it will miss events (namely "terminate")
             if not crd_state.shutdown then
-                log.info("main thread restarting now...")
+                log.info("OS: main thread restarting now...")
             end
         end
     end
@@ -265,11 +206,14 @@ function threads.thread__render(smem)
     -- execute thread
     function public.exec()
         iocontrol.fp_rt_status("render", true)
-        log.debug("render thread start")
+        log.debug("OS: render thread start")
 
         -- load in from shared memory
-        local crd_state    = smem.crd_state
-        local render_queue = smem.q.mq_render
+        local crd_state       = smem.crd_state
+        local render_queue    = smem.q.mq_render
+
+        local MQ__RENDER_CMD  = smem.q_types.MQ__RENDER_CMD
+        local MQ__RENDER_DATA = smem.q_types.MQ__RENDER_DATA
 
         local last_update = util.time()
 
@@ -317,18 +261,10 @@ function threads.thread__render(smem)
 
                         if cmd.key == MQ__RENDER_DATA.MON_CONNECT then
                             -- monitor connected
-                            if renderer.handle_reconnect(cmd.val.name, cmd.val.device) then
-                                log_sys(util.c("configured monitor ", cmd.val.name, " reconnected"))
-                            else
-                                log_sys(util.c("unused monitor ", cmd.val.name, " connected"))
-                            end
+                            renderer.handle_reconnect(cmd.val)
                         elseif cmd.key == MQ__RENDER_DATA.MON_DISCONNECT then
                             -- monitor disconnected
-                            if renderer.handle_disconnect(cmd.val) then
-                                log_sys("lost a configured monitor")
-                            else
-                                log_sys("lost an unused monitor")
-                            end
+                            renderer.handle_disconnect(cmd.val)
                         elseif cmd.key == MQ__RENDER_DATA.MON_RESIZE then
                             -- monitor resized
                             local is_used, is_ok = renderer.handle_resize(cmd.val)
@@ -336,8 +272,6 @@ function threads.thread__render(smem)
                                 log_sys(util.c("configured monitor ", cmd.val, " resized, ", util.trinary(is_ok, "display fits", "display does not fit")))
                             end
                         end
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
                     end
                 end
 
@@ -347,7 +281,7 @@ function threads.thread__render(smem)
 
             -- check for termination request
             if crd_state.shutdown then
-                log.info("render thread exiting")
+                log.info("OS: render thread exiting")
                 break
             end
 
@@ -369,7 +303,7 @@ function threads.thread__render(smem)
             iocontrol.fp_rt_status("render", false)
 
             if not crd_state.shutdown then
-                log.info("render thread restarting in 5 seconds...")
+                log.info("OS: render thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end

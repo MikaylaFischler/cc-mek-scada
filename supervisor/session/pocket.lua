@@ -39,7 +39,8 @@ local PERIODICS = {
 ---@param sessions svsessions_list list of computer sessions, read-only
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
-function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, sessions, facility, fp_ok)
+---@param allow_test boolean if this should allow pocket testing commands
+function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, sessions, facility, fp_ok, allow_test)
     -- print a log message to the terminal as long as the UI isn't running
     local function println(message) if not fp_ok then util.println_ts(message) end end
 
@@ -83,18 +84,17 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
     ---@param msg_type MGMT_TYPE
     ---@param msg table
     local function _send_mgmt(msg_type, msg)
-        local s_pkt = comms.scada_packet()
-        local m_pkt = comms.mgmt_packet()
+        local frame, mgmt = comms.scada_frame(), comms.mgmt_container()
 
-        m_pkt.make(msg_type, msg)
-        s_pkt.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, m_pkt.raw_sendable())
+        mgmt.make(msg_type, msg)
+        frame.make(s_addr, self.seq_num, PROTOCOL.SCADA_MGMT, mgmt.raw_packet())
 
-        out_queue.push_packet(s_pkt)
+        out_queue.push_network(frame)
         self.seq_num = self.seq_num + 1
     end
 
     -- handle a packet
-    ---@param pkt mgmt_frame
+    ---@param pkt mgmt_packet
     local function _handle_packet(pkt)
         -- check sequence number
         if self.r_seq_num ~= pkt.scada_frame.seq_num() then
@@ -109,7 +109,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
 
         -- process packet
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_MGMT then
-            ---@cast pkt mgmt_frame
+            ---@cast pkt mgmt_packet
             if pkt.type == MGMT_TYPE.KEEP_ALIVE then
                 -- keep alive reply
                 if pkt.length == 2 then
@@ -143,7 +143,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 local valid = false
 
                 -- attempt to set a tone state
-                if pkt.scada_frame.is_authenticated() then
+                if allow_test then
                     if pkt.length == 2 then
                         if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
                             valid = true
@@ -151,22 +151,16 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                             -- try to set tone states, then send back if testing is allowed
                             local allow_testing, test_tone_states = facility.diag_set_test_tone(pkt.data[1], pkt.data[2])
                             _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { allow_testing, test_tone_states })
-                        else
-                            log.debug(log_tag .. "SCADA diag tone set packet data type mismatch")
-                        end
-                    else
-                        log.debug(log_tag .. "SCADA diag tone set packet length mismatch")
-                    end
-                else
-                    log.debug(log_tag .. "DIAG_TONE_SET is blocked without HMAC for security")
-                end
+                        else log.debug(log_tag .. "SCADA diag tone set packet data type mismatch") end
+                    else log.debug(log_tag .. "SCADA diag tone set packet length mismatch") end
+                else log.warning(log_tag .. "DIAG_TONE_SET is blocked without pocket test commands enabled") end
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_TONE_SET, { false }) end
             elseif pkt.type == MGMT_TYPE.DIAG_ALARM_SET then
                 local valid = false
 
                 -- attempt to set an alarm state
-                if pkt.scada_frame.is_authenticated() then
+                if allow_test then
                     if pkt.length == 2 then
                         if type(pkt.data[1]) == "number" and type(pkt.data[2]) == "boolean" then
                             valid = true
@@ -174,15 +168,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                             -- try to set alarm states, then send back if testing is allowed
                             local allow_testing, test_alarm_states = facility.diag_set_test_alarm(pkt.data[1], pkt.data[2])
                             _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { allow_testing, test_alarm_states })
-                        else
-                            log.debug(log_tag .. "SCADA diag alarm set packet data type mismatch")
-                        end
-                    else
-                        log.debug(log_tag .. "SCADA diag alarm set packet length mismatch")
-                    end
-                else
-                    log.debug(log_tag .. "DIAG_ALARM_SET is blocked without HMAC for security")
-                end
+                        else log.debug(log_tag .. "SCADA diag alarm set packet data type mismatch") end
+                    else log.debug(log_tag .. "SCADA diag alarm set packet length mismatch") end
+                else log.warning(log_tag .. "DIAG_ALARM_SET is blocked without pocket test commands enabled") end
 
                 if not valid then _send_mgmt(MGMT_TYPE.DIAG_ALARM_SET, { false }) end
             elseif pkt.type == MGMT_TYPE.INFO_LIST_CMP then
@@ -272,13 +260,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                 local message = in_queue.pop()
 
                 if message ~= nil then
-                    if message.qtype == mqueue.TYPE.PACKET then
+                    if message.qtype == mqueue.TYPE.NETWORK then
                         -- handle a packet
                         _handle_packet(message.message)
-                    elseif message.qtype == mqueue.TYPE.COMMAND then
-                        -- handle instruction
-                    elseif message.qtype == mqueue.TYPE.DATA then
-                        -- instruction with body
                     end
                 end
 

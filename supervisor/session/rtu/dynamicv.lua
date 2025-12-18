@@ -180,17 +180,17 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
 
     -- PUBLIC FUNCTIONS --
 
-    -- handle a packet
-    ---@param m_pkt modbus_frame
-    function public.handle_packet(m_pkt)
-        local txn_type = self.session.try_resolve(m_pkt)
+    -- handle an ADU
+    ---@param adu modbus_adu
+    function public.handle_adu(adu)
+        local txn_type = self.session.try_resolve(adu)
         if txn_type == false then
             -- nothing to do
         elseif txn_type == TXN_TYPES.FORMED then
             -- formed response
             -- load in data if correct length
-            if m_pkt.length == 1 then
-                self.db.formed = m_pkt.data[1]
+            if adu.length == 1 then
+                self.db.formed = adu.data[1]
 
                 if not self.db.formed then self.has_build = false end
             else
@@ -198,15 +198,15 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             end
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
-            if m_pkt.length == 7 then
+            if adu.length == 7 then
                 self.db.build.last_update        = util.time_ms()
-                self.db.build.length             = m_pkt.data[1]
-                self.db.build.width              = m_pkt.data[2]
-                self.db.build.height             = m_pkt.data[3]
-                self.db.build.min_pos            = m_pkt.data[4]
-                self.db.build.max_pos            = m_pkt.data[5]
-                self.db.build.tank_capacity      = m_pkt.data[6]
-                self.db.build.chem_tank_capacity = m_pkt.data[7]
+                self.db.build.length             = adu.data[1]
+                self.db.build.width              = adu.data[2]
+                self.db.build.height             = adu.data[3]
+                self.db.build.min_pos            = adu.data[4]
+                self.db.build.max_pos            = adu.data[5]
+                self.db.build.tank_capacity      = adu.data[6]
+                self.db.build.chem_tank_capacity = adu.data[7]
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
@@ -215,9 +215,9 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
-            if m_pkt.length == 1 then
+            if adu.length == 1 then
                 self.db.state.last_update    = util.time_ms()
-                self.db.state.container_mode = m_pkt.data[1]
+                self.db.state.container_mode = adu.data[1]
 
                 if self.mode_cmd == nil then
                     self.mode_cmd = self.db.state.container_mode
@@ -227,10 +227,10 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
-            if m_pkt.length == 2 then
+            if adu.length == 2 then
                 self.db.tanks.last_update = util.time_ms()
-                self.db.tanks.stored      = m_pkt.data[1]
-                self.db.tanks.fill        = m_pkt.data[2]
+                self.db.tanks.stored      = adu.data[1]
+                self.db.tanks.fill        = adu.data[2]
             else
                 log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
             end

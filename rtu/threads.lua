@@ -5,10 +5,10 @@ local tcd          = require("scada-common.tcd")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
 
+local backplane    = require("rtu.backplane")
 local databus      = require("rtu.databus")
 local modbus       = require("rtu.modbus")
 local renderer     = require("rtu.renderer")
-local rtu          = require("rtu.rtu")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
 local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
@@ -25,8 +25,8 @@ local threads = {}
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local RTU_HW_STATE = databus.RTU_HW_STATE
 
-local MAIN_CLOCK  = 0.5 -- (2Hz,  10 ticks)
-local COMMS_SLEEP = 100 -- (100ms, 2 ticks)
+local MAIN_CLOCK  = 0.5 -- 2Hz,  10 ticks
+local COMMS_SLEEP = 100 -- 100ms, 2 ticks
 
 ---@param smem rtu_shared_memory
 ---@param println_ts function
@@ -184,18 +184,18 @@ function threads.thread__main(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("main", true)
-        log.debug("main thread start")
+        log.debug("OS: main thread start")
 
         -- main loop clock
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
         -- load in from shared memory
         local rtu_state     = smem.rtu_state
-        local sounders      = smem.rtu_dev.sounders
-        local nic           = smem.rtu_sys.nic
         local rtu_comms     = smem.rtu_sys.rtu_comms
         local conn_watchdog = smem.rtu_sys.conn_watchdog
         local units         = smem.rtu_sys.units
+
+        local sounders      = backplane.sounders()
 
         -- start unlinked (in case of restart)
         rtu_comms.unlink(rtu_state)
@@ -211,6 +211,9 @@ function threads.thread__main(smem)
                 -- blink heartbeat indicator
                 databus.heartbeat()
 
+                -- periodic hardware tasks
+                backplane.periodic()
+
                 -- update speaker states
                 for _, sounder in pairs(sounders) do
                     -- re-compute output if needed, then play audio if available
@@ -220,20 +223,28 @@ function threads.thread__main(smem)
                     end
                 end
 
+                -- period tick, if we are not linked send establish request
+                if rtu_state.linked then
+                    rtu_comms.manage_failover(backplane.active_nic())
+                else
+                    -- advertise units
+                    local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+
+                    if a_nic.is_network_up() then
+                        rtu_comms.send_establish(a_nic, units)
+                    elseif s_nic and s_nic.is_network_up() then
+                        rtu_comms.send_establish(s_nic, units)
+                    end
+                end
+
                 -- start next clock timer
                 loop_clock.start()
-
-                -- period tick, if we are not linked send establish request
-                if not rtu_state.linked then
-                    -- advertise units
-                    rtu_comms.send_establish(units)
-                end
             elseif event == "modem_message" then
                 -- got a packet
                 local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
-                    smem.q.mq_comms.push_packet(packet)
+                    smem.q.mq_comms.push_network(packet)
                 end
             elseif event == "timer" and conn_watchdog.is_timer(param1) then
                 -- haven't heard from server recently? close connection
@@ -246,38 +257,8 @@ function threads.thread__main(smem)
                 local type, device = ppm.handle_unmount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        -- we only care if this is our wireless modem
-                        if nic.is_modem(device) then
-                            nic.disconnect()
-
-                            println_ts("wireless modem disconnected!")
-                            log.warning("comms modem disconnected")
-
-                            local other_modem = ppm.get_wireless_modem()
-                            if other_modem then
-                                log.info("found another wireless modem, using it for comms")
-                                nic.connect(other_modem)
-                            else
-                                databus.tx_hw_modem(false)
-                            end
-                        else
-                            log.warning("non-comms modem disconnected")
-                        end
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        for i = 1, #sounders do
-                            if sounders[i].speaker == device then
-                                table.remove(sounders, i)
-
-                                log.warning(util.c("speaker ", param1, " disconnected"))
-                                println_ts("speaker disconnected")
-
-                                databus.tx_hw_spkr_count(#sounders)
-                                break
-                            end
-                        end
+                    if type == "modem" or type == "speaker" then
+                        backplane.detach(type, device, param1, println_ts)
                     else
                         for i = 1, #units do
                             -- find disconnected device
@@ -301,29 +282,8 @@ function threads.thread__main(smem)
                 local type, device = ppm.mount(param1)
 
                 if type ~= nil and device ~= nil then
-                    if type == "modem" then
-                        ---@cast device Modem
-                        if device.isWireless() and not nic.is_connected() then
-                            -- reconnected modem
-                            nic.connect(device)
-
-                            println_ts("wireless modem reconnected.")
-                            log.info("comms modem reconnected")
-
-                            databus.tx_hw_modem(true)
-                        elseif device.isWireless() then
-                            log.info("unused wireless modem reconnected")
-                        else
-                            log.info("wired modem reconnected")
-                        end
-                    elseif type == "speaker" then
-                        ---@cast device Speaker
-                        table.insert(sounders, rtu.init_sounder(device))
-
-                        println_ts("speaker connected")
-                        log.info(util.c("connected speaker ", param1))
-
-                        databus.tx_hw_spkr_count(#sounders)
+                    if type == "modem" or type == "speaker" then
+                        backplane.attach(type, device, param1, println_ts)
                     else
                         -- relink lost peripheral to correct unit entry
                         for i = 1, #units do
@@ -349,7 +309,7 @@ function threads.thread__main(smem)
             -- check for termination request
             if event == "terminate" or ppm.should_terminate() then
                 rtu_state.shutdown = true
-                log.info("terminate requested, main thread exiting")
+                log.info("OS: terminate requested, main thread exiting")
                 break
             end
         end
@@ -368,7 +328,7 @@ function threads.thread__main(smem)
             databus.tx_rt_status("main", false)
 
             if not rtu_state.shutdown then
-                log.info("main thread restarting in 5 seconds...")
+                log.info("OS: main thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -387,15 +347,15 @@ function threads.thread__comms(smem)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("comms", true)
-        log.debug("comms thread start")
+        log.debug("OS: comms thread start")
 
         -- load in from shared memory
         local rtu_state   = smem.rtu_state
-        local sounders    = smem.rtu_dev.sounders
         local rtu_comms   = smem.rtu_sys.rtu_comms
         local units       = smem.rtu_sys.units
-
         local comms_queue = smem.q.mq_comms
+
+        local sounders    = backplane.sounders()
 
         local last_update = util.time()
 
@@ -408,11 +368,7 @@ function threads.thread__comms(smem)
                 local msg = comms_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
+                    if msg.qtype == mqueue.TYPE.NETWORK then
                         -- received a packet
                         -- handle the packet (rtu_state passed to allow setting link flag, sounders passed to manage alarm audio)
                         rtu_comms.handle_packet(msg.message, units, rtu_state, sounders)
@@ -421,7 +377,7 @@ function threads.thread__comms(smem)
 
                 -- max 100ms spent processing queue
                 if util.time() - handle_start > 100 then
-                    log.warning("comms thread exceeded 100ms queue process limit")
+                    log.warning("OS: comms thread exceeded 100ms queue process limit")
                     break
                 end
             end
@@ -432,7 +388,7 @@ function threads.thread__comms(smem)
             -- check for termination request
             if rtu_state.shutdown then
                 rtu_comms.close(rtu_state)
-                log.info("comms thread exiting")
+                log.info("OS: comms thread exiting")
                 break
             end
 
@@ -454,7 +410,7 @@ function threads.thread__comms(smem)
             databus.tx_rt_status("comms", false)
 
             if not rtu_state.shutdown then
-                log.info("comms thread restarting in 5 seconds...")
+                log.info("OS: comms thread restarting in 5 seconds...")
                 util.psleep(5)
             end
         end
@@ -477,7 +433,7 @@ function threads.thread__unit_comms(smem, unit)
     -- execute thread
     function public.exec()
         databus.tx_rt_status("unit_" .. unit.uid, true)
-        log.debug(util.c("rtu unit thread start -> ", types.rtu_type_to_string(unit.type), " (", unit.name, ")"))
+        log.debug(util.c("OS: rtu unit thread start -> ", types.rtu_type_to_string(unit.type), " (", unit.name, ")"))
 
         -- load in from shared memory
         local rtu_state    = smem.rtu_state
@@ -494,7 +450,7 @@ function threads.thread__unit_comms(smem, unit)
         local short_name   = util.c(types.rtu_type_to_string(unit.type), " (", unit.name, ")")
 
         if packet_queue == nil then
-            log.error("rtu unit thread created without a message queue, exiting...", true)
+            log.error("OS: rtu unit thread created without a message queue, exiting...", true)
             return
         end
 
@@ -505,13 +461,9 @@ function threads.thread__unit_comms(smem, unit)
                 local msg = packet_queue.pop()
 
                 if msg ~= nil then
-                    if msg.qtype == mqueue.TYPE.COMMAND then
-                        -- received a command
-                    elseif msg.qtype == mqueue.TYPE.DATA then
-                        -- received data
-                    elseif msg.qtype == mqueue.TYPE.PACKET then
-                        -- received a packet
-                        local _, reply = unit.modbus_io.handle_packet(msg.message)
+                    if msg.qtype == mqueue.TYPE.NETWORK then
+                        -- received an ADU
+                        local _, reply = unit.modbus_io.handle_adu(msg.message)
                         rtu_comms.send_modbus(reply)
                     end
                 end
@@ -522,7 +474,7 @@ function threads.thread__unit_comms(smem, unit)
 
             -- check for termination request
             if rtu_state.shutdown then
-                log.info("rtu unit thread exiting -> " .. short_name)
+                log.info("OS: rtu unit thread exiting -> " .. short_name)
                 break
             end
 
@@ -587,7 +539,7 @@ function threads.thread__unit_comms(smem, unit)
             databus.tx_rt_status("unit_" .. unit.uid, false)
 
             if not rtu_state.shutdown then
-                log.info(util.c("rtu unit thread ", types.rtu_type_to_string(unit.type), " (", unit.name, ") restarting in 5 seconds..."))
+                log.info(util.c("OS: rtu unit thread ", types.rtu_type_to_string(unit.type), " (", unit.name, ") restarting in 5 seconds..."))
                 util.psleep(5)
             end
         end

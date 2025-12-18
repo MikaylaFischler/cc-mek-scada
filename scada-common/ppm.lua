@@ -293,7 +293,7 @@ function ppm.remount(iface)
     return pm_type, pm_dev
 end
 
--- mount a virtual, placeholder device (specifically designed for RTU startup with missing devices)
+-- mount a virtual placeholder device
 ---@nodiscard
 ---@return string type, table device
 function ppm.mount_virtual()
@@ -409,13 +409,13 @@ end
 
 -- get all mounted peripherals by type
 ---@nodiscard
----@param name string type name
+---@param type string type name
 ---@return table devices device function tables
-function ppm.get_all_devices(name)
+function ppm.get_all_devices(type)
     local devices = {}
 
     for _, data in pairs(_ppm.mounts) do
-        if data.type == name then
+        if data.type == type then
             table.insert(devices, data.dev)
         end
     end
@@ -425,44 +425,72 @@ end
 
 -- get a mounted peripheral by type (if multiple, returns the first)
 ---@nodiscard
----@param name string type name
----@return table|nil device function table
-function ppm.get_device(name)
-    local device = nil
+---@param type string type name
+---@return table|nil device, string|nil iface device and interface
+function ppm.get_device(type)
+    local device, d_iface = nil, nil
 
-    for _, data in pairs(_ppm.mounts) do
-        if data.type == name then
+    for iface, data in pairs(_ppm.mounts) do
+        if data.type == type then
             device = data.dev
+            d_iface = iface
             break
         end
     end
 
-    return device
+    return device, d_iface
 end
 
 -- SPECIFIC DEVICE ACCESSORS --
 
 -- get the fission reactor (if multiple, returns the first)
 ---@nodiscard
----@return table|nil reactor function table
+---@return table|nil reactor, string|nil iface reactor and interface
 function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
+
+-- get a modem by name
+---@nodiscard
+---@param iface string CC peripheral interface
+---@return Modem|nil modem function table
+function ppm.get_modem(iface)
+    local modem  = nil
+    local device = _ppm.mounts[iface]
+
+    if device and device.type == "modem" then modem = device.dev end
+
+    return modem
+end
 
 -- get the wireless modem (if multiple, returns the first)<br>
 -- if this is in a CraftOS emulated environment, wired modems will be used instead
 ---@nodiscard
----@return Modem|nil modem function table
+---@return Modem|nil modem, string|nil iface
 function ppm.get_wireless_modem()
-    local w_modem = nil
+    local w_modem, w_iface = nil, nil
     local emulated_env = periphemu ~= nil
 
-    for _, device in pairs(_ppm.mounts) do
+    for iface, device in pairs(_ppm.mounts) do
         if device.type == "modem" and (emulated_env or device.dev.isWireless()) then
             w_modem = device.dev
+            w_iface = iface
             break
         end
     end
 
-    return w_modem
+    return w_modem, w_iface
+end
+
+-- list all connected wired modems
+---@nodiscard
+---@return { [string]: ppm_entry } modems
+function ppm.get_wired_modem_list()
+    local list = {}
+
+    for iface, device in pairs(_ppm.mounts) do
+        if device.type == "modem" and not device.dev.isWireless() then list[iface] = device end
+    end
+
+    return list
 end
 
 -- list all connected monitors

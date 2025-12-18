@@ -2,7 +2,8 @@
 -- Indicator Light Flasher
 --
 
-local tcd = require("scada-common.tcd")
+local tcd  = require("scada-common.tcd")
+local util = require("scada-common.util")
 
 local flasher = {}
 
@@ -61,7 +62,7 @@ end
 ---@param f function function to call each period
 ---@param period PERIOD time period option (1, 2, or 3)
 function flasher.start(f, period)
-    if type(registry[period]) == "table" then
+    if type(registry[period]) == "table" and not util.table_contains(registry[period], f) then
         table.insert(registry[period], f)
     end
 end

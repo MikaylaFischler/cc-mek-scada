@@ -2,6 +2,7 @@
 -- Reactor PLC Front Panel GUI
 --
 
+local tcd        = require("scada-common.tcd")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
@@ -35,12 +36,11 @@ local ind_red = style.ind_red
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
-local function init(panel)
+---@param config plc_config configuraiton
+local function init(panel, config)
     local s_hi_box = style.theme.highlight_box
 
-    local disabled_fg = style.fp.disabled_fg
-
-    local term_w, term_h = term.getSize()
+    local term_w, _ = term.getSize()
 
     local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
@@ -51,15 +51,60 @@ local function init(panel)
 
     local system = Div{parent=panel,width=14,height=18,x=2,y=3}
 
-    local degraded = LED{parent=system,label="STATUS",colors=cpair(colors.red,colors.green)}
+    local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
     system.line_break()
 
-    degraded.register(databus.ps, "degraded", degraded.update)
+    sys_status.register(databus.ps, "status", sys_status.update)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
-    local modem = LED{parent=system,label="MODEM",colors=ind_grn}
+    reactor.register(databus.ps, "reactor_dev_state", reactor.update)
+
+    if config.Networked then
+        if config.WirelessModem and config.WiredModem then
+            local wd_modem = LEDPair{parent=system,label="WD MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+            local wl_modem = LEDPair{parent=system,label="WL MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+
+            local function wd_modem_update()
+                if databus.ps.get("has_wd_modem") then
+                    if databus.ps.get("has_wd_net") then
+                        wd_modem.update(3)
+                    else wd_modem.update(2) end
+                else wd_modem.update(1) end
+            end
+
+            local function wl_modem_update()
+                if databus.ps.get("has_wl_modem") then
+                    if databus.ps.get("has_wl_net") then
+                        wl_modem.update(3)
+                    else wl_modem.update(2) end
+                else wl_modem.update(1) end
+            end
+
+            wd_modem.register(databus.ps, "has_wd_modem", wd_modem_update)
+            wd_modem.register(databus.ps, "has_wd_net", wd_modem_update)
+            wl_modem.register(databus.ps, "has_wl_modem", wl_modem_update)
+            wl_modem.register(databus.ps, "has_wl_net", wl_modem_update)
+        else
+            local modem = LEDPair{parent=system,label="MODEM",off=colors.green_off,c1=colors.yellow,c2=colors.green}
+
+            local pfx = util.trinary(config.WirelessModem, "has_wl_", "has_wd_")
+
+            local function modem_update()
+                if databus.ps.get(pfx .. "modem") then
+                    if databus.ps.get(pfx .. "net") then
+                        modem.update(3)
+                    else modem.update(2) end
+                else modem.update(1) end
+            end
+
+            modem.register(databus.ps, pfx .. "modem", modem_update)
+            modem.register(databus.ps, pfx .. "net", modem_update)
+        end
+    else
+        local _ = LED{parent=system,label="MODEM",colors=ind_grn}
+    end
 
     if not style.colorblind then
         local network = RGBLED{parent=system,label="NETWORK",colors={colors.green,colors.red,colors.yellow,colors.orange,style.ind_bkg}}
@@ -99,9 +144,6 @@ local function init(panel)
 
     system.line_break()
 
-    reactor.register(databus.ps, "reactor_dev_state", reactor.update)
-    modem.register(databus.ps, "has_modem", modem.update)
-
     local rt_main = LED{parent=system,label="RT MAIN",colors=ind_grn}
     local rt_rps  = LED{parent=system,label="RT RPS",colors=ind_grn}
     local rt_cmtx = LED{parent=system,label="RT COMMS TX",colors=ind_grn}
@@ -115,12 +157,8 @@ local function init(panel)
     rt_cmrx.register(databus.ps, "routine__comms_rx", rt_cmrx.update)
     rt_sctl.register(databus.ps, "routine__spctl", rt_sctl.update)
 
----@diagnostic disable-next-line: undefined-field
-    local comp_id = util.sprintf("(%d)", os.getComputerID())
-    TextBox{parent=system,x=9,y=5,width=6,text=comp_id,fg_bg=disabled_fg}
-
     --
-    -- status & controls
+    -- status & controls & hardware labeling
     --
 
     local status = Div{parent=panel,width=term_w-32,height=18,x=17,y=3}
@@ -146,16 +184,39 @@ local function init(panel)
     active.register(databus.ps, "reactor_active", active.update)
     scram.register(databus.ps, "rps_scram", scram.update)
 
-    --
-    -- about footer
-    --
+    local hw_labels = Rectangle{parent=status,width=status.get_width()-2,height=5,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
-    local about   = Div{parent=panel,width=15,height=2,y=term_h-1,fg_bg=disabled_fg}
-    local fw_v    = TextBox{parent=about,text="FW: v00.00.00"}
-    local comms_v = TextBox{parent=about,text="NT: v00.00.00"}
+---@diagnostic disable-next-line: undefined-field
+    local comp_id = util.sprintf("%03d", os.getComputerID())
 
-    fw_v.register(databus.ps, "version", function (version) fw_v.set_value(util.c("FW: ", version)) end)
-    comms_v.register(databus.ps, "comms_version", function (version) comms_v.set_value(util.c("NT: v", version)) end)
+    TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="SN "..comp_id.."-PLC",fg_bg=s_hi_box}
+
+    -- warning about multiple reactors connected
+
+    local warn_strings = { "!! DANGER !!\n>1 REACTOR\nLOGIC ADAPTER", "REMOVE\nALL BUT ONE\nLOGIC ADAPTER" }
+    local multi_warn = TextBox{parent=status,text=warn_strings[1],width=status.get_width()-2,alignment=ALIGN.CENTER,fg_bg=cpair(colors.yellow,colors.red),hidden=true}
+
+    local warn_toggle = true
+    local function flash_warn()
+        multi_warn.recolor(util.trinary(warn_toggle, colors.black, colors.yellow))
+        multi_warn.set_value(util.trinary(warn_toggle, warn_strings[2], warn_strings[1]))
+        warn_toggle = not warn_toggle
+
+        if databus.ps.get("has_multi_reactor") then tcd.dispatch_unique(2, flash_warn) end
+    end
+
+    multi_warn.register(databus.ps, "has_multi_reactor", function (v)
+        if v then
+            multi_warn.show()
+            warn_toggle = false
+            flash_warn()
+        else
+            tcd.abort(flash_warn)
+            multi_warn.hide(true)
+        end
+    end)
 
     --
     -- rps list
