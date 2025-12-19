@@ -368,8 +368,8 @@ function coordinator.comms(version, backplane, sv_watchdog)
     -- close the connection to the server
     function public.close()
         sv_watchdog.cancel()
-        public.unlink()
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
+        public.unlink()
     end
 
     -- send the resume ready state to the supervisor
@@ -681,10 +681,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
                             sv_watchdog.cancel()
-                            self.sv_addr = comms.BROADCAST
-                            self.sv_linked = false
-                            self.sv_r_seq_num = nil
-                            iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+                            public.unlink()
                             log.info("server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type)
