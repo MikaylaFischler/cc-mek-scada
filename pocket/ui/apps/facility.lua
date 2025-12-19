@@ -43,17 +43,17 @@ local grn_ind_s    = style.icon_states.grn_ind_s
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.FACILITY, frame, nil, false, true)
 
-    local load_div = Div{parent=frame,x=1,y=1}
-    local main = Div{parent=frame,x=1,y=1}
+    local load_div = Div{parent=frame,y=1}
+    local main = Div{parent=frame,y=1}
 
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.orange,colors._INHERIT)}
 
-    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+    local load_pane = MultiPane{parent=main,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
@@ -100,7 +100,7 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=8,text="Induction Matrix",alignment=ALIGN.CENTER}
 
-        local eta = TextBox{parent=f_div,x=1,y=10,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
+        local eta = TextBox{parent=f_div,y=10,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
         eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
 
         TextBox{parent=f_div,y=12,text="Unit Statuses",alignment=ALIGN.CENTER}
@@ -179,7 +179,7 @@ local function new_view(root)
             if fac.tank_list[t] == 1 then
                 t_div.line_break()
 
-                local tank = IconIndicator{parent=t_div,x=1,label="Unit Tank "..t.." (U-"..t..")",states=basic_states}
+                local tank = IconIndicator{parent=t_div,label="Unit Tank "..t.." (U-"..t..")",states=basic_states}
                 tank.register(db.units[t].tank_ps_tbl[1], "DynamicTankStatus", tank.update)
 
                 TextBox{parent=t_div,x=5,text="\x07 Unit "..t,fg_bg=label_fg_bg}
@@ -188,7 +188,7 @@ local function new_view(root)
 
                 t_div.line_break()
 
-                local tank = IconIndicator{parent=t_div,x=1,label="Fac. Tank "..f_tank_id.." (F-"..f_tank_id..")",states=basic_states}
+                local tank = IconIndicator{parent=t_div,label="Fac. Tank "..f_tank_id.." (F-"..f_tank_id..")",states=basic_states}
                 tank.register(fac.tank_ps_tbl[f_tank_id], "DynamicTankStatus", tank.update)
 
                 local connections = ""
@@ -211,7 +211,7 @@ local function new_view(root)
         --#endregion
 
         -- setup multipane
-        local f_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        local f_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(f_pane)
 
         -- setup sidebar

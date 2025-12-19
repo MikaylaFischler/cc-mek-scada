@@ -35,12 +35,12 @@ local APP_ID = pocket.APP_ID
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.GUIDE, frame)
 
-    local load_div = Div{parent=frame,x=1,y=1}
-    local main = Div{parent=frame,x=1,y=1}
+    local load_div = Div{parent=frame,y=1}
+    local main = Div{parent=frame,y=1}
 
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.cyan,colors._INHERIT)}
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
@@ -53,7 +53,7 @@ local function new_view(root)
         load_text_2.set_value(b or "")
     end
 
-    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+    local load_pane = MultiPane{parent=main,y=1,panes={load_div,main}}
 
     local btn_fg_bg = cpair(colors.cyan, colors.black)
     local btn_active = cpair(colors.white, colors.black)
@@ -110,13 +110,13 @@ local function new_view(root)
 
         TextBox{parent=search,y=1,text="Search",alignment=ALIGN.CENTER}
 
-        local query_field = TextField{parent=search,x=1,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
+        local query_field = TextField{parent=search,y=3,width=18,fg_bg=cpair(colors.white,colors.gray)}
 
         local func_ref = {}
 
         PushButton{parent=search,x=20,y=3,text="GO",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()func_ref.run_search()end}
 
-        local search_results = ListBox{parent=search,x=1,y=5,scroll_height=200,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+        local search_results = ListBox{parent=search,y=5,scroll_height=200,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
         function func_ref.run_search()
             local query = string.lower(query_field.get_value())
@@ -285,7 +285,7 @@ local function new_view(root)
         load_text("Links")
 
         TextBox{parent=lnk,y=1,text="Wiki and Discord",alignment=ALIGN.CENTER}
-        PushButton{parent=lnk,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
+        PushButton{parent=lnk,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         lnk.line_break()
         TextBox{parent=lnk,text="GitHub",fg_bg=cpair(colors.lightGray,colors.black)}
@@ -298,7 +298,7 @@ local function new_view(root)
         TextBox{parent=lnk,text="discord.gg/R9NSCkhcwt"}
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        local u_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(u_pane)
 
         -- link help resources

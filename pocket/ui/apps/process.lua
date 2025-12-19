@@ -52,17 +52,17 @@ local dis_colors      = cpair(colors.white, colors.lightGray)
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.PROCESS, frame, nil, false, true)
 
-    local load_div = Div{parent=frame,x=1,y=1}
-    local main = Div{parent=frame,x=1,y=1}
+    local load_div = Div{parent=frame,y=1}
+    local main = Div{parent=frame,y=1}
 
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.purple,colors._INHERIT)}
 
-    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+    local load_pane = MultiPane{parent=main,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
@@ -107,7 +107,7 @@ local function new_view(root)
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
             TextBox{parent=u_div,y=3,text="Auto Rate Limit",fg_bg=label_fg_bg}
-            rate_limits[i] = NumberField{parent=u_div,x=1,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+            rate_limits[i] = NumberField{parent=u_div,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
             TextBox{parent=u_div,x=18,y=4,text="mB/t",width=4,fg_bg=label_fg_bg}
 
             rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
@@ -162,20 +162,20 @@ local function new_view(root)
         TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
 
         local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
+        local mode = RadioButton{parent=o_div,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
         mode.register(f_ps, "process_mode", mode.set_value)
 
         TextBox{parent=o_div,y=9,text="Burn Rate Target",fg_bg=label_fg_bg}
-        local b_target = NumberField{parent=o_div,x=1,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        local b_target = NumberField{parent=o_div,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=o_div,x=17,y=10,text="mB/t",fg_bg=label_fg_bg}
 
         TextBox{parent=o_div,y=12,text="Charge Level Target",fg_bg=label_fg_bg}
-        local c_target = NumberField{parent=o_div,x=1,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        local c_target = NumberField{parent=o_div,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=o_div,x=17,y=13,text="M"..db.energy_label,fg_bg=label_fg_bg}
 
         TextBox{parent=o_div,y=15,text="Generation Target",fg_bg=label_fg_bg}
-        local g_target = NumberField{parent=o_div,x=1,y=16,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        local g_target = NumberField{parent=o_div,y=16,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=o_div,x=17,y=16,text="k"..db.energy_label.."/t",fg_bg=label_fg_bg}
 
         b_target.register(f_ps, "process_burn_target", b_target.set_value)
@@ -194,9 +194,9 @@ local function new_view(root)
 
         TextBox{parent=c_div,y=1,text="Process Control",alignment=ALIGN.CENTER}
 
-        local u_stat      = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,x=1,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
-        local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
-        local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
+        local u_stat      = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
+        local stat_line_1 = TextBox{parent=u_stat,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
+        local stat_line_2 = TextBox{parent=u_stat,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
 
         stat_line_1.register(f_ps, "status_line_1", stat_line_1.set_value)
         stat_line_2.register(f_ps, "status_line_2", stat_line_2.set_value)
@@ -291,7 +291,7 @@ local function new_view(root)
         --#endregion
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        local u_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(u_pane)
 
         -- setup sidebar

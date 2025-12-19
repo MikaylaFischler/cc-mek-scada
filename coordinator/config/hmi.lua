@@ -52,12 +52,12 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local mon_c_3 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_4 = Div{parent=mon_cfg,x=2,y=4,width=49}
 
-    local mon_pane = MultiPane{parent=mon_cfg,x=1,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
+    local mon_pane = MultiPane{parent=mon_cfg,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
 
-    TextBox{parent=mon_cfg,x=1,y=2,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
+    TextBox{parent=mon_cfg,y=2,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
-    TextBox{parent=mon_c_1,x=1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
-    local mon_reqs = ListBox{parent=mon_c_1,x=1,y=7,height=6,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    TextBox{parent=mon_c_1,y=1,height=5,text="Your configuration requires the following monitors. The main and flow monitors' heights are dependent on your unit count and cooling setup. If you manually entered the unit count, a * will be shown on potentially inaccurate calculations."}
+    local mon_reqs = ListBox{parent=mon_c_1,y=7,height=6,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function next_from_reqs()
         -- unassign unit monitors above the unit count
@@ -67,13 +67,13 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         mon_pane.set_value(2)
     end
 
-    PushButton{parent=mon_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=8,y=14,text="Legacy Options",min_width=16,callback=function()mon_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=mon_c_2,x=1,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
+    TextBox{parent=mon_c_2,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
 
-    local mon_list = ListBox{parent=mon_c_2,x=1,y=6,height=7,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local mon_list = ListBox{parent=mon_c_2,y=6,height=7,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local assign_err = TextBox{parent=mon_c_2,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -98,14 +98,14 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         assign_err.show()
     end
 
-    PushButton{parent=mon_c_2,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_2,y=14,text="\x1b Back",callback=function()mon_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_2,x=44,y=14,text="Next \x1a",callback=submit_monitors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    local mon_desc = TextBox{parent=mon_c_3,x=1,y=1,height=4,text=""}
+    local mon_desc = TextBox{parent=mon_c_3,y=1,height=4,text=""}
 
     local mon_unit_l, mon_unit = nil, nil ---@type TextBox, NumberField
 
-    local mon_warn = TextBox{parent=mon_c_3,x=1,y=11,height=2,text="",fg_bg=cpair(colors.red,colors.lightGray)}
+    local mon_warn = TextBox{parent=mon_c_3,y=11,height=2,text="",fg_bg=cpair(colors.red,colors.lightGray)}
 
     ---@param val integer assignment type
     local function on_assign_mon(val)
@@ -135,8 +135,8 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         if value == "0" or value == nil then mon_unit.set_value(0) end
     end
 
-    TextBox{parent=mon_c_3,x=1,y=6,width=10,text="Assignment"}
-    local mon_assign = RadioButton{parent=mon_c_3,x=1,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
+    TextBox{parent=mon_c_3,y=6,width=10,text="Assignment"}
+    local mon_assign = RadioButton{parent=mon_c_3,y=7,default=1,options={"Main Monitor","Flow Monitor","Unit Monitor"},callback=on_assign_mon,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.blue}
 
     mon_unit_l = TextBox{parent=mon_c_3,x=18,y=6,width=7,text="Unit ID"}
     mon_unit = NumberField{parent=mon_c_3,x=18,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
@@ -181,13 +181,13 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         mon_pane.set_value(2)
     end
 
-    PushButton{parent=mon_c_3,x=1,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_3,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.apply_mon = PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
 
-    TextBox{parent=mon_c_4,x=1,y=1,height=3,text="For legacy compatibility with facilities built without space for a flow monitor, you can disable the flow monitor requirement here."}
-    TextBox{parent=mon_c_4,x=1,y=5,height=3,text="Please be aware that THIS OPTION WILL BE REMOVED ON RELEASE. Disabling it will only be available for the remainder of the beta."}
+    TextBox{parent=mon_c_4,y=1,height=3,text="For legacy compatibility with facilities built without space for a flow monitor, you can disable the flow monitor requirement here."}
+    TextBox{parent=mon_c_4,y=5,height=3,text="Please be aware that THIS OPTION WILL BE REMOVED ON RELEASE. Disabling it will only be available for the remainder of the beta."}
 
-    tool_ctl.dis_flow_view = Checkbox{parent=mon_c_4,x=1,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
+    tool_ctl.dis_flow_view = Checkbox{parent=mon_c_4,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
 
     local function back_from_legacy()
         tmp_cfg.DisableFlowView = tool_ctl.dis_flow_view.get_value()
@@ -203,14 +203,14 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     local spkr_c = Div{parent=spkr_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=spkr_cfg,x=1,y=2,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
+    TextBox{parent=spkr_cfg,y=2,text=" Speaker Configuration",fg_bg=cpair(colors.black,colors.cyan)}
 
-    TextBox{parent=spkr_c,x=1,y=1,height=2,text="The coordinator uses a speaker to play alarm sounds."}
-    TextBox{parent=spkr_c,x=1,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
+    TextBox{parent=spkr_c,y=1,height=2,text="The coordinator uses a speaker to play alarm sounds."}
+    TextBox{parent=spkr_c,y=4,height=3,text="You can change the speaker audio volume from the default. The range is 0.0 to 3.0, where 1.0 is standard volume."}
 
-    tool_ctl.s_vol = NumberField{parent=spkr_c,x=1,y=8,width=9,max_chars=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
+    tool_ctl.s_vol = NumberField{parent=spkr_c,y=8,width=9,max_chars=7,allow_decimal=true,default=ini_cfg.SpeakerVolume,min=0,max=3,fg_bg=bw_fg_bg}
 
-    TextBox{parent=spkr_c,x=1,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=spkr_c,y=10,height=3,text="Note: alarm sine waves are at half scale so that multiple will be required to reach full scale.",fg_bg=g_lg_fg_bg}
 
     local s_vol_err = TextBox{parent=spkr_c,x=8,y=14,width=35,text="Please set a volume.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -223,7 +223,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         else s_vol_err.show() end
     end
 
-    PushButton{parent=spkr_c,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -232,18 +232,18 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=crd_cfg,x=1,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
+    TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
-    TextBox{parent=crd_c_1,x=1,y=1,height=2,text="You can customize the UI with the interface options below."}
+    TextBox{parent=crd_c_1,y=1,height=2,text="You can customize the UI with the interface options below."}
 
-    TextBox{parent=crd_c_1,x=1,y=4,text="Clock Time Format"}
-    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,x=1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=crd_c_1,y=4,text="Clock Time Format"}
+    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
     tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
-    TextBox{parent=crd_c_1,x=1,y=8,text="Temperature Scale"}
-    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,x=1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+    TextBox{parent=crd_c_1,y=8,text="Temperature Scale"}
+    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
 
     TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
     tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
@@ -256,7 +256,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         main_pane.set_value(7)
     end
 
-    PushButton{parent=crd_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -295,13 +295,13 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
         mon_reqs.remove_all()
 
-        TextBox{parent=mon_reqs,x=1,y=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
-        TextBox{parent=mon_reqs,x=1,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,x=1,y=1,text="\x1a 1 Main View Monitor"}
-        TextBox{parent=mon_reqs,x=1,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,y=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
         if not tmp_cfg.DisableFlowView then
-            TextBox{parent=mon_reqs,x=1,y=1,text="\x1a 1 Flow View Monitor"}
-            TextBox{parent=mon_reqs,x=1,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=mon_reqs,y=1,text="\x1a 1 Flow View Monitor"}
+            TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
@@ -401,9 +401,9 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
                 end
             end
 
-            local line = Div{parent=mon_list,x=1,y=1,height=1}
+            local line = Div{parent=mon_list,y=1,height=1}
 
-            TextBox{parent=line,x=1,y=1,width=6,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
+            TextBox{parent=line,y=1,width=6,text=assignment,fg_bg=cpair(util.trinary(assignment=="Unused",colors.red,colors.blue),colors.white)}
             TextBox{parent=line,x=8,y=1,text=iface}
 
             local w, h = ppm.monitor_block_size(dev.getSize())
@@ -430,9 +430,9 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
         -- add monitors that are assigned but not connected
         for i = 1, #dc_list do
-            local line = Div{parent=mon_list,x=1,y=1,height=1}
+            local line = Div{parent=mon_list,y=1,height=1}
 
-            TextBox{parent=line,x=1,y=1,width=6,text=dc_list[i][1],fg_bg=cpair(colors.blue,colors.white)}
+            TextBox{parent=line,y=1,width=6,text=dc_list[i][1],fg_bg=cpair(colors.blue,colors.white)}
             TextBox{parent=line,x=8,y=1,text="disconnected",fg_bg=cpair(colors.red,colors.white)}
 
             local function unset_mon()

@@ -70,16 +70,16 @@ return function (app, panes, sps_pane, ps, update)
 
     TextBox{parent=sps_ext_div,y=1,text="More SPS Info",alignment=ALIGN.CENTER}
 
-    TextBox{parent=sps_ext_div,text="Polonium",x=1,y=3,width=13,fg_bg=label}
+    TextBox{parent=sps_ext_div,text="Polonium",y=3,width=13,fg_bg=label}
     local input_p = DataIndicator{parent=sps_ext_div,x=14,y=3,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local input_amnt = DataIndicator{parent=sps_ext_div,x=1,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local input_amnt = DataIndicator{parent=sps_ext_div,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     input_p.register(ps, "input_fill", function (x) input_p.update(x * 100) end)
     input_amnt.register(ps, "input", function (x) input_amnt.update(x.amount) end)
 
-    TextBox{parent=sps_ext_div,text="Antimatter",x=1,y=6,width=15,fg_bg=label}
+    TextBox{parent=sps_ext_div,text="Antimatter",y=6,width=15,fg_bg=label}
     local output_p = DataIndicator{parent=sps_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local output_amnt = DataIndicator{parent=sps_ext_div,x=1,y=7,lu_colors=lu_col,label="",unit="\xb5B",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local output_amnt = DataIndicator{parent=sps_ext_div,y=7,lu_colors=lu_col,label="",unit="\xb5B",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     output_p.register(ps, "output_fill", function (x) output_p.update(x * 100) end)
     output_amnt.register(ps, "output", function (x) output_amnt.update(x.amount) end)

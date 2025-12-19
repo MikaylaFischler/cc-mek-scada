@@ -83,7 +83,7 @@ local function make(parent, x, y, wide, unit_id)
     -- COOLING LOOP --
     ------------------
 
-    local reactor = Rectangle{parent=root,x=1,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
+    local reactor = Rectangle{parent=root,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
     TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=ALIGN.CENTER}
     TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
@@ -191,7 +191,7 @@ local function make(parent, x, y, wide, unit_id)
         pipe(_wide(132, 110), 6, _wide(130, 108), 6, waste_c, true, true)
     }
 
-    PipeNetwork{parent=waste,x=1,y=1,pipes=waste_pipes,bg=style.theme.bg}
+    PipeNetwork{parent=waste,y=1,pipes=waste_pipes,bg=style.theme.bg}
 
     local function _valve(vx, vy, n)
         TextBox{parent=waste,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
@@ -207,7 +207,7 @@ local function make(parent, x, y, wide, unit_id)
         TextBox{parent=waste,x=mx,y=my+1,text=name,alignment=ALIGN.CENTER,fg_bg=style.theme.header,width=l}
     end
 
-    local waste_rate = DataIndicator{parent=waste,x=1,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local waste_rate = DataIndicator{parent=waste,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local pu_rate = DataIndicator{parent=waste,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=s_field}
     local po_rate = DataIndicator{parent=waste,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local popl_rate = DataIndicator{parent=waste,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}

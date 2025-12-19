@@ -21,16 +21,16 @@ local APP_ID = pocket.APP_ID
 local function new_view(root)
     local db = iocontrol.get_db()
 
-    local main = Div{parent=root,x=1,y=1,height=19}
+    local main = Div{parent=root,y=1,height=19}
 
     local app = db.nav.register_app(APP_ID.ROOT, main)
 
-    local apps_1 = Div{parent=main,x=1,y=1,height=15}
-    local apps_2 = Div{parent=main,x=1,y=1,height=15}
+    local apps_1 = Div{parent=main,y=1,height=15}
+    local apps_2 = Div{parent=main,y=1,height=15}
 
     local panes = { apps_1, apps_2 }
 
-    local app_pane = AppMultiPane{parent=main,x=1,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=app.switcher}
+    local app_pane = AppMultiPane{parent=main,y=1,height=18,panes=panes,active_color=colors.lightGray,nav_colors=cpair(colors.lightGray,colors.gray),scroll_nav=true,drag_nav=true,callback=app.switcher}
 
     app.set_root_pane(app_pane)
     app.new_page(app.new_page(nil, 1), 2)
