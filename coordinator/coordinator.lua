@@ -419,18 +419,22 @@ function coordinator.comms(version, backplane, sv_watchdog)
     ---@param distance integer
     ---@return mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, r_nic = nil, backplane.nics[side]
+        local pkt, nic = nil, backplane.nics[side]
 
-        local frame = r_nic.receive(side, sender, reply_to, message, distance)
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
 
-        if frame then
-            if frame.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_container().decode(frame)
-            else
-                log.debug("attempted parse of illegal packet type " .. frame.protocol(), true)
+            if frame then
+                if frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                    pkt = comms.crdn_container().decode(frame)
+                else
+                    log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
+                end
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt

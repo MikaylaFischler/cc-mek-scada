@@ -50,6 +50,70 @@ function threads.thread__main(smem)
         local MQ__RPS_CMD   = smem.q_types.MQ__RPS_CMD
         local MQ__COMM_CMD  = smem.q_types.MQ__COMM_CMD
 
+        -- main loop periodic tasks
+        local function loop_tick()
+            -- blink heartbeat indicator
+            databus.heartbeat()
+
+            -- start next clock timer
+            loop_clock.start()
+
+            -- periodic hardware tasks
+            backplane.periodic()
+
+            -- send updated data or try to link
+            if networked then
+                if plc_comms.is_linked() then
+                    smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
+
+                    plc_comms.manage_failover(backplane.active_nic())
+                elseif ticks_to_update == 0 then
+                    local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+
+                    if a_nic.is_network_up() then
+                        plc_comms.send_link_req(a_nic)
+                    elseif s_nic and s_nic.is_network_up() then
+                        plc_comms.send_link_req(s_nic)
+                    end
+
+                    ticks_to_update = LINK_TICKS
+                else
+                    ticks_to_update = ticks_to_update - 1
+                end
+            end
+
+            -- check for formed state change
+            if (not plc_state.reactor_formed) and rps.is_formed() then
+                -- reactor now formed
+                plc_state.reactor_formed = true
+
+                println_ts("reactor is now formed")
+                log.info("reactor is now formed")
+
+                -- SCRAM newly formed reactor
+                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
+
+                -- determine if we are still in a degraded state
+                if (not networked) or backplane.active_nic().is_connected() then
+                    plc_state.degraded = false
+                end
+
+                -- partial reset of RPS, specific to becoming formed
+                -- without this, auto control can't resume on chunk load
+                smem.q.mq_rps.push_command(MQ__RPS_CMD.RESET_REATTACH)
+            elseif plc_state.reactor_formed and (rps.is_formed() == false) then
+                -- reactor no longer formed
+                println_ts("reactor is no longer formed")
+                log.info("reactor is no longer formed")
+
+                plc_state.reactor_formed = false
+                plc_state.degraded = true
+            end
+
+            -- update indicators
+            databus.tx_hw_status(plc_state)
+        end
+
         -- start clock
         loop_clock.start()
 
@@ -58,90 +122,30 @@ function threads.thread__main(smem)
             local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
-            if event == "timer" and loop_clock.is_clock(param1) then
-                -- blink heartbeat indicator
-                databus.heartbeat()
-
-                -- start next clock timer
-                loop_clock.start()
-
-                -- periodic hardware tasks
-                backplane.periodic()
-
-                -- send updated data or try to link
-                if networked then
-                    if plc_comms.is_linked() then
-                        smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
-
-                        plc_comms.manage_failover(backplane.active_nic())
-                    elseif ticks_to_update == 0 then
-                        local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
-
-                        if a_nic.is_network_up() then
-                            plc_comms.send_link_req(a_nic)
-                        elseif s_nic and s_nic.is_network_up() then
-                            plc_comms.send_link_req(s_nic)
-                        end
-
-                        ticks_to_update = LINK_TICKS
-                    else
-                        ticks_to_update = ticks_to_update - 1
-                    end
-                end
-
-                -- check for formed state change
-                if (not plc_state.reactor_formed) and rps.is_formed() then
-                    -- reactor now formed
-                    plc_state.reactor_formed = true
-
-                    println_ts("reactor is now formed")
-                    log.info("reactor is now formed")
-
-                    -- SCRAM newly formed reactor
-                    smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
-                    -- determine if we are still in a degraded state
-                    if (not networked) or backplane.active_nic().is_connected() then
-                        plc_state.degraded = false
-                    end
-
-                    -- partial reset of RPS, specific to becoming formed
-                    -- without this, auto control can't resume on chunk load
-                    smem.q.mq_rps.push_command(MQ__RPS_CMD.RESET_REATTACH)
-                elseif plc_state.reactor_formed and (rps.is_formed() == false) then
-                    -- reactor no longer formed
-                    println_ts("reactor is no longer formed")
-                    log.info("reactor is no longer formed")
-
-                    plc_state.reactor_formed = false
-                    plc_state.degraded = true
-                end
-
-                -- update indicators
-                databus.tx_hw_status(plc_state)
-            elseif event == "modem_message" and networked then
+            if event == "modem_message" and networked then
                 -- got a packet
                 local packet = plc_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
                     smem.q.mq_comms_rx.push_network(packet)
                 end
-            elseif event == "timer" and networked and conn_watchdog.is_timer(param1) then
-                -- haven't heard from server recently? close connection and shutdown reactor
-                plc_comms.close()
-                smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
             elseif event == "timer" then
-                -- notify timer callback dispatcher if no other timer case claimed this event
-                tcd.handle(param1)
-            elseif event == "peripheral_detach" then
-                -- peripheral disconnect
-                local type, device = ppm.handle_unmount(param1)
-                if type ~= nil and device ~= nil then
-                    backplane.detach(param1, type, device, println_ts)
+                -- pass this timer event onto the right handler
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
+                    loop_tick()
+                elseif networked and conn_watchdog.is_timer(param1) then
+                    -- supervisor connection timed out
+                    plc_comms.close()
+                    smem.q.mq_rps.push_command(MQ__RPS_CMD.TRIP_TIMEOUT)
+                else
+                    -- notify timer callback dispatcher, no other handler claimed this event
+                    tcd.handle(param1)
                 end
-
-                -- update indicators
-                databus.tx_hw_status(plc_state)
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
+                   event == "double_click" then
+                -- handle a mouse event
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
             elseif event == "peripheral" then
                 -- peripheral connect
                 local type, device = ppm.mount(param1)
@@ -151,10 +155,15 @@ function threads.thread__main(smem)
 
                 -- update indicators
                 databus.tx_hw_status(plc_state)
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
-                   event == "double_click" then
-                -- handle a mouse event
-                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+            elseif event == "peripheral_detach" then
+                -- peripheral disconnect
+                local type, device = ppm.handle_unmount(param1)
+                if type ~= nil and device ~= nil then
+                    backplane.detach(param1, type, device, println_ts)
+                end
+
+                -- update indicators
+                databus.tx_hw_status(plc_state)
             end
 
             -- check for termination request
