@@ -24,7 +24,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.8.6"
+local SUPERVISOR_VERSION = "v1.8.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -150,16 +150,34 @@ local function main()
     local MAIN_CLOCK = 0.15
     local loop_clock = util.new_clock(MAIN_CLOCK)
 
-    -- start clock
-    loop_clock.start()
-
     -- halve the rate heartbeat LED flash
     local heartbeat_toggle = true
 
+    -- local counters = {}
+
+    -- main loop periodic tasks
+    local function loop_tick()
+        -- blink heartbeat indicator at half the main loop rate due to how quick it runs
+        if heartbeat_toggle then databus.heartbeat() end
+        heartbeat_toggle = not heartbeat_toggle
+
+        -- iterate sessions
+        svsessions.iterate_all()
+
+        -- free any closed sessions
+        svsessions.free_all_closed()
+
+        -- start next clock timer
+        loop_clock.start()
+
+        -- log.debug(textutils.serialize(counters, { compact = true })); counters = {}
+    end
+
+    -- start clock
+    loop_clock.start()
+
     -- init startup recovery
     sv_facility.boot_recovery_init(supervisor.boot_state)
-
-    -- local counters = {}
 
     -- event loop
     while true do
@@ -168,46 +186,33 @@ local function main()
         -- counters[event] = (counters[event] or 0) + 1
 
         -- handle event
-        if event == "peripheral_detach" then
-            local type, device = ppm.handle_unmount(param1)
-            if type ~= nil and device ~= nil then
-                backplane.detach(param1, type, device, println_ts)
+        if event == "modem_message" then
+            -- got a packet
+            local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
+            if packet then superv_comms.handle_packet(packet) end
+        elseif event == "timer" then
+            -- pass this timer event onto the right handler
+            if loop_clock.is_clock(param1) then
+                -- main loop tick
+                loop_tick()
+            elseif not svsessions.check_all_watchdogs(param1) then  -- check session watchdogs
+                -- notify timer callback dispatcher, no other handler claimed this event
+                tcd.handle(param1)
             end
+        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
+               event == "double_click" then
+            -- handle a mouse event
+            renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
         elseif event == "peripheral" then
             local type, device = ppm.mount(param1)
             if type ~= nil and device ~= nil then
                 backplane.attach(param1, type, device, println_ts)
             end
-        elseif event == "timer" and loop_clock.is_clock(param1) then
-            -- main loop tick
-
-            if heartbeat_toggle then databus.heartbeat() end
-            heartbeat_toggle = not heartbeat_toggle
-
-            -- iterate sessions
-            svsessions.iterate_all()
-
-            -- free any closed sessions
-            svsessions.free_all_closed()
-
-            -- start next clock timer
-            loop_clock.start()
-
-            -- log.debug(textutils.serialize(counters, { compact = true })); counters = {}
-        elseif event == "timer" then
-            -- a non-clock timer event, check watchdogs
-            svsessions.check_all_watchdogs(param1)
-
-            -- notify timer callback dispatcher
-            tcd.handle(param1)
-        elseif event == "modem_message" then
-            -- got a packet
-            local packet = superv_comms.parse_packet(param1, param2, param3, param4, param5)
-            if packet then superv_comms.handle_packet(packet) end
-        elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
-               event == "double_click" then
-            -- handle a mouse event
-            renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+        elseif event == "peripheral_detach" then
+            local type, device = ppm.handle_unmount(param1)
+            if type ~= nil and device ~= nil then
+                backplane.detach(param1, type, device, println_ts)
+            end
         end
 
         -- check for termination request

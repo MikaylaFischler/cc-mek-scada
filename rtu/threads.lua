@@ -197,6 +197,41 @@ function threads.thread__main(smem)
 
         local sounders      = backplane.sounders()
 
+        -- main loop periodic tasks
+        local function loop_tick()
+            -- blink heartbeat indicator
+            databus.heartbeat()
+
+            -- periodic hardware tasks
+            backplane.periodic()
+
+            -- update speaker states
+            for _, sounder in pairs(sounders) do
+                -- re-compute output if needed, then play audio if available
+                if sounder.stream.is_recompute_needed() then
+                    sounder.stream.compute_buffer()
+                    if sounder.stream.any_active() then sounder.play() else sounder.stop() end
+                end
+            end
+
+            -- period tick, if we are not linked send establish request
+            if rtu_state.linked then
+                rtu_comms.manage_failover(backplane.active_nic())
+            else
+                -- advertise units
+                local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
+
+                if a_nic.is_network_up() then
+                    rtu_comms.send_establish(a_nic, units)
+                elseif s_nic and s_nic.is_network_up() then
+                    rtu_comms.send_establish(s_nic, units)
+                end
+            end
+
+            -- start next clock timer
+            loop_clock.start()
+        end
+
         -- start unlinked (in case of restart)
         rtu_comms.unlink(rtu_state)
 
@@ -207,51 +242,52 @@ function threads.thread__main(smem)
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
 
-            if event == "timer" and loop_clock.is_clock(param1) then
-                -- blink heartbeat indicator
-                databus.heartbeat()
-
-                -- periodic hardware tasks
-                backplane.periodic()
-
-                -- update speaker states
-                for _, sounder in pairs(sounders) do
-                    -- re-compute output if needed, then play audio if available
-                    if sounder.stream.is_recompute_needed() then
-                        sounder.stream.compute_buffer()
-                        if sounder.stream.any_active() then sounder.play() else sounder.stop() end
-                    end
-                end
-
-                -- period tick, if we are not linked send establish request
-                if rtu_state.linked then
-                    rtu_comms.manage_failover(backplane.active_nic())
-                else
-                    -- advertise units
-                    local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
-
-                    if a_nic.is_network_up() then
-                        rtu_comms.send_establish(a_nic, units)
-                    elseif s_nic and s_nic.is_network_up() then
-                        rtu_comms.send_establish(s_nic, units)
-                    end
-                end
-
-                -- start next clock timer
-                loop_clock.start()
-            elseif event == "modem_message" then
+            if event == "modem_message" then
                 -- got a packet
                 local packet = rtu_comms.parse_packet(param1, param2, param3, param4, param5)
                 if packet ~= nil then
                     -- pass the packet onto the comms message queue
                     smem.q.mq_comms.push_network(packet)
                 end
-            elseif event == "timer" and conn_watchdog.is_timer(param1) then
-                -- haven't heard from server recently? close connection
-                rtu_comms.close(rtu_state)
             elseif event == "timer" then
-                -- notify timer callback dispatcher if no other timer case claimed this event
-                tcd.handle(param1)
+                -- pass this timer event onto the right handler
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
+                    loop_tick()
+                elseif conn_watchdog.is_timer(param1) then
+                    -- supervisor connection timed out
+                    rtu_comms.close(rtu_state)
+                else
+                    -- notify timer callback dispatcher, no other handler claimed this event
+                    tcd.handle(param1)
+                end
+            elseif event == "speaker_audio_empty" then
+                -- handle empty speaker audio buffer
+                for i = 1, #sounders do
+                    local sounder = sounders[i]
+                    if sounder.name == param1 then
+                        sounder.continue()
+                        break
+                    end
+                end
+            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
+                   event == "double_click" then
+                -- handle a mouse event
+                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
+            elseif event == "peripheral" then
+                -- peripheral connect
+                local type, device = ppm.mount(param1)
+
+                if type ~= nil and device ~= nil then
+                    if type == "modem" or type == "speaker" then
+                        backplane.attach(type, device, param1, println_ts)
+                    else
+                        -- relink lost peripheral to correct unit entry
+                        for i = 1, #units do
+                            handle_unit_mount(smem, println_ts, param1, type, device, units[i])
+                        end
+                    end
+                end
             elseif event == "peripheral_detach" then
                 -- handle loss of a device
                 local type, device = ppm.handle_unmount(param1)
@@ -275,33 +311,6 @@ function threads.thread__main(smem)
                                 break
                             end
                         end
-                    end
-                end
-            elseif event == "peripheral" then
-                -- peripheral connect
-                local type, device = ppm.mount(param1)
-
-                if type ~= nil and device ~= nil then
-                    if type == "modem" or type == "speaker" then
-                        backplane.attach(type, device, param1, println_ts)
-                    else
-                        -- relink lost peripheral to correct unit entry
-                        for i = 1, #units do
-                            handle_unit_mount(smem, println_ts, param1, type, device, units[i])
-                        end
-                    end
-                end
-            elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
-                   event == "double_click" then
-                -- handle a mouse event
-                renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-            elseif event == "speaker_audio_empty" then
-                -- handle empty speaker audio buffer
-                for i = 1, #sounders do
-                    local sounder = sounders[i]
-                    if sounder.name == param1 then
-                        sounder.continue()
-                        break
                     end
                 end
             end

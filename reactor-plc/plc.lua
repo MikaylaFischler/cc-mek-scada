@@ -885,8 +885,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     -- close the connection to the server
     function public.close()
         conn_watchdog.cancel()
-        public.unlink()
         _send_mgmt(MGMT_TYPE.CLOSE, {})
+        public.unlink()
     end
 
     -- attempt to establish link with supervisor
@@ -956,16 +956,20 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt, nic = nil, backplane.nics[side]
 
-        local frame = nic.receive(side, sender, reply_to, message, distance)
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
 
-        if frame then
-            if frame.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_container().decode(frame)
-            else
-                log.debug("unsupported packet type " .. frame.protocol(), true)
+            if frame then
+                if frame.protocol() == PROTOCOL.RPLC then
+                    pkt = comms.rplc_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                else
+                    log.debug("unsupported packet type " .. frame.protocol(), true)
+                end
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt

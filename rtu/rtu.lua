@@ -409,8 +409,8 @@ function rtu.comms(version, backplane, conn_watchdog)
     ---@param rtu_state rtu_state
     function public.close(rtu_state)
         conn_watchdog.cancel()
-        public.unlink(rtu_state)
         _send(MGMT_TYPE.CLOSE, {})
+        public.unlink(rtu_state)
     end
 
     -- send a MODBUS TCP packet
@@ -459,16 +459,20 @@ function rtu.comms(version, backplane, conn_watchdog)
     function public.parse_packet(side, sender, reply_to, message, distance)
         local pkt, nic = nil, backplane.nics[side]
 
-        local frame = nic.receive(side, sender, reply_to, message, distance)
+        if nic then
+            local frame = nic.receive(side, sender, reply_to, message, distance)
 
-        if frame then
-            if frame.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_container().decode(frame)
-            else
-                log.debug("illegal packet type " .. frame.protocol(), true)
+            if frame then
+                if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                    pkt = comms.modbus_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                else
+                    log.debug("illegal packet type " .. frame.protocol(), true)
+                end
             end
+        else
+            log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
         end
 
         return pkt
