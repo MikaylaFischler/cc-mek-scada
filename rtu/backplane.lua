@@ -251,6 +251,9 @@ function backplane.detach(type, device, iface, print_no_fp)
 
                     comms.switch_nic(_bp.act_nic, _bp.smem.rtu_state)
                     log.info("BKPLN: switched comms to wired modem")
+                else
+                    -- no other wireless modems, wired unavailable
+                    comms.close(_bp.smem.rtu_state)
                 end
             elseif wl_nic and wl_nic.is_connected() then
                 -- wired active disconnected, wireless available
@@ -260,6 +263,7 @@ function backplane.detach(type, device, iface, print_no_fp)
                 log.info("BKPLN: switched comms to wireless modem")
             else
                 -- wired active disconnected, wireless unavailable
+                comms.close(_bp.smem.rtu_state)
             end
         elseif wd_nic and wd_nic.is_modem(device) then
             -- wired, but not active

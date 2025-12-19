@@ -434,6 +434,7 @@ function backplane.detach(type, device, iface)
                 else
                     -- close out main UI
                     _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
+                    comms.close()
 
                     -- alert user to status
                     log_sys("awaiting comms modem reconnect...")
@@ -447,6 +448,8 @@ function backplane.detach(type, device, iface)
                 log.info("BKPLN: switched comms to wireless modem")
             else
                 -- wired active disconnected, wireless unavailable
+                _bp.smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
+                comms.close()
             end
         elseif wd_nic and wd_nic.is_modem(device) then
             -- wired, but not active

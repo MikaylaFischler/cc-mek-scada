@@ -390,26 +390,26 @@ function supervisor.comms(_version, fp_ok, facility)
     ---@param distance integer
     ---@return modbus_adu|rplc_packet|mgmt_packet|crdn_packet|nil packet
     function public.parse_packet(side, sender, reply_to, message, distance)
-        local pkt, frame, nic = nil, nil, backplane.nics[side]
+        local pkt, nic = nil, backplane.nics[side]
 
         if nic then
-            frame = nic.receive(side, sender, reply_to, message, distance)
+            local frame = nic.receive(side, sender, reply_to, message, distance)
+
+            if frame then
+                if frame.protocol() == PROTOCOL.MODBUS_TCP then
+                    pkt = comms.modbus_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.RPLC then
+                    pkt = comms.rplc_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
+                    pkt = comms.mgmt_container().decode(frame)
+                elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
+                    pkt = comms.crdn_container().decode(frame)
+                else
+                    log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
+                end
+            end
         else
             log.error("parse_packet(" .. side .. "): received a packet from an interface without a nic?")
-        end
-
-        if frame then
-            if frame.protocol() == PROTOCOL.MODBUS_TCP then
-                pkt = comms.modbus_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.RPLC then
-                pkt = comms.rplc_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.SCADA_MGMT then
-                pkt = comms.mgmt_container().decode(frame)
-            elseif frame.protocol() == PROTOCOL.SCADA_CRDN then
-                pkt = comms.crdn_container().decode(frame)
-            else
-                log.debug("parse_packet(" .. side .. "): attempted parse of illegal packet type " .. frame.protocol(), true)
-            end
         end
 
         return pkt
