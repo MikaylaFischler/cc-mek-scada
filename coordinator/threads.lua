@@ -51,78 +51,52 @@ function threads.thread__main(smem)
         local MQ__RENDER_CMD  = smem.q_types.MQ__RENDER_CMD
         local MQ__RENDER_DATA = smem.q_types.MQ__RENDER_DATA
 
+        -- main loop periodic tasks
+        ---@return boolean exit if the application should exit
+        local function loop_tick()
+            -- toggle heartbeat
+            iocontrol.heartbeat()
+
+            -- periodic hardware tasks
+            backplane.periodic()
+
+            -- maintain connection
+            local ok, start_ui = coord_comms.manage_link()
+            if not ok then
+                crd_state.link_fail = true
+                crd_state.shutdown = true
+                log_sys("supervisor connection failed, shutting down...")
+                log.fatal("failed to connect to supervisor")
+                return true
+            elseif start_ui then
+                log_sys("supervisor connected, dispatching main UI start")
+                smem.q.mq_render.push_command(MQ__RENDER_CMD.START_MAIN_UI)
+            end
+
+            -- iterate sessions and free any closed ones
+            apisessions.iterate_all()
+            apisessions.free_all_closed()
+
+            -- clear timed out process commands
+            process.clear_timed_out()
+
+            if renderer.ui_ready() then
+                -- update clock used on main and flow monitors
+                iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
+            end
+
+            -- start next clock timer
+            loop_clock.start()
+
+            return false
+        end
+
         -- event loop
         while true do
             local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
-            if event == "peripheral_detach" then
-                local type, device = ppm.handle_unmount(param1)
-                if type ~= nil and device ~= nil then
-                    backplane.detach(type, device, param1)
-                end
-            elseif event == "peripheral" then
-                local type, device = ppm.mount(param1)
-                if type ~= nil and device ~= nil then
-                    backplane.attach(type, device, param1)
-                end
-            elseif event == "monitor_resize" then
-                smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_RESIZE, param1)
-            elseif event == "timer" then
-                if loop_clock.is_clock(param1) then
-                    -- main loop tick
-
-                    -- toggle heartbeat
-                    iocontrol.heartbeat()
-
-                    -- periodic hardware tasks
-                    backplane.periodic()
-
-                    -- maintain connection
-                    local ok, start_ui = coord_comms.manage_link()
-                    if not ok then
-                        crd_state.link_fail = true
-                        crd_state.shutdown = true
-                        log_sys("supervisor connection failed, shutting down...")
-                        log.fatal("failed to connect to supervisor")
-                        break
-                    elseif start_ui then
-                        log_sys("supervisor connected, dispatching main UI start")
-                        smem.q.mq_render.push_command(MQ__RENDER_CMD.START_MAIN_UI)
-                    end
-
-                    -- iterate sessions and free any closed ones
-                    apisessions.iterate_all()
-                    apisessions.free_all_closed()
-
-                    -- clear timed out process commands
-                    process.clear_timed_out()
-
-                    if renderer.ui_ready() then
-                        -- update clock used on main and flow monitors
-                        iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
-                    end
-
-                    -- start next clock timer
-                    loop_clock.start()
-                elseif conn_watchdog.is_timer(param1) then
-                    -- supervisor watchdog timeout
-                    log_comms("supervisor server timeout")
-
-                    -- close main UI, connection, and stop sounder
-                    smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
-                    coord_comms.close()
-                    sounder.stop()
-                else
-                    -- a non-clock/main watchdog timer event
-
-                    -- check API watchdogs
-                    apisessions.check_all_watchdogs(param1)
-
-                    -- notify timer callback dispatcher
-                    tcd.handle(param1)
-                end
-            elseif event == "modem_message" then
+            if event == "modem_message" then
                 -- got a packet
                 local packet = coord_comms.parse_packet(param1, param2, param3, param4, param5)
 
@@ -135,13 +109,42 @@ function threads.thread__main(smem)
                     coord_comms.close()
                     sounder.stop()
                 end
+            elseif event == "timer" then
+                -- pass this timer event onto the right handler
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
+                    if loop_tick() then break end
+                elseif conn_watchdog.is_timer(param1) then
+                    -- supervisor connection timed out
+                    log_comms("supervisor server timeout")
+
+                    -- close main UI, connection, and stop sounder
+                    smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
+                    coord_comms.close()
+                    sounder.stop()
+                elseif not apisessions.check_all_watchdogs(param1) then -- check API watchdogs
+                    -- notify timer callback dispatcher, no other handler claimed this event
+                    tcd.handle(param1)
+                end
+            elseif event == "speaker_audio_empty" then
+                -- handle speaker buffer emptied
+                sounder.continue()
             elseif event == "monitor_touch" or event == "mouse_click" or event == "mouse_up" or
                    event == "mouse_drag" or event == "mouse_scroll" or event == "double_click" then
                 -- handle a mouse event
                 renderer.handle_mouse(core.events.new_mouse_event(event, param1, param2, param3))
-            elseif event == "speaker_audio_empty" then
-                -- handle speaker buffer emptied
-                sounder.continue()
+            elseif event == "monitor_resize" then
+                smem.q.mq_render.push_data(MQ__RENDER_DATA.MON_RESIZE, param1)
+            elseif event == "peripheral" then
+                local type, device = ppm.mount(param1)
+                if type ~= nil and device ~= nil then
+                    backplane.attach(type, device, param1)
+                end
+            elseif event == "peripheral_detach" then
+                local type, device = ppm.handle_unmount(param1)
+                if type ~= nil and device ~= nil then
+                    backplane.detach(type, device, param1)
+                end
             end
 
             -- check for termination request or UI crash

@@ -40,6 +40,24 @@ function threads.thread__main(smem)
         local nav          = smem.pkt_sys.nav
         local nic          = smem.pkt_sys.nic
 
+        -- main loop periodic tasks
+        local function loop_tick()
+            -- relink if necessary
+            pocket_comms.link_update()
+
+            -- update any tasks for the active page
+            if nav.get_current_page() then
+                local page_tasks = nav.get_current_page().tasks
+                for i = 1, #page_tasks do page_tasks[i]() end
+            end
+
+            -- NIC periodic link-layer tasks
+            nic.periodic()
+
+            -- start next clock timer
+            loop_clock.start()
+        end
+
         -- start connection watchdogs
         sv_wd.feed()
         api_wd.feed()
@@ -50,41 +68,27 @@ function threads.thread__main(smem)
             local event, param1, param2, param3, param4, param5 = util.pull_event()
 
             -- handle event
-            if event == "timer" then
-                if loop_clock.is_clock(param1) then
-                    -- main loop tick
-
-                    -- relink if necessary
-                    pocket_comms.link_update()
-
-                    -- update any tasks for the active page
-                    if nav.get_current_page() then
-                        local page_tasks = nav.get_current_page().tasks
-                        for i = 1, #page_tasks do page_tasks[i]() end
-                    end
-
-                    -- NIC periodic link-layer tasks
-                    nic.periodic()
-
-                    -- start next clock timer
-                    loop_clock.start()
-                elseif sv_wd.is_timer(param1) then
-                    -- supervisor watchdog timeout
-                    log.info("supervisor server timeout")
-                    pocket_comms.close_sv()
-                elseif api_wd.is_timer(param1) then
-                    -- coordinator watchdog timeout
-                    log.info("coordinator api server timeout")
-                    pocket_comms.close_api()
-                else
-                    -- a non-clock/main watchdog timer event
-                    -- notify timer callback dispatcher
-                    tcd.handle(param1)
-                end
-            elseif event == "modem_message" then
+            if event == "modem_message" then
                 -- got a packet
                 local packet = pocket_comms.parse_packet(param1, param2, param3, param4, param5)
                 pocket_comms.handle_packet(packet)
+            elseif event == "timer" then
+                -- pass this timer event onto the right handler
+                if loop_clock.is_clock(param1) then
+                    -- main loop tick
+                    loop_tick()
+                elseif sv_wd.is_timer(param1) then
+                    -- supervisor connection timed out
+                    log.info("supervisor server timeout")
+                    pocket_comms.close_sv()
+                elseif api_wd.is_timer(param1) then
+                    -- coordinator connection timed out
+                    log.info("coordinator api server timeout")
+                    pocket_comms.close_api()
+                else
+                    -- notify timer callback dispatcher, no other handler claimed this event
+                    tcd.handle(param1)
+                end
             elseif event == "mouse_click" or event == "mouse_up" or event == "mouse_drag" or event == "mouse_scroll" or
                    event == "double_click" then
                 -- handle a mouse event
