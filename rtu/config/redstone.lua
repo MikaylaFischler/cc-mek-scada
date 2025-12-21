@@ -298,6 +298,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             self.rs_cfg_side_l.set_value("Output Side")
             self.rs_cfg_bundled.enable()
             self.rs_cfg_advanced.disable()
+
             text = "You selected the ALL_WASTE shortcut."
         else
             self.rs_cfg_shortcut.hide(true)
@@ -329,17 +330,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 io_type = "analog output "
             end
 
-            text = "You selected the " .. io_type .. rsio.to_string(port) .. " (for "
+            text = "You selected the " .. io_type .. rsio.to_string(port) .. " (for " .. tri(PORT_DSGN[port] == 1, "a unit).", "the facility).")
+        end
 
-            if PORT_DSGN[port] == 1 then
-                text = text .. "a unit)."
-                self.rs_cfg_unit_l.show()
-                self.rs_cfg_unit.show()
-            else
-                self.rs_cfg_unit_l.hide(true)
-                self.rs_cfg_unit.hide(true)
-                text = text .. "the facility)."
-            end
+        if PORT_DSGN[port] == 1 then
+            self.rs_cfg_unit_l.show()
+            self.rs_cfg_unit.show()
+        else
+            self.rs_cfg_unit_l.hide(true)
+            self.rs_cfg_unit.hide(true)
         end
 
         self.rs_cfg_selection.set_value(text)
