@@ -6,7 +6,7 @@ local comms         = require("scada-common.comms")
 local const         = require("scada-common.constants")
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 
 local style         = require("pocket.ui.style")
@@ -37,7 +37,7 @@ local box_label = cpair(colors.lightGray, colors.gray)
 -- new computer list page view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 
@@ -285,7 +285,7 @@ local function new_view(root)
         load_pane.set_value(1)
 
         -- clear the list of connected computers so that connections re-appear on reload of this app
-        iocontrol.rx.clear_comp_record()
+        ioctl.rx.clear_comp_record()
     end
 
     app.set_load(load)

@@ -20,7 +20,7 @@ local TEMP_UNITS = types.TEMP_SCALE_UNITS
 local WARN_TT = 40
 local HIGH_TT = 80
 
-local iocontrol = {}
+local ioctl = {}
 
 ---@enum POCKET_LINK_STATE
 local LINK_STATE = {
@@ -30,9 +30,9 @@ local LINK_STATE = {
     LINKED = 3
 }
 
-iocontrol.LINK_STATE = LINK_STATE
+ioctl.LINK_STATE = LINK_STATE
 
----@class pocket_ioctl
+---@class pkt_io
 local io = {
     version = "unknown", -- pocket version
     ps = psil.create(),  -- pocket PSIL
@@ -46,11 +46,11 @@ local comms  = nil  ---@type pocket_comms
 ---@param pkt_comms pocket_comms
 ---@param nav pocket_nav
 ---@param cfg pkt_config
-function iocontrol.init_core(pkt_comms, nav, cfg)
+function ioctl.init_core(pkt_comms, nav, cfg)
     comms = pkt_comms
     config = cfg
 
-    iocontrol.rx = iorx(io)
+    ioctl.rx = iorx(io)
 
     io.nav = nav
 
@@ -106,7 +106,7 @@ end
 
 -- initialize facility-dependent components of pocket iocontrol
 ---@param conf facility_conf facility configuration
-function iocontrol.init_fac(conf)
+function ioctl.init_fac(conf)
     local temp_scale, energy_scale = config.TempScale, config.EnergyScale
     io.temp_label = TEMP_UNITS[temp_scale]
     io.energy_label = ENERGY_UNITS[energy_scale]
@@ -136,7 +136,7 @@ function iocontrol.init_fac(conf)
     end
 
     -- facility data structure
-    ---@class pioctl_facility
+    ---@class pkt_io_facility
     io.facility = {
         num_units = conf.num_units,
         tank_mode = conf.cooling.fac_tank_mode,
@@ -206,9 +206,9 @@ function iocontrol.init_fac(conf)
     end
 
     -- create unit data structures
-    io.units = {}   ---@type pioctl_unit[]
+    io.units = {}   ---@type pkt_io_unit[]
     for i = 1, conf.num_units do
-        ---@class pioctl_unit
+        ---@class pkt_io_unit
         local entry = {
             unit_id = i,
             connected = false,
@@ -310,7 +310,7 @@ end
 ---@param state POCKET_LINK_STATE
 ---@param sv_addr integer|false|nil supervisor address if linked, nil if unchanged, false if unlinked
 ---@param api_addr integer|false|nil coordinator address if linked, nil if unchanged, false if unlinked
-function iocontrol.report_link_state(state, sv_addr, api_addr)
+function ioctl.report_link_state(state, sv_addr, api_addr)
     io.ps.publish("link_state", state)
 
     if state == LINK_STATE.API_LINK_ONLY or state == LINK_STATE.UNLINKED then
@@ -335,14 +335,14 @@ function iocontrol.report_link_state(state, sv_addr, api_addr)
 end
 
 -- show the reason the supervisor connection isn't linking
-function iocontrol.report_svr_link_error(msg) io.ps.publish("svr_link_msg", msg) end
+function ioctl.report_svr_link_error(msg) io.ps.publish("svr_link_msg", msg) end
 
 -- show the reason the coordinator api connection isn't linking
-function iocontrol.report_crd_link_error(msg) io.ps.publish("api_link_msg", msg) end
+function ioctl.report_crd_link_error(msg) io.ps.publish("api_link_msg", msg) end
 
 -- determine supervisor connection quality (trip time)
 ---@param trip_time integer
-function iocontrol.report_svr_tt(trip_time)
+function ioctl.report_svr_tt(trip_time)
     local state = 3
     if trip_time > HIGH_TT then
         state = 1
@@ -355,7 +355,7 @@ end
 
 -- determine coordinator connection quality (trip time)
 ---@param trip_time integer
-function iocontrol.report_crd_tt(trip_time)
+function ioctl.report_crd_tt(trip_time)
     local state = 3
     if trip_time > HIGH_TT then
         state = 1
@@ -367,6 +367,6 @@ function iocontrol.report_crd_tt(trip_time)
 end
 
 -- get the IO controller database
-function iocontrol.get_db() return io end
+function ioctl.get_db() return io end
 
-return iocontrol
+return ioctl

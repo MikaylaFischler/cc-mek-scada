@@ -2,7 +2,7 @@
 -- Main Home Page
 --
 
-local iocontrol    = require("pocket.iocontrol")
+local ioctl        = require("pocket.ioctl")
 local pocket       = require("pocket.pocket")
 
 local core         = require("graphics.core")
@@ -19,7 +19,7 @@ local APP_ID = pocket.APP_ID
 -- new home page view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local main = Div{parent=root,y=1,height=19}
 

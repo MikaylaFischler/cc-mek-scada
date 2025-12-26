@@ -2,7 +2,7 @@
 -- Induction Matrix View
 --
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 
 local style          = require("pocket.ui.style")
 
@@ -36,7 +36,7 @@ local wht_ind_s = style.icon_states.wht_ind_s
 ---@param ps psil
 ---@param update function
 return function (app, panes, matrix_pane, ps, update)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
     local fac = db.facility
 
     local mtx_div = Div{parent=matrix_pane,x=2,width=matrix_pane.get_width()-2}

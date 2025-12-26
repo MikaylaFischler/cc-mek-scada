@@ -5,7 +5,7 @@
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 
 local style          = require("pocket.ui.style")
 
@@ -43,7 +43,7 @@ local mode_ind_s = {
 ---@param ps psil
 ---@param update function
 return function (app, page, panes, tank_pane, tank_id, ps, update)
-    local fac = iocontrol.get_db().facility
+    local fac = ioctl.get_db().facility
 
     local tank_div = Div{parent=tank_pane,x=2,width=tank_pane.get_width()-2}
     table.insert(panes, tank_div)

@@ -4,7 +4,7 @@
 
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 
 local style         = require("pocket.ui.style")
@@ -41,7 +41,7 @@ local grn_ind_s    = style.icon_states.grn_ind_s
 -- new unit page view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 

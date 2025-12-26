@@ -2,7 +2,7 @@
 -- SPS View
 --
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 
 local style          = require("pocket.ui.style")
 
@@ -31,7 +31,7 @@ local text_fg = style.text_fg
 ---@param ps psil
 ---@param update function
 return function (app, panes, sps_pane, ps, update)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local sps_div = Div{parent=sps_pane,x=2,width=sps_pane.get_width()-2}
     table.insert(panes, sps_div)

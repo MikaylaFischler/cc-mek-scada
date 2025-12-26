@@ -2,7 +2,7 @@
 -- Connection Waiting Spinner
 --
 
-local iocontrol   = require("pocket.iocontrol")
+local ioctl       = require("pocket.ioctl")
 
 local style       = require("pocket.ui.style")
 
@@ -34,11 +34,11 @@ local function init(parent, y, is_api)
     if is_api then
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.blue,style.root.bkg)}
         TextBox{parent=box,y=5,text="Connecting to API",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg),trim_whitespace=true}
-        msg.register(iocontrol.get_db().ps, "api_link_msg", msg.set_value)
+        msg.register(ioctl.get_db().ps, "api_link_msg", msg.set_value)
     else
         WaitingAnim{parent=box,x=waiting_x,y=1,fg_bg=cpair(colors.green,style.root.bkg)}
         TextBox{parent=box,y=5,text="Connecting to Supervisor",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,style.root.bkg),trim_whitespace=true}
-        msg.register(iocontrol.get_db().ps, "svr_link_msg", msg.set_value)
+        msg.register(ioctl.get_db().ps, "svr_link_msg", msg.set_value)
     end
 
     return root

@@ -5,7 +5,7 @@
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 local process       = require("pocket.process")
 
@@ -50,7 +50,7 @@ local dis_colors      = cpair(colors.white, colors.lightGray)
 -- new process control page view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 

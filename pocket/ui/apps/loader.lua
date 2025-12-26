@@ -2,7 +2,7 @@
 -- Loading Screen App
 --
 
-local iocontrol    = require("pocket.iocontrol")
+local ioctl        = require("pocket.ioctl")
 local pocket       = require("pocket.pocket")
 
 local conn_waiting = require("pocket.ui.components.conn_waiting")
@@ -15,12 +15,12 @@ local TextBox      = require("graphics.elements.TextBox")
 
 local APP_ID = pocket.APP_ID
 
-local LINK_STATE = iocontrol.LINK_STATE
+local LINK_STATE = ioctl.LINK_STATE
 
 -- create the connecting to SV & API page
 ---@param root Container parent
 local function create_pages(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local main = Div{parent=root,y=1}
 

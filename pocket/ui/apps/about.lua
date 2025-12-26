@@ -7,7 +7,7 @@ local util       = require("scada-common.util")
 
 local lockbox    = require("lockbox")
 
-local iocontrol  = require("pocket.iocontrol")
+local ioctl      = require("pocket.ioctl")
 local pocket     = require("pocket.pocket")
 
 local core       = require("graphics.core")
@@ -27,7 +27,7 @@ local APP_ID = pocket.APP_ID
 -- create about page view
 ---@param root Container parent
 local function create_pages(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 

@@ -18,7 +18,7 @@ local TNK_STATE = types.TANK_STATE
 local MTX_STATE = types.IMATRIX_STATE
 local SPS_STATE = types.SPS_STATE
 
-local io        ---@type pocket_ioctl
+local io        ---@type pkt_io
 local iorx = {} ---@class iorx
 
 -- populate facility data from API_GET_FAC
