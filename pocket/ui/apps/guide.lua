@@ -255,7 +255,7 @@ local function new_view(root)
         PushButton{parent=fps,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         load_text(false, "Common Items")
-        local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 100)
+        local fp_common_page = guide_section(sect_construct_data, fps_page, "Common Items", docs.fp.common, 130)
         load_text(false, "Reactor PLC")
         local fp_rplc_page = guide_section(sect_construct_data, fps_page, "Reactor PLC", docs.fp.r_plc, 190)
         load_text(false, "RTU Gateway")
