@@ -22,7 +22,7 @@ local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v1.0.11"
+local POCKET_VERSION = "v1.0.12"
 
 local println = util.println
 local println_ts = util.println_ts
