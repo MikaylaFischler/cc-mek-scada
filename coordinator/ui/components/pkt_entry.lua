@@ -2,7 +2,7 @@
 -- Pocket Connection Entry
 --
 
-local iocontrol     = require("coordinator.iocontrol")
+local ioctl         = require("coordinator.ioctl")
 
 local style         = require("coordinator.ui.style")
 
@@ -26,7 +26,7 @@ local function init(parent, id)
 
     local label_fg = style.fp.label_fg
 
-    local ps = iocontrol.get_db().fp.ps
+    local ps = ioctl.get_db().fp.ps
 
     local term_w, _ = term.getSize()
 

@@ -13,7 +13,7 @@ local U_CMD = comms.UNIT_COMMAND
 local process = {}
 
 local self = {
-    io = nil,   ---@type ioctl
+    io = nil,   ---@type crd_io
     comms = nil ---@type pocket_comms
 }
 

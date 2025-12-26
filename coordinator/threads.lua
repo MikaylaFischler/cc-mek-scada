@@ -6,7 +6,7 @@ local util        = require("scada-common.util")
 
 local backplane   = require("coordinator.backplane")
 local coordinator = require("coordinator.coordinator")
-local iocontrol   = require("coordinator.iocontrol")
+local ioctl       = require("coordinator.ioctl")
 local process     = require("coordinator.process")
 local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
@@ -33,7 +33,7 @@ function threads.thread__main(smem)
 
     -- execute thread
     function public.exec()
-        iocontrol.fp_rt_status("main", true)
+        ioctl.fp_rt_status("main", true)
         log.debug("OS: main thread start")
 
         local loop_clock = util.new_clock(MAIN_CLOCK)
@@ -55,7 +55,7 @@ function threads.thread__main(smem)
         ---@return boolean exit if the application should exit
         local function loop_tick()
             -- toggle heartbeat
-            iocontrol.heartbeat()
+            ioctl.heartbeat()
 
             -- periodic hardware tasks
             backplane.periodic()
@@ -82,7 +82,7 @@ function threads.thread__main(smem)
 
             if renderer.ui_ready() then
                 -- update clock used on main and flow monitors
-                iocontrol.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
+                ioctl.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
             end
 
             -- start next clock timer
@@ -186,7 +186,7 @@ function threads.thread__main(smem)
                 log.fatal(util.strval(result))
             end
 
-            iocontrol.fp_rt_status("main", false)
+            ioctl.fp_rt_status("main", false)
 
             -- if status is true, then we are probably exiting, so this won't matter
             -- this thread cannot be slept because it will miss events (namely "terminate")
@@ -208,7 +208,7 @@ function threads.thread__render(smem)
 
     -- execute thread
     function public.exec()
-        iocontrol.fp_rt_status("render", true)
+        ioctl.fp_rt_status("render", true)
         log.debug("OS: render thread start")
 
         -- load in from shared memory
@@ -303,7 +303,7 @@ function threads.thread__render(smem)
                 log.fatal(util.strval(result))
             end
 
-            iocontrol.fp_rt_status("render", false)
+            ioctl.fp_rt_status("render", false)
 
             if not crd_state.shutdown then
                 log.info("OS: render thread restarting in 5 seconds...")

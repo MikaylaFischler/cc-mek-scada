@@ -1,6 +1,6 @@
 local util           = require("scada-common.util")
 
-local iocontrol      = require("coordinator.iocontrol")
+local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
@@ -35,7 +35,7 @@ local function new_view(root, x, y, ps, id)
     local ind_yel = style.ind_yel
     local ind_wht = style.ind_wht
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local title = "INDUCTION MATRIX"
     if type(id) == "number" then title = title .. id end

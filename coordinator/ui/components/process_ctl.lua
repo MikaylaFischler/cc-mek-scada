@@ -1,7 +1,7 @@
 local tcd               = require("scada-common.tcd")
 local util              = require("scada-common.util")
 
-local iocontrol         = require("coordinator.iocontrol")
+local ioctl             = require("coordinator.ioctl")
 local process           = require("coordinator.process")
 
 local style             = require("coordinator.ui.style")
@@ -56,7 +56,7 @@ local function new_view(root, x, y)
     local blk_brn = cpair(colors.black, colors.brown)
     local blk_pur = cpair(colors.black, colors.purple)
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local facility = db.facility
     local units = db.units

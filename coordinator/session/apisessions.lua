@@ -1,11 +1,11 @@
 
-local log       = require("scada-common.log")
-local mqueue    = require("scada-common.mqueue")
-local util      = require("scada-common.util")
+local log    = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local util   = require("scada-common.util")
 
-local iocontrol = require("coordinator.iocontrol")
+local ioctl  = require("coordinator.ioctl")
 
-local pocket    = require("coordinator.session.pocket")
+local pocket = require("coordinator.session.pocket")
 
 local apisessions = {}
 
@@ -112,7 +112,7 @@ function apisessions.establish_session(source_addr, i_seq_num, version)
 
     setmetatable(pkt_s, mt)
 
-    iocontrol.fp_pkt_connected(id, version, source_addr)
+    ioctl.fp_pkt_connected(id, version, source_addr)
     log.debug(util.c("API: established new session: ", pkt_s))
 
     self.next_id = id + 1

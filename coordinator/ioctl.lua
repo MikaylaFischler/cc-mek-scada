@@ -31,7 +31,7 @@ local SPS_STATE = types.SPS_STATE
 local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
 local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 
-local iocontrol = {}
+local ioctl = {}
 
 local _ioctl = {
     -- connection states for status evaluation
@@ -42,9 +42,9 @@ local _ioctl = {
     coroutines = {}
 }
 
----@class ioctl
+---@class crd_io
 local io = {
-    ---@class ioctl_front_panel
+    ---@class crd_io_fp
     fp = { ps = psil.create() }
 }
 
@@ -53,7 +53,7 @@ local io = {
 ---@param comms coord_comms comms reference
 ---@param temp_scale TEMP_SCALE temperature unit
 ---@param energy_scale ENERGY_SCALE energy unit
-function iocontrol.init(conf, comms, temp_scale, energy_scale)
+function ioctl.init(conf, comms, temp_scale, energy_scale)
     io.temp_label   = TEMP_UNITS[temp_scale]
     io.energy_label = ENERGY_UNITS[energy_scale]
 
@@ -82,7 +82,7 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
     end
 
     -- facility data structure
-    ---@class ioctl_facility
+    ---@class crd_io_facility
     io.facility = {
         conf = conf,
         num_units = conf.num_units,
@@ -153,12 +153,12 @@ function iocontrol.init(conf, comms, temp_scale, energy_scale)
     end
 
     -- create unit data structures
-    io.units = {}   ---@type ioctl_unit[]
+    io.units = {}   ---@type crd_io_unit[]
     for i = 1, conf.num_units do
         local function ack(alarm) process.ack_alarm(i, alarm) end
         local function reset(alarm) process.reset_alarm(i, alarm) end
 
-        ---@class ioctl_unit
+        ---@class crd_io_unit
         local entry = {
             unit_id = i,
             connected = false,
@@ -298,19 +298,19 @@ local function fp_eval_status()
 end
 
 -- toggle heartbeat indicator
-function iocontrol.heartbeat() io.fp.ps.toggle("heartbeat") end
+function ioctl.heartbeat() io.fp.ps.toggle("heartbeat") end
 
 -- report versions to front panel
 ---@param firmware_v string coordinator version
 ---@param comms_v string comms version
-function iocontrol.fp_versions(firmware_v, comms_v)
+function ioctl.fp_versions(firmware_v, comms_v)
     io.fp.ps.publish("version", firmware_v)
     io.fp.ps.publish("comms_version", comms_v)
 end
 
 -- report presence of the wired comms modem
 ---@param has_modem boolean
-function iocontrol.fp_has_wd_modem(has_modem)
+function ioctl.fp_has_wd_modem(has_modem)
     io.fp.ps.publish("has_wd_modem", has_modem)
 
     _ioctl.wd_modem = has_modem
@@ -319,7 +319,7 @@ end
 
 -- report presence of the wireless comms modem
 ---@param has_modem boolean
-function iocontrol.fp_has_wl_modem(has_modem)
+function ioctl.fp_has_wl_modem(has_modem)
     io.fp.ps.publish("has_wl_modem", has_modem)
 
     _ioctl.wl_modem = has_modem
@@ -328,19 +328,19 @@ end
 
 -- report if the wired network is up
 ---@param up boolean
-function iocontrol.fp_has_wd_net(up)
+function ioctl.fp_has_wd_net(up)
     io.fp.ps.publish("has_wd_net", up)
 end
 
 -- report if the wireless network is up
 ---@param up boolean
-function iocontrol.fp_has_wl_net(up)
+function ioctl.fp_has_wl_net(up)
     io.fp.ps.publish("has_wl_net", up)
 end
 
 -- report presence of the speaker
 ---@param has_speaker boolean
-function iocontrol.fp_has_speaker(has_speaker)
+function ioctl.fp_has_speaker(has_speaker)
     io.fp.ps.publish("has_speaker", has_speaker)
 
     _ioctl.speaker = has_speaker
@@ -349,12 +349,12 @@ end
 
 -- report supervisor link state
 ---@param state integer
-function iocontrol.fp_link_state(state) io.fp.ps.publish("link_state", state) end
+function ioctl.fp_link_state(state) io.fp.ps.publish("link_state", state) end
 
 -- report monitor connection state
 ---@param id string|integer unit ID for unit monitor, "main" for main monitor, or "flow" for flow monitor
 ---@param connected 1|2|3 1 for disconnected, 2 for connected but no view (may not fit), 3 for connected with view rendered
-function iocontrol.fp_monitor_state(id, connected)
+function ioctl.fp_monitor_state(id, connected)
     local name = nil
 
     if id == "main" then
@@ -376,7 +376,7 @@ end
 -- report thread (routine) statuses
 ---@param thread string thread name
 ---@param ok boolean thread state
-function iocontrol.fp_rt_status(thread, ok)
+function ioctl.fp_rt_status(thread, ok)
     local name = util.c("routine__", thread)
 
     io.fp.ps.publish(name, ok)
@@ -389,7 +389,7 @@ end
 ---@param session_id integer PKT session
 ---@param fw string firmware version
 ---@param s_addr integer PKT computer ID
-function iocontrol.fp_pkt_connected(session_id, fw, s_addr)
+function ioctl.fp_pkt_connected(session_id, fw, s_addr)
     io.fp.ps.publish("pkt_" .. session_id .. "_fw", fw)
     io.fp.ps.publish("pkt_" .. session_id .. "_addr", util.sprintf("@ C% 3d", s_addr))
     pgi.create_pkt_entry(session_id)
@@ -397,14 +397,14 @@ end
 
 -- report PKT session disconnected
 ---@param session_id integer PKT session
-function iocontrol.fp_pkt_disconnected(session_id)
+function ioctl.fp_pkt_disconnected(session_id)
     pgi.delete_pkt_entry(session_id)
 end
 
 -- transmit PKT session RTT
 ---@param session_id integer PKT session
 ---@param rtt integer round trip time
-function iocontrol.fp_pkt_rtt(session_id, rtt)
+function ioctl.fp_pkt_rtt(session_id, rtt)
     io.fp.ps.publish("pkt_" .. session_id .. "_rtt", rtt)
 
     if rtt > HIGH_RTT then
@@ -450,7 +450,7 @@ end
 -- populate facility structure builds
 ---@param build table
 ---@return boolean valid
-function iocontrol.record_facility_builds(build)
+function ioctl.record_facility_builds(build)
     local valid = true
 
     if type(build) == "table" then
@@ -493,12 +493,12 @@ end
 -- populate unit structure builds
 ---@param builds table
 ---@return boolean valid
-function iocontrol.record_unit_builds(builds)
+function ioctl.record_unit_builds(builds)
     local valid = true
 
     -- note: if not all units and RTUs are connected, some will be nil
     for id, build in pairs(builds) do
-        local unit = io.units[id] ---@type ioctl_unit
+        local unit = io.units[id] ---@type crd_io_unit
 
         local log_header = util.c("iocontrol.record_unit_builds[UNIT ", id, "]: ")
 
@@ -624,7 +624,7 @@ end
 -- update facility status
 ---@param status table
 ---@return boolean valid
-function iocontrol.update_facility_status(status)
+function ioctl.update_facility_status(status)
     local valid = true
     local log_header = util.c("iocontrol.update_facility_status: ")
 
@@ -916,7 +916,7 @@ end
 -- update unit statuses
 ---@param statuses table
 ---@return boolean valid
-function iocontrol.update_unit_statuses(statuses)
+function ioctl.update_unit_statuses(statuses)
     local valid = true
 
     if type(statuses) ~= "table" then
@@ -1370,6 +1370,6 @@ end
 --#endregion
 
 -- get the IO controller database
-function iocontrol.get_db() return io end
+function ioctl.get_db() return io end
 
-return iocontrol
+return ioctl

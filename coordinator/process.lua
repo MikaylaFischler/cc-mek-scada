@@ -19,7 +19,7 @@ local REQUEST_TIMEOUT_MS = 10000
 local process = {}
 
 local pctl = {
-    io = nil,    ---@type ioctl
+    io = nil,    ---@type crd_io
     comms = nil, ---@type coord_comms
     ---@class sys_control_states
     control_states = {
@@ -64,10 +64,10 @@ end
 --#region Core
 
 -- initialize the process controller
----@param iocontrol ioctl iocontrl system
+---@param crd_io crd_io iocontrl system
 ---@param coord_comms coord_comms coordinator communications
-function process.init(iocontrol, coord_comms)
-    pctl.io = iocontrol
+function process.init(crd_io, coord_comms)
+    pctl.io = crd_io
     pctl.comms = coord_comms
 
     -- create command handling objects
