@@ -5,7 +5,7 @@
 local types     = require("scada-common.types")
 local util      = require("scada-common.util")
 
-local iocontrol = require("coordinator.iocontrol")
+local ioctl     = require("coordinator.ioctl")
 
 local pgi       = require("coordinator.ui.pgi")
 local style     = require("coordinator.ui.style")
@@ -41,7 +41,7 @@ local led_grn = style.led_grn
 local function init(panel, config)
     local s_hi_box = style.fp_theme.highlight_box
 
-    local ps = iocontrol.get_db().fp.ps
+    local ps = ioctl.get_db().fp.ps
 
     local term_w, term_h = term.getSize()
 

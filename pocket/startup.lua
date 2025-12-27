@@ -17,12 +17,12 @@ local ppm       = require("scada-common.ppm")
 local util      = require("scada-common.util")
 
 local configure = require("pocket.configure")
-local iocontrol = require("pocket.iocontrol")
+local ioctl     = require("pocket.ioctl")
 local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v1.0.11"
+local POCKET_VERSION = "v1.0.12"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -79,7 +79,7 @@ local function main()
     ppm.mount_all()
 
     -- record version for GUI
-    iocontrol.get_db().version = POCKET_VERSION
+    ioctl.get_db().version = POCKET_VERSION
 
     ----------------------------------------
     -- memory allocation
@@ -132,7 +132,7 @@ local function main()
         network.init_mac(config.AuthKey)
     end
 
-    iocontrol.report_link_state(iocontrol.LINK_STATE.UNLINKED)
+    ioctl.report_link_state(ioctl.LINK_STATE.UNLINKED)
 
     -- get the communications modem
     if smem_dev.modem == nil then
@@ -154,7 +154,7 @@ local function main()
     log.debug("startup> comms init")
 
     -- init I/O control
-    iocontrol.init_core(smem_sys.pocket_comms, smem_sys.nav, config)
+    ioctl.init_core(smem_sys.pocket_comms, smem_sys.nav, config)
 
     ----------------------------------------
     -- start the UI

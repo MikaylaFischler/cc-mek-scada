@@ -13,15 +13,15 @@ local U_CMD = comms.UNIT_COMMAND
 local process = {}
 
 local self = {
-    io = nil,   ---@type ioctl
+    io = nil,   ---@type crd_io
     comms = nil ---@type pocket_comms
 }
 
 -- initialize the process controller
----@param iocontrol pocket_ioctl iocontrl system
+---@param ioctl pkt_io iocontrl system
 ---@param pocket_comms pocket_comms pocket communications
-function process.init(iocontrol, pocket_comms)
-    self.io = iocontrol
+function process.init(ioctl, pocket_comms)
+    self.io = ioctl
     self.comms = pocket_comms
 end
 

@@ -2,7 +2,7 @@
 -- Alarm Test App
 --
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 local pocket         = require("pocket.pocket")
 
 local core           = require("graphics.core")
@@ -30,7 +30,7 @@ local c_blue_gray = cpair(colors.blue, colors.gray)
 -- create alarm test page view
 ---@param root Container parent
 local function new_view(root)
-    local db    = iocontrol.get_db()
+    local db    = ioctl.get_db()
     local ps    = db.ps
     local ttest = db.diag.tone_test
 

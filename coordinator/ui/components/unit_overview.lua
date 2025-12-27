@@ -22,7 +22,7 @@ local pipe = core.pipe
 ---@param parent Container parent
 ---@param x integer top left x
 ---@param y integer top left y
----@param unit ioctl_unit unit database entry
+---@param unit crd_io_unit unit database entry
 local function make(parent, x, y, unit)
     local num_boilers = #unit.boiler_data_tbl
     local num_turbines = #unit.turbine_data_tbl

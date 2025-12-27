@@ -5,7 +5,7 @@
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 
 local style          = require("pocket.ui.style")
 
@@ -38,7 +38,7 @@ local yel_ind_s = style.icon_states.yel_ind_s
 ---@param u_ps psil
 ---@param update function
 return function (app, u_page, panes, page_div, u_ps, update)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local rct_pane = Div{parent=page_div}
     local rct_div = Div{parent=rct_pane,x=2,width=page_div.get_width()-2}

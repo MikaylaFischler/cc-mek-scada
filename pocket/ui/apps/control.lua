@@ -5,7 +5,7 @@
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 local process       = require("pocket.process")
 
@@ -49,7 +49,7 @@ local hzd_dis_colors = style.hzd_dis_colors
 local function new_view(root)
     local btn_fg_bg = cpair(colors.green, colors.black)
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 

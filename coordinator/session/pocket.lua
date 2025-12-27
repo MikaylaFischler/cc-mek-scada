@@ -1,11 +1,11 @@
-local comms     = require("scada-common.comms")
-local log       = require("scada-common.log")
-local mqueue    = require("scada-common.mqueue")
-local types     = require("scada-common.types")
-local util      = require("scada-common.util")
+local comms   = require("scada-common.comms")
+local log     = require("scada-common.log")
+local mqueue  = require("scada-common.mqueue")
+local types   = require("scada-common.types")
+local util    = require("scada-common.util")
 
-local iocontrol = require("coordinator.iocontrol")
-local process   = require("coordinator.process")
+local ioctl   = require("coordinator.ioctl")
+local process = require("coordinator.process")
 
 local pocket = {}
 
@@ -79,7 +79,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     local function _close()
         self.conn_watchdog.cancel()
         self.connected = false
-        iocontrol.fp_pkt_disconnected(id)
+        ioctl.fp_pkt_disconnected(id)
     end
 
     -- send a CRDN packet
@@ -118,7 +118,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
     f_ack.on_start = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, success }) end
     f_ack.on_stop = function (success) _send(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.STOP, success }) end
 
-    for u = 1, iocontrol.get_db().facility.num_units do
+    for u = 1, ioctl.get_db().facility.num_units do
         local u_ack = self.proc_handle.unit_ack[u]
         u_ack.on_start = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.START, u, success }) end
         u_ack.on_scram = function (success) _send(CRDN_TYPE.UNIT_CMD, { UNIT_COMMAND.SCRAM, u, success }) end
@@ -144,7 +144,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
         if pkt.scada_frame.protocol() == PROTOCOL.SCADA_CRDN then
             ---@cast pkt crdn_packet
 
-            local db = iocontrol.get_db()
+            local db = ioctl.get_db()
 
             -- handle packet by type
             if pkt.type == CRDN_TYPE.FAC_CMD then
@@ -452,7 +452,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     -- log.debug(log_header .. "PKT RTT = " .. self.last_rtt .. "ms")
                     -- log.debug(log_header .. "PKT TT  = " .. (srv_now - api_send) .. "ms")
 
-                    iocontrol.fp_pkt_rtt(id, self.last_rtt)
+                    ioctl.fp_pkt_rtt(id, self.last_rtt)
                 else
                     log.debug(log_tag .. "SCADA keep alive packet length mismatch")
                 end

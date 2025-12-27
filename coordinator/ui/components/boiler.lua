@@ -1,4 +1,4 @@
-local iocontrol      = require("coordinator.iocontrol")
+local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
@@ -23,7 +23,7 @@ local function new_view(root, x, y, ps)
     local text_fg = style.theme.text_fg
     local lu_col = style.lu_colors
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local boiler = Rectangle{parent=root,border=border(1,colors.gray,true),width=31,height=7,x=x,y=y}
 

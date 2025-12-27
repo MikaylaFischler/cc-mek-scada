@@ -8,7 +8,7 @@ local ppm         = require("scada-common.ppm")
 local util        = require("scada-common.util")
 
 local coordinator = require("coordinator.coordinator")
-local iocontrol   = require("coordinator.iocontrol")
+local ioctl       = require("coordinator.ioctl")
 local sounder     = require("coordinator.sounder")
 
 local println = util.println
@@ -84,7 +84,7 @@ function backplane.init_displays(config)
 
     log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " MAIN/" .. iface)
 
-    iocontrol.fp_monitor_state("main", util.trinary(disp, 2, 1))
+    ioctl.fp_monitor_state("main", util.trinary(disp, 2, 1))
 
     if not disp then
         return false, "Main monitor is not connected."
@@ -107,7 +107,7 @@ function backplane.init_displays(config)
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " FLOW/" .. iface)
 
-        iocontrol.fp_monitor_state("flow", util.trinary(disp, 2, 1))
+        ioctl.fp_monitor_state("flow", util.trinary(disp, 2, 1))
 
         if not disp then
             return false, "Flow monitor is not connected."
@@ -131,7 +131,7 @@ function backplane.init_displays(config)
 
         log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " UNIT_" .. i .. "/" .. iface)
 
-        iocontrol.fp_monitor_state(i, util.trinary(disp, 2, 1))
+        ioctl.fp_monitor_state(i, util.trinary(disp, 2, 1))
 
         if not disp then
             return false, "Unit " .. i .. " monitor is not connected."
@@ -176,7 +176,7 @@ function backplane.init(config, __shared_memory)
         wd_nic.closeAll()
         wd_nic.open(config.CRD_Channel)
 
-        iocontrol.fp_has_wd_modem(modem ~= nil)
+        ioctl.fp_has_wd_modem(modem ~= nil)
     end
 
     -- init wireless NIC(s)
@@ -199,7 +199,7 @@ function backplane.init(config, __shared_memory)
         wl_nic.closeAll()
         wl_nic.open(config.CRD_Channel)
 
-        iocontrol.fp_has_wl_modem(modem ~= nil)
+        ioctl.fp_has_wl_modem(modem ~= nil)
     end
 
     -- at least one comms modem is required
@@ -231,7 +231,7 @@ function backplane.init(config, __shared_memory)
         log_boot("tone generation took " .. (util.time_ms() - sounder_start) .. "ms")
         log_sys("annunciator alarm configured")
 
-        iocontrol.fp_has_speaker(true)
+        ioctl.fp_has_speaker(true)
     end
 
     return true
@@ -252,8 +252,8 @@ function backplane.displays() return _bp.displays end
 
 -- periodic backplane peripheral tasks
 function backplane.periodic()
-    if _bp.wd_nic then iocontrol.fp_has_wd_net(_bp.wd_nic.periodic()) end
-    if _bp.wl_nic then iocontrol.fp_has_wl_net(_bp.wl_nic.periodic()) end
+    if _bp.wd_nic then ioctl.fp_has_wd_net(_bp.wd_nic.periodic()) end
+    if _bp.wl_nic then ioctl.fp_has_wl_net(_bp.wl_nic.periodic()) end
 end
 
 -- handle a backplane peripheral attach
@@ -282,7 +282,7 @@ function backplane.attach(type, device, iface)
             log.info("BKPLN: WIRED PHY_UP " .. iface)
             log_sys("wired comms modem reconnected")
 
-            iocontrol.fp_has_wd_modem(true)
+            ioctl.fp_has_wd_modem(true)
 
             if (_bp.act_nic ~= wd_nic) and not _bp.wlan_pref then
                 -- switch back to preferred wired
@@ -299,7 +299,7 @@ function backplane.attach(type, device, iface)
             log.info("BKPLN: WIRELESS PHY_UP " .. iface)
             log_sys("wireless comms modem reconnected")
 
-            iocontrol.fp_has_wl_modem(true)
+            ioctl.fp_has_wl_modem(true)
 
             if (_bp.act_nic ~= wl_nic) and _bp.wlan_pref then
                 -- switch back to preferred wireless
@@ -333,14 +333,14 @@ function backplane.attach(type, device, iface)
             _bp.displays.main = device
 
             log.info("BKPLN: main display reconnected")
-            iocontrol.fp_monitor_state("main", 2)
+            ioctl.fp_monitor_state("main", 2)
         elseif _bp.displays.flow_iface == iface then
             is_used = true
 
             _bp.displays.flow = device
 
             log.info("BKPLN: flow display reconnected")
-            iocontrol.fp_monitor_state("flow", 2)
+            ioctl.fp_monitor_state("flow", 2)
         else
             for idx, monitor in ipairs(_bp.displays.unit_ifaces) do
                 if monitor == iface then
@@ -349,7 +349,7 @@ function backplane.attach(type, device, iface)
                     _bp.displays.unit_displays[idx] = device
 
                     log.info("BKPLN: unit " .. idx .. " display reconnected")
-                    iocontrol.fp_monitor_state(idx, 2)
+                    ioctl.fp_monitor_state(idx, 2)
                     break
                 end
             end
@@ -371,7 +371,7 @@ function backplane.attach(type, device, iface)
 
         log_sys("alarm sounder speaker reconnected")
 
-        iocontrol.fp_has_speaker(true)
+        ioctl.fp_has_speaker(true)
     end
 end
 
@@ -398,12 +398,12 @@ function backplane.detach(type, device, iface)
             wd_nic.disconnect()
             log.info("BKPLN: WIRED PHY_DOWN " .. iface)
 
-            iocontrol.fp_has_wd_modem(false)
+            ioctl.fp_has_wd_modem(false)
         elseif wl_nic and wl_nic.is_modem(device) then
             wl_nic.disconnect()
             log.info("BKPLN: WIRELESS PHY_DOWN " .. iface)
 
-            iocontrol.fp_has_wl_modem(false)
+            ioctl.fp_has_wl_modem(false)
         end
 
         -- we only care if this is our active comms modem
@@ -424,7 +424,7 @@ function backplane.detach(type, device, iface)
 
                     log.info("BKPLN: WIRELESS PHY_UP " .. m_iface)
 
-                    iocontrol.fp_has_wl_modem(true)
+                    ioctl.fp_has_wl_modem(true)
                 elseif wd_nic and wd_nic.is_connected() then
                     _bp.act_nic = wd_nic
 
@@ -474,19 +474,19 @@ function backplane.detach(type, device, iface)
             is_used = true
 
             log.info("BKPLN: main display disconnected")
-            iocontrol.fp_monitor_state("main", 1)
+            ioctl.fp_monitor_state("main", 1)
         elseif _bp.displays.flow == device then
             is_used = true
 
             log.info("BKPLN: flow display disconnected")
-            iocontrol.fp_monitor_state("flow", 1)
+            ioctl.fp_monitor_state("flow", 1)
         else
             for idx, monitor in pairs(_bp.displays.unit_displays) do
                 if monitor == device then
                     is_used = true
 
                     log.info("BKPLN: unit " .. idx .. " display disconnected")
-                    iocontrol.fp_monitor_state(idx, 1)
+                    ioctl.fp_monitor_state(idx, 1)
                     break
                 end
             end
@@ -506,7 +506,7 @@ function backplane.detach(type, device, iface)
 
         log_sys("alarm sounder speaker disconnected")
 
-        iocontrol.fp_has_speaker(false)
+        ioctl.fp_has_speaker(false)
     end
 end
 

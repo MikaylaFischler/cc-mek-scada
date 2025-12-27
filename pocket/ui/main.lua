@@ -4,7 +4,7 @@
 
 local util        = require("scada-common.util")
 
-local iocontrol   = require("pocket.iocontrol")
+local ioctl       = require("pocket.ioctl")
 local pocket      = require("pocket.pocket")
 
 local about_app   = require("pocket.ui.apps.about")
@@ -44,7 +44,7 @@ local APP_ID = pocket.APP_ID
 -- create new main view
 ---@param main DisplayBox main displaybox
 local function init(main)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     -- window header message and connection status
     TextBox{parent=main,y=1,text="                   S   C  ",fg_bg=style.header}

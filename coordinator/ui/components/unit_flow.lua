@@ -5,7 +5,7 @@
 local types             = require("scada-common.types")
 local util              = require("scada-common.util")
 
-local iocontrol         = require("coordinator.iocontrol")
+local ioctl             = require("coordinator.ioctl")
 
 local style             = require("coordinator.ui.style")
 
@@ -53,11 +53,11 @@ local function make(parent, x, y, wide, unit_id)
 
     local height = 16
 
-    local facility = iocontrol.get_db().facility
-    local unit = iocontrol.get_db().units[unit_id]
+    local fac  = ioctl.get_db().facility
+    local unit = ioctl.get_db().units[unit_id]
 
-    local tank_conns = facility.tank_conns
-    local tank_types = facility.tank_fluid_types
+    local tank_conns = fac.tank_conns
+    local tank_types = fac.tank_fluid_types
 
     local v_start = 1 + ((unit.unit_id - 1) * 6)
     local prv_start = 1 + ((unit.unit_id - 1) * 3)
@@ -98,7 +98,7 @@ local function make(parent, x, y, wide, unit_id)
         table.insert(rc_pipes, pipe(_wide(46, 39), 3, _wide(72, 58), 3, colors.white, true))
 
         if unit.aux_coolant then
-            local em_water = facility.tank_fluid_types[facility.tank_conns[unit_id]] == COOLANT_TYPE.WATER
+            local em_water = fac.tank_fluid_types[fac.tank_conns[unit_id]] == COOLANT_TYPE.WATER
             local offset = util.trinary(unit.has_tank and em_water, 3, 0)
             table.insert(rc_pipes, pipe(_wide(51, 41) + offset, 0, _wide(51, 41) + offset, 0, colors.blue, true))
         end

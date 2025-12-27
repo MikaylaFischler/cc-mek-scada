@@ -4,7 +4,7 @@
 
 local util           = require("scada-common.util")
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 
 local style          = require("pocket.ui.style")
 
@@ -41,7 +41,7 @@ local yel_ind_s = style.icon_states.yel_ind_s
 ---@param ps psil
 ---@param update function
 return function (app, u_page, panes, tbn_pane, u_id, t_id, ps, update)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local tbn_div = Div{parent=tbn_pane,x=2,width=tbn_pane.get_width()-2}
     table.insert(panes, tbn_div)

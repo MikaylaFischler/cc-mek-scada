@@ -5,7 +5,7 @@
 local util          = require("scada-common.util")
 local log           = require("scada-common.log")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 
 local docs          = require("pocket.ui.docs")
@@ -33,7 +33,7 @@ local APP_ID = pocket.APP_ID
 -- new system guide view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
 

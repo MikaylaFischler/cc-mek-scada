@@ -5,7 +5,7 @@
 local types             = require("scada-common.types")
 local util              = require("scada-common.util")
 
-local iocontrol         = require("coordinator.iocontrol")
+local ioctl             = require("coordinator.ioctl")
 
 local style             = require("coordinator.ui.style")
 
@@ -61,7 +61,7 @@ local function init(parent, id)
     local ind_red = style.ind_red
     local ind_wht = style.ind_wht
 
-    local db = iocontrol.get_db()
+    local db   = ioctl.get_db()
     local unit = db.units[id]
     local f_ps = db.facility.ps
 
