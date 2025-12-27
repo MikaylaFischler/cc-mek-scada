@@ -90,9 +90,6 @@ function threads.thread__main(smem)
                 println_ts("reactor is now formed")
                 log.info("reactor is now formed")
 
-                -- SCRAM newly formed reactor
-                smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
                 -- determine if we are still in a degraded state
                 if (not networked) or backplane.active_nic().is_connected() then
                     plc_state.degraded = false
@@ -245,12 +242,13 @@ function threads.thread__rps(smem)
 
             -- check reactor status
             if (not plc_state.no_reactor) and rps.is_formed() then
-                local reactor_status = reactor.getStatus()
-                databus.tx_reactor_state(reactor_status)
+                local active = rps.check_active()
+
+                databus.tx_reactor_state(active)
 
                 -- if we tried to SCRAM but failed, keep trying
                 -- in that case, SCRAM won't be called until it reconnects (this is the expected use of this check)
-                if rps.is_tripped() and reactor_status then rps.scram() end
+                if rps.is_tripped() and active then rps.scram() end
             end
 
             -- if we are in standalone mode and the front panel isn't working, continuously reset RPS

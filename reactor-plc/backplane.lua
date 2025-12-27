@@ -196,8 +196,6 @@ function backplane.attach(iface, type, device, print_no_fp)
                 state.degraded = false
             end
 
-            _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
-
             sys.rps.reconnect_reactor(dev.reactor)
             if networked then
                 sys.plc_comms.reconnect_reactor(dev.reactor)

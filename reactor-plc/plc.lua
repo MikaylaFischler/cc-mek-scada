@@ -127,8 +127,7 @@ function plc.rps_init(reactor, is_formed)
     local self = {
         ---@type boolean[] check states
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
-        reactor_enabled = false,
-        enabled_at = 0,
+        reactor_active = false,
         emer_cool_active = nil, ---@type boolean
         formed = is_formed,     ---@type boolean|nil
         force_disabled = false,
@@ -296,6 +295,14 @@ function plc.rps_init(reactor, is_formed)
         reactor = new_reactor
     end
 
+    -- check the reactor enable state and update the internal tracking flag
+    ---@return boolean active
+    --- EVENT_CONSUMER: this function consumes events
+    function public.check_active()
+        self.reactor_active = reactor.getStatus() == true
+        return self.reactor_active
+    end
+
     -- trip for lost peripheral
     function public.trip_fault()
         _set_fault()
@@ -332,11 +339,7 @@ function plc.rps_init(reactor, is_formed)
         if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
             return false
-        else
-            self.reactor_enabled = false
-            self.last_runtime = util.time_ms() - self.enabled_at
-            return true
-        end
+        else return true end
     end
 
     -- start the reactor now<br>
@@ -349,11 +352,7 @@ function plc.rps_init(reactor, is_formed)
             reactor.activate()
             if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
-            else
-                self.reactor_enabled = true
-                self.enabled_at = util.time_ms()
-                return true
-            end
+            else return true end
         else
             log.debug(util.c("RPS: failed start, RPS tripped: ", self.trip_cause))
         end
@@ -363,6 +362,7 @@ function plc.rps_init(reactor, is_formed)
 
     -- automatic control activate/re-activate
     ---@return boolean success
+    --- EVENT_CONSUMER: this function consumes events
     function public.auto_activate()
         -- clear automatic SCRAM if it was the cause
         if self.tripped and self.trip_cause == "automatic" then
@@ -380,6 +380,7 @@ function plc.rps_init(reactor, is_formed)
     ---@nodiscard
     ---@param has_reactor boolean if the PLC state indicates we have a reactor
     ---@return boolean tripped, rps_trip_cause trip_status, boolean first_trip
+    --- EVENT_CONSUMER: this function consumes events
     function public.check(has_reactor)
         local status = RPS_TRIP_CAUSE.OK
         local was_tripped = self.tripped
@@ -451,20 +452,16 @@ function plc.rps_init(reactor, is_formed)
             self.trip_cause = RPS_TRIP_CAUSE.OK
         end
 
-        -- if a new trip occured...
+        -- SCRAM on a new trip, RPS thread handles reactor becoming active while already tripped
         if (not was_tripped) and (status ~= RPS_TRIP_CAUSE.OK) then
             first_trip = true
             self.tripped = true
             self.trip_cause = status
 
-            -- in the case that the reactor is detected to be active,
-            -- it will be scrammed shortly after this in the main RPS loop if we don't here
             if self.formed then
-                if not self.force_disabled then
-                    public.scram()
-                else
+                if self.force_disabled then
                     log.warning("RPS: skipping SCRAM due to reactor being force disabled")
-                end
+                else public.scram() end
             else
                 log.warning("RPS: skipping SCRAM due to not being formed")
             end
@@ -490,17 +487,12 @@ function plc.rps_init(reactor, is_formed)
     function public.is_low_coolant() return self.states[CHK.LOW_COOLANT] end
 
     ---@nodiscard
-    function public.is_active() return self.reactor_enabled end
+    function public.is_active() return self.reactor_active end
     ---@nodiscard
     ---@return boolean|nil formed true if formed, false if not, nil if unknown
     function public.is_formed() return self.formed end
     ---@nodiscard
     function public.is_force_disabled() return self.force_disabled end
-
-    -- get the runtime of the reactor if active, or the last runtime if disabled
-    ---@nodiscard
-    ---@return integer runtime time since last enable
-    function public.get_runtime() return util.trinary(self.reactor_enabled, util.time_ms() - self.enabled_at, self.last_runtime) end
 
     -- reset the RPS
     ---@param quiet? boolean true to suppress the info log message
