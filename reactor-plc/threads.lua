@@ -215,7 +215,9 @@ function threads.thread__rps(smem)
         -- load in from shared memory
         local networked   = smem.networked
         local plc_state   = smem.plc_state
-        local plc_dev     = smem.plc_dev
+
+        local rps         = smem.plc_sys.rps
+        local plc_comms   = smem.plc_sys.plc_comms
 
         local rps_queue   = smem.q.mq_rps
 
@@ -226,12 +228,6 @@ function threads.thread__rps(smem)
 
         -- thread loop
         while true do
-            -- get plc_sys fields (may have been set late due to degraded boot)
-            local rps       = smem.plc_sys.rps
-            local plc_comms = smem.plc_sys.plc_comms
-            -- get reactor, it may have changed due to a disconnect/reconnect
-            local reactor   = plc_dev.reactor
-
             -- SCRAM if no open connection
             if networked and not plc_comms.is_linked() then
                 if was_linked then
@@ -352,6 +348,7 @@ function threads.thread__comms_tx(smem)
 
         -- load in from shared memory
         local plc_state    = smem.plc_state
+        local plc_comms    = smem.plc_sys.plc_comms
         local comms_queue  = smem.q.mq_comms_tx
 
         local MQ__COMM_CMD = smem.q_types.MQ__COMM_CMD
@@ -360,9 +357,6 @@ function threads.thread__comms_tx(smem)
 
         -- thread loop
         while true do
-            -- get plc_sys fields (may have been set late due to degraded boot)
-            local plc_comms = smem.plc_sys.plc_comms
-
             -- check for messages in the message queue
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
@@ -434,15 +428,14 @@ function threads.thread__comms_rx(smem)
         local plc_state   = smem.plc_state
         local setpoints   = smem.setpoints
 
+        local plc_comms   = smem.plc_sys.plc_comms
+
         local comms_queue = smem.q.mq_comms_rx
 
         local last_update = util.time()
 
         -- thread loop
         while true do
-            -- get plc_sys fields (may have been set late due to degraded boot)
-            local plc_comms = smem.plc_sys.plc_comms
-
             -- check for messages in the message queue
             while comms_queue.ready() and not plc_state.shutdown do
                 local msg = comms_queue.pop()
@@ -507,8 +500,9 @@ function threads.thread__setpoint_control(smem)
 
         -- load in from shared memory
         local plc_state    = smem.plc_state
-        local setpoints    = smem.setpoints
+        local rps          = smem.plc_sys.rps
         local plc_dev      = smem.plc_dev
+        local setpoints    = smem.setpoints
 
         local last_update  = util.time()
         local running      = false
@@ -521,8 +515,6 @@ function threads.thread__setpoint_control(smem)
 
         -- thread loop
         while true do
-            -- get plc_sys fields (may have been set late due to degraded boot)
-            local rps     = smem.plc_sys.rps
             -- get reactor, may have changed do to disconnect/reconnect
             local reactor = plc_dev.reactor
 
