@@ -110,11 +110,11 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         local scaler  = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (time / 5.0))
         local ccool_d = cur_ccool - _spctl.last_ccool
 
-        local step = scaler * _spctl.max_br
+        local step = math.max(0, (scaler * _spctl.max_br) + (ccool_d / 100000.0))
 
         new_br = math.min(cur_br + step, setpoints.burn_rate)
 
-        log.debug(util.sprintf("SPCTL: scaler[%f] ccool_d[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, ccool_d, cur_ccool, step, new_br))
+        log.debug(util.sprintf("SPCTL: scaler[%f] ccool_d[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, ccool_d / 100000, cur_ccool, step, new_br))
     end
 
     -- set the burn rate
