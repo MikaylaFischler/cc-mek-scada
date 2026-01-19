@@ -71,7 +71,7 @@ local function ramp_reset()
 end
 
 local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
-    local new_br ---@type number
+    local new_br = cur_br
 
     local now = os.clock()
 
@@ -132,6 +132,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 
     if new_state ~= state then
+        log.debug("SPCTL: state changed to " .. new_state)
         _spctl.next_state  = new_state
         _spctl.last_change = now
     end
@@ -163,7 +164,7 @@ function spctl.update(reactor, elapsed_s)
 
                 parallel.waitForAll(
                     function () cur_br = reactor.getBurnRate() end,
-                    function () cur_ccool = reactor.getCoolant() end
+                    function () cur_ccool = (reactor.getCoolant() or { amount = 0 }).amount end
                 )
 
                 -- we yielded, check enable again
