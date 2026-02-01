@@ -107,14 +107,26 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
             new_state = STATES.FAST_RAMP
         end
     elseif state == STATES.FAST_RAMP then
-        local scaler  = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (time / 5.0))
-        local ccool_d = cur_ccool - _spctl.last_ccool
+        -- step by a percent of the max burn rate
+        local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (time / 5.0))
+        local step = scaler * _spctl.max_br
 
-        local step = math.max(0, (scaler * _spctl.max_br) + (ccool_d / 100000.0))
+        -- slow the step if we are losing coolant
+        if cur_ccool < 0.8 then
+            -- map 0.4-0.8 to 0-1
+            local a = (cur_ccool - 0.4) * 2.5
 
-        new_br = math.min(cur_br + step, setpoints.burn_rate)
+            -- slow as we approach low coolant condition
+            step = step * a
+        end
 
-        log.debug(util.sprintf("SPCTL: scaler[%f] ccool_d[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, ccool_d / 100000, cur_ccool, step, new_br))
+        -- minimum is the slow rate, maintain old behavior
+        -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
+        step = math.max(SLOW_RAMP_mB_s, step)
+
+        new_br = cur_br + step
+
+        log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
     end
 
     -- set the burn rate
