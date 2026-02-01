@@ -164,7 +164,7 @@ function spctl.update(reactor, elapsed_s)
 
                 parallel.waitForAll(
                     function () cur_br = reactor.getBurnRate() end,
-                    function () cur_ccool = (reactor.getCoolant() or { amount = 0 }).amount end
+                    function () cur_ccool = reactor.getCoolantFilledPercentage() end
                 )
 
                 -- we yielded, check enable again
