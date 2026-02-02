@@ -18,7 +18,7 @@ local self = {
 }
 
 -- initialize the process controller
----@param ioctl pkt_io iocontrl system
+---@param ioctl pkt_io iocontrol system
 ---@param pocket_comms pocket_comms pocket communications
 function process.init(ioctl, pocket_comms)
     self.io = ioctl

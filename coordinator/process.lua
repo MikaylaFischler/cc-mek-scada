@@ -64,7 +64,7 @@ end
 --#region Core
 
 -- initialize the process controller
----@param crd_io crd_io iocontrl system
+---@param crd_io crd_io iocontrol system
 ---@param coord_comms coord_comms coordinator communications
 function process.init(crd_io, coord_comms)
     pctl.io = crd_io
