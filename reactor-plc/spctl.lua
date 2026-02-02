@@ -101,7 +101,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         if new_br >= FAST_SWITCH_mB_s then
             new_br = FAST_SWITCH_mB_s
 
-            new_state = STATES.CCOOL_MON
+            new_state = STATES.STABLE_WAIT
         end
     elseif state == STATES.STABLE_WAIT then
         -- wait a minimum of 2 seconds to help with flow stability
@@ -132,7 +132,8 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
         step = math.max(SLOW_RAMP_mB_s, step)
 
-        new_br = cur_br + step
+        -- don't exceed the setpoint
+        new_br = math.min(cur_br + step, setpoints.burn_rate)
 
         log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
     end
