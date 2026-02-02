@@ -130,7 +130,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
 
         -- minimum is the slow rate, maintain old behavior
         -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
-        step = math.max(SLOW_RAMP_mB_s, step)
+        step = math.max((SLOW_RAMP_mB_s * elapsed_s), step)
 
         -- don't exceed the setpoint
         new_br = math.min(cur_br + step, setpoints.burn_rate)
