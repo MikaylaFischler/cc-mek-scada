@@ -10,20 +10,24 @@ local spctl = {}
 ---@enum RAMP_STATES
 local STATES = {
     STOPPED = 1,
-    SLOW_RAMP = 2,
-    STABLE_WAIT = 3,
-    CCOOL_MON = 4,
-    FAST_RAMP = 5,
-    RUNNING = 6
+    INIT = 2,
+    SLOW_RAMP_UP = 3,
+    SLOW_RAMP_DOWN = 4,
+    STABLE_WAIT = 5,
+    CCOOL_MON = 6,
+    FAST_RAMP_UP = 7,
+    FAST_RAMP_DOWN = 8
 }
 
 local STATE_NAMES = {
     "STOPPED",
-    "SLOW_RAMP",
+    "INIT",
+    "SLOW_RAMP_UP",
+    "SLOW_RAMP_DOWN",
     "STABLE_WAIT",
     "CCOOL_MON",
-    "FAST_RAMP",
-    "RUNNING"
+    "FAST_RAMP_UP",
+    "FAST_RAMP_DOWN"
 }
 
 local _spctl = {
@@ -58,7 +62,7 @@ local function ramp_init(reactor, cur_br)
         log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_br, " mB/t to ", setpoints.burn_rate, " mB/t"))
 
         _spctl.last_change = os.clock()
-        _spctl.next_state  = util.trinary(cur_br >= FAST_SWITCH_mB_s, STATES.STABLE_WAIT, STATES.SLOW_RAMP)
+        _spctl.next_state  = STATES.INIT
     else
         log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
         reactor.setBurnRate(setpoints.burn_rate)
@@ -67,9 +71,8 @@ end
 
 -- reset states and last value tracking
 local function ramp_reset()
-    _spctl.last_sp = 0
+    _spctl.last_sp    = 0
     _spctl.last_ccool = 0
-
     _spctl.next_state = STATES.STOPPED
     _spctl.last_state = STATES.STOPPED
 end
@@ -86,16 +89,27 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     local new_state  = _spctl.next_state
     local new_br     = cur_br
 
-    if state == STATES.SLOW_RAMP then
+    if state == STATES.INIT then
+        -- transition to the appropriate direction and phase
         if setpoints.burn_rate > cur_br then
             -- need to ramp up
-            new_br = cur_br + (SLOW_RAMP_mB_s * elapsed_s)
-            if new_br > setpoints.burn_rate then new_br = setpoints.burn_rate end
+            if cur_br >= FAST_SWITCH_mB_s then
+                new_state = STATES.STABLE_WAIT
+            else
+                new_state = STATES.SLOW_RAMP_UP
+            end
         else
             -- need to ramp down
-            new_br = cur_br - (SLOW_RAMP_mB_s * elapsed_s)
-            if new_br < setpoints.burn_rate then new_br = setpoints.burn_rate end
+            if cur_br >= FAST_SWITCH_mB_s then
+                new_state = STATES.FAST_RAMP_DOWN
+            else
+                new_state = STATES.SLOW_RAMP_DOWN
+            end
         end
+    elseif state == STATES.SLOW_RAMP_UP then
+        -- slowly ramp up
+        new_br = cur_br + (SLOW_RAMP_mB_s * elapsed_s)
+        if new_br > setpoints.burn_rate then new_br = setpoints.burn_rate end
 
         -- transition out of slow ramp after hitting the limit
         if new_br >= FAST_SWITCH_mB_s then
@@ -103,6 +117,10 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
 
             new_state = STATES.STABLE_WAIT
         end
+    elseif state == STATES.SLOW_RAMP_DOWN then
+        -- slowly ramp down
+        new_br = cur_br - (SLOW_RAMP_mB_s * elapsed_s)
+        if new_br < setpoints.burn_rate then new_br = setpoints.burn_rate end
     elseif state == STATES.STABLE_WAIT then
         -- wait a minimum of 2 seconds to help with flow stability
         -- this helps detect broken things before getting too high
@@ -112,12 +130,12 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     elseif state == STATES.CCOOL_MON then
         -- don't move on until coolant is not decreasing
         if cur_ccool >= _spctl.last_ccool then
-            new_state = STATES.FAST_RAMP
+            new_state = STATES.FAST_RAMP_UP
         end
-    elseif state == STATES.FAST_RAMP then
+    elseif state == STATES.FAST_RAMP_UP then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0))
-        local step = scaler * _spctl.max_br
+        local step   = scaler * _spctl.max_br
 
         -- slow the step if we are losing coolant
         if cur_ccool < 0.8 then
@@ -134,6 +152,19 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
 
         -- don't exceed the setpoint
         new_br = math.min(cur_br + step, setpoints.burn_rate)
+
+        log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
+    elseif state == STATES.FAST_RAMP_DOWN then
+        -- step by a percent of the max burn rate
+        local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
+        local step   = scaler * _spctl.max_br
+
+        -- minimum is the slow rate, maintain old behavior
+        -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
+        step = math.max((SLOW_RAMP_mB_s * elapsed_s), step)
+
+        -- don't fall below the setpoint
+        new_br = math.max(cur_br - step, setpoints.burn_rate)
 
         log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
     end
@@ -183,7 +214,7 @@ function spctl.update(reactor, elapsed_s)
             )
 
             if not rps.is_active() then
-                log.debug("SPCTL: ramping aborted (reactor inactive)")
+                log.info("SPCTL: ramping aborted (reactor inactive)")
                 setpoints.burn_rate_en = false
                 ramp_reset()
             -- we yielded, check enable again
@@ -194,15 +225,15 @@ function spctl.update(reactor, elapsed_s)
                     log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br=", cur_br, ",cur_ccool=", cur_ccool, ")"))
                 end
             else
-                log.debug("SPCTL: ramping cancelled")
+                log.info("SPCTL: ramping cancelled")
                 ramp_reset()
             end
         else
-            log.debug("SPCTL: ramping cancelled")
+            log.info("SPCTL: ramping cancelled")
             ramp_reset()
         end
     elseif setpoints.burn_rate_en then
-        log.debug(util.c("SPCTL: ramping completed (setpoint of ", setpoints.burn_rate, " mB/t)"))
+        log.info(util.c("SPCTL: ramping completed (setpoint of ", setpoints.burn_rate, " mB/t)"))
         setpoints.burn_rate_en = false
         ramp_reset()
     end
