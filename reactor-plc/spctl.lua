@@ -3,7 +3,7 @@ local util = require("scada-common.util")
 
 local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
-local FAST_MAX_PERCENT_s = 0.02
+local FAST_MAX_PERCENT_s = 0.04
 
 local spctl = {}
 
@@ -134,7 +134,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         end
     elseif state == STATES.FAST_RAMP_UP then
         -- step by a percent of the max burn rate
-        local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0))
+        local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
         local step   = scaler * _spctl.max_br
 
         -- slow the step if we are losing coolant
