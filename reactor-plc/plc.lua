@@ -44,6 +44,7 @@ function plc.load_config()
 
     config.Networked = settings.get("Networked")
     config.UnitID = settings.get("UnitID")
+    config.FastRamp = settings.get("FastRamp")
 
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
     config.EmerCoolSide = settings.get("EmerCoolSide")
@@ -76,6 +77,7 @@ function plc.validate_config(cfg)
 
     cfv.assert_type_bool(cfg.Networked)
     cfv.assert_type_int(cfg.UnitID)
+    cfv.assert_type_bool(cfg.FastRamp)
     cfv.assert_type_bool(cfg.EmerCoolEnable)
 
     if cfg.Networked then

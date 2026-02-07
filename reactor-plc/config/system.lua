@@ -90,8 +90,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local plc_c_3 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_4 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_5 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_6 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_7 = Div{parent=plc_cfg,x=2,y=4,width=49}
 
-    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5}}
+    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5,plc_c_6,plc_c_7}}
 
     TextBox{parent=plc_cfg,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
@@ -169,12 +171,41 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
         tmp_cfg.EmerCoolColor = tri(bundled.get_value(), color_options_map[color.get_value()], nil)
         tmp_cfg.EmerCoolInvert = invert.get_value()
-        next_from_plc()
+        plc_pane.set_value(6)
     end
 
     PushButton{parent=plc_c_4,y=14,text="\x1b Back",callback=function()plc_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=plc_c_4,x=33,y=14,min_width=10,text="Advanced",callback=function()plc_pane.set_value(5)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=plc_c_4,x=44,y=14,text="Next \x1a",callback=submit_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=plc_c_6,y=1,text="Would you like to enable fast ramping?"}
+    TextBox{parent=plc_c_6,y=3,height=5,text="Slow ramping is always used up to 40 mB/t, which is a speed of ~5 mB/t per second. If you enable fast ramping, the PLC will hold 40 mB/t until its cooled coolant stabilizes (at least 2 seconds) then accelerate up to a much faster ramp rate, which is a percentage of the maximum burn rate."}
+    TextBox{parent=plc_c_6,y=8,height=3,text="When fast ramping is used, if the reactor drops below 80% cooled coolant, it will scale back the burn rate ramping more and more as the coolant level drops.",fg_bg=g_lg_fg_bg}
+
+    local fast_ramp = Checkbox{parent=plc_c_6,y=12,label="Enable Fast Ramping",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
+    TextBox{parent=plc_c_6,x=23,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function submit_ramp()
+        tmp_cfg.FastRamp = fast_ramp.get_value()
+        if tmp_cfg.FastRampConfirmed then next_from_plc() else plc_pane.set_value(7) end
+    end
+
+    PushButton{parent=plc_c_6,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_6,x=44,y=14,text="Next \x1a",callback=submit_ramp,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=plc_c_7,y=1,text="CAUTION!",fg_bg=cpair(colors.red,colors._INHERIT)}
+    TextBox{parent=plc_c_7,y=3,height=5,text="Fast ramping runs a higher risk of causing your reactor to run low on coolant and overheat. You should test this under supervision, as an insufficient cooling build or lack of auxiliary coolant can cause the reactor to ramp faster than your turbine(s)/boiler(s) can handle."}
+    TextBox{parent=plc_c_7,y=8,height=3,text="In most cases, the low coolant or high temperature automatic SCRAM should prevent damage to the reactor as long as coolant is not lost from the cooling loop.",fg_bg=g_lg_fg_bg}
+
+    local fast_ramp_confirm = Checkbox{parent=plc_c_7,y=12,label="Don't show this warning again",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
+
+    local function submit_ramp_conf()
+        tmp_cfg.FastRamp = fast_ramp_confirm.get_value()
+        next_from_plc()
+    end
+
+    PushButton{parent=plc_c_7,y=14,text="\x1b Back",callback=function()plc_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_7,x=44,y=14,text="Next \x1a",callback=submit_ramp_conf,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -551,6 +582,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(bundled, ini_cfg.EmerCoolColor ~= nil)
             if ini_cfg.EmerCoolColor ~= nil then try_set(color, color_to_idx(ini_cfg.EmerCoolColor)) end
             try_set(invert, ini_cfg.EmerCoolInvert)
+            try_set(fast_ramp, ini_cfg.FastRamp)
+            try_set(fast_ramp_confirm, ini_cfg.FastRampConfirmed)
             try_set(self.wireless, ini_cfg.WirelessModem)
             try_set(self.wired, ini_cfg.WiredModem ~= false)
             try_set(self.wl_pref, ini_cfg.PreferWireless)
@@ -621,6 +654,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
         tmp_cfg.Networked = config.NETWORKED
         tmp_cfg.UnitID = config.REACTOR_ID
+        tmp_cfg.FastRamp = false
+        tmp_cfg.FastRampConfirmed = false
         tmp_cfg.EmerCoolEnable = type(config.EMERGENCY_COOL) == "table"
 
         if tmp_cfg.EmerCoolEnable then
@@ -692,17 +727,19 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
                 height = #lines + 1
             end
 
-            local line = Div{parent=setting_list,height=height,fg_bg=c}
-            TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
+            if f[1] ~= "FastRampConfirmed" then
+                local line = Div{parent=setting_list,height=height,fg_bg=c}
+                TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
 
-            local textbox
-            if height > 1 then
-                textbox = TextBox{parent=line,y=2,text=val,height=height-1}
-            else
-                textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
+                local textbox
+                if height > 1 then
+                    textbox = TextBox{parent=line,y=2,text=val,height=height-1}
+                else
+                    textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
+                end
+
+                if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
             end
-
-            if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
         end
     end
 
