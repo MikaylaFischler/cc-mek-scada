@@ -178,9 +178,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=plc_c_4,x=33,y=14,min_width=10,text="Advanced",callback=function()plc_pane.set_value(5)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=plc_c_4,x=44,y=14,text="Next \x1a",callback=submit_emcool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=plc_c_6,y=1,text="Would you like to enable fast ramping?"}
-    TextBox{parent=plc_c_6,y=3,height=5,text="Slow ramping is always used up to 40 mB/t, which is a speed of ~5 mB/t per second. If you enable fast ramping, the PLC will hold 40 mB/t until its cooled coolant stabilizes (at least 2 seconds) then accelerate up to a much faster ramp rate, which is a percentage of the maximum burn rate."}
-    TextBox{parent=plc_c_6,y=8,height=3,text="When fast ramping is used, if the reactor drops below 80% cooled coolant, it will scale back the burn rate ramping more and more as the coolant level drops.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_6,y=1,height=6,text="Slow ramping is always used up to 40 mB/t, which is ~5 mB/t per second. If you enable fast ramping, it will then hold at 40 mB/t until cooled coolant stabilizes (at least 2 seconds) then increase to a faster ramp rate, which is a percentage of the maximum burn rate."}
+    TextBox{parent=plc_c_6,y=8,height=3,text="When fast ramping is used, if the reactor drops below 80% cooled coolant, it will scale back the ramping proportionally as the coolant level drops.",fg_bg=g_lg_fg_bg}
 
     local fast_ramp = Checkbox{parent=plc_c_6,y=12,label="Enable Fast Ramping",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_6,x=23,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
@@ -193,19 +192,19 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=plc_c_6,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=plc_c_6,x=44,y=14,text="Next \x1a",callback=submit_ramp,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=plc_c_7,y=1,text="CAUTION!",fg_bg=cpair(colors.red,colors._INHERIT)}
-    TextBox{parent=plc_c_7,y=3,height=5,text="Fast ramping runs a higher risk of causing your reactor to run low on coolant and overheat. You should test this under supervision, as an insufficient cooling build or lack of auxiliary coolant can cause the reactor to ramp faster than your turbine(s)/boiler(s) can handle."}
-    TextBox{parent=plc_c_7,y=8,height=3,text="In most cases, the low coolant or high temperature automatic SCRAM should prevent damage to the reactor as long as coolant is not lost from the cooling loop.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_7,y=1,text="!! CAUTION !!",fg_bg=cpair(colors.red,colors._INHERIT)}
+    TextBox{parent=plc_c_7,y=2,height=6,text="Fast ramping has an increased risk of your reactor running low on coolant and overheating. First test this under supervision, as an insufficient cooling setup or lack of auxiliary coolant can cause the reactor to ramp faster than your turbine(s)/boiler(s) can handle."}
+    TextBox{parent=plc_c_7,y=9,height=4,text="In most cases, the low coolant or high temperature automatic SCRAM should prevent damage to the reactor as long as coolant is not lost from the cooling loop.",fg_bg=g_lg_fg_bg}
 
-    local fast_ramp_confirm = Checkbox{parent=plc_c_7,y=12,label="Don't show this warning again",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
+    local fast_ramp_confirm = Checkbox{parent=plc_c_7,y=14,x=13,label="Don't show this warning again",default=ini_cfg.FastRampConfirmed,box_fg_bg=cpair(colors.orange,colors.black)}
 
     local function submit_ramp_conf()
-        tmp_cfg.FastRamp = fast_ramp_confirm.get_value()
+        tmp_cfg.FastRampConfirmed = fast_ramp_confirm.get_value()
         next_from_plc()
     end
 
     PushButton{parent=plc_c_7,y=14,text="\x1b Back",callback=function()plc_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=plc_c_7,x=44,y=14,text="Next \x1a",callback=submit_ramp_conf,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_7,x=8,y=14,text=" OK ",callback=submit_ramp_conf,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -282,7 +281,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         end
     end
 
-    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    local function back_to_plc()
+        plc_pane.set_value(6)
+        main_pane.set_value(2)
+    end
+
+    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=back_to_plc,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,y=1,text="Please set the network channels below."}
