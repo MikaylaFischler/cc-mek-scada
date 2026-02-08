@@ -186,7 +186,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local function submit_ramp()
         tmp_cfg.FastRamp = fast_ramp.get_value()
-        if tmp_cfg.FastRampConfirmed then next_from_plc() else plc_pane.set_value(7) end
+
+        if tmp_cfg.FastRampConfirmed or ini_cfg.FastRampConfirmed then
+            next_from_plc()
+        else plc_pane.set_value(7) end
     end
 
     PushButton{parent=plc_c_6,y=14,text="\x1b Back",callback=function()plc_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -724,26 +727,28 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             if val == "nil" then val = "<not set>" end
 
             local c = tri(alternate, g_lg_fg_bg, cpair(colors.gray,colors.white))
-            alternate = not alternate
 
             if (string.len(val) > val_max_w) or string.find(val, "\n") then
                 local lines = util.strwrap(val, inner_width)
                 height = #lines + 1
             end
 
+            local textbox
+
             if f[1] ~= "FastRampConfirmed" then
+                alternate = not alternate
+
                 local line = Div{parent=setting_list,height=height,fg_bg=c}
                 TextBox{parent=line,text=f[2],width=string.len(f[2]),fg_bg=cpair(colors.black,line.get_fg_bg().bkg)}
 
-                local textbox
                 if height > 1 then
                     textbox = TextBox{parent=line,y=2,text=val,height=height-1}
                 else
                     textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
                 end
-
-                if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
             end
+
+            if f[1] == "AuthKey" then self.auth_key_textbox = textbox end
         end
     end
 
