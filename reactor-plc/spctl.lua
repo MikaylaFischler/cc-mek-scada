@@ -1,6 +1,8 @@
 local log  = require("scada-common.log")
 local util = require("scada-common.util")
 
+local plc  = require("reactor-plc.plc")
+
 local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
 local FAST_MAX_PERCENT_s = 0.04
@@ -31,6 +33,8 @@ local STATE_NAMES = {
 }
 
 local _spctl = {
+    fast_ramp_en = plc.config.FastRamp,
+
     max_br = 0.0,
     last_sp = 0.0,
     last_ccool = 0.0,
@@ -93,14 +97,14 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         -- transition to the appropriate direction and phase
         if setpoints.burn_rate > cur_br then
             -- need to ramp up
-            if cur_br >= FAST_SWITCH_mB_s then
+            if _spctl.fast_ramp_en and (cur_br >= FAST_SWITCH_mB_s) then
                 new_state = STATES.STABLE_WAIT
             else
                 new_state = STATES.SLOW_RAMP_UP
             end
         else
             -- need to ramp down
-            if cur_br >= FAST_SWITCH_mB_s then
+            if _spctl.fast_ramp_en and (cur_br >= FAST_SWITCH_mB_s) then
                 new_state = STATES.FAST_RAMP_DOWN
             else
                 new_state = STATES.SLOW_RAMP_DOWN
@@ -112,7 +116,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         if new_br > setpoints.burn_rate then new_br = setpoints.burn_rate end
 
         -- transition out of slow ramp after hitting the limit
-        if new_br >= FAST_SWITCH_mB_s then
+        if _spctl.fast_ramp_en and (new_br >= FAST_SWITCH_mB_s) then
             new_br = FAST_SWITCH_mB_s
 
             new_state = STATES.STABLE_WAIT
