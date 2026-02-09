@@ -22,6 +22,7 @@ local Checkbox          = require("graphics.elements.controls.Checkbox")
 local HazardButton      = require("graphics.elements.controls.HazardButton")
 local NumericSpinbox    = require("graphics.elements.controls.NumericSpinbox")
 local RadioButton       = require("graphics.elements.controls.RadioButton")
+local SwitchButton      = require("graphics.elements.controls.SwitchButton")
 
 local ALIGN = core.ALIGN
 
@@ -144,7 +145,8 @@ local function new_view(root, x, y)
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
     local c_target = NumericSpinbox{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_target,x=18,y=2,text="M"..db.energy_label,fg_bg=style.theme.label_fg}
-    local cur_charge = DataIndicator{parent=targets,x=9,y=9,label="",format="%19d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function()end,fg_bg=cpair(colors.black,colors.pink)}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
     cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
