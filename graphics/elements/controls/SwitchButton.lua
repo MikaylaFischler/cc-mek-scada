@@ -11,6 +11,7 @@ local util    = require("scada-common.util")
 ---@field default? boolean default state, defaults to off (false)
 ---@field min_width? integer text length + 2 if omitted
 ---@field active_fg_bg? cpair foreground/background colors when pressed (optional if active_text set)
+---@field dis_fg_bg? cpair foreground/background colors when disabled
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -44,12 +45,17 @@ return function (args)
 
     -- show the button state
     function e.redraw()
-        if e.value and args.active_fg_bg then
-            e.w_set_fgd(args.active_fg_bg.fgd)
-            e.w_set_bkg(args.active_fg_bg.bkg)
-        else
-            e.w_set_fgd(e.fg_bg.fgd)
-            e.w_set_bkg(e.fg_bg.bkg)
+        if e.enabled then
+            if e.value and args.active_fg_bg then
+                e.w_set_fgd(args.active_fg_bg.fgd)
+                e.w_set_bkg(args.active_fg_bg.bkg)
+            else
+                e.w_set_fgd(e.fg_bg.fgd)
+                e.w_set_bkg(e.fg_bg.bkg)
+            end
+        elseif args.dis_fg_bg ~= nil then
+            e.w_set_fgd(args.dis_fg_bg.fgd)
+            e.w_set_bkg(args.dis_fg_bg.bkg)
         end
 
         e.window.clear()
@@ -70,8 +76,21 @@ return function (args)
     -- set the value (does not call the callback)
     ---@param val boolean new value
     function e.set_value(val)
-        e.value = val
-        e.redraw()
+        if e.value ~= val then
+            e.value = val
+            e.redraw()
+            args.callback(e.value)
+        end
+    end
+
+    -- show butten as enabled
+    function e.on_enabled()
+        if args.dis_fg_bg ~= nil then e.redraw() end
+    end
+
+    -- show button as disabled
+    function e.on_disabled()
+        if args.dis_fg_bg ~= nil then e.redraw() end
     end
 
     ---@class SwitchButton:graphics_element
