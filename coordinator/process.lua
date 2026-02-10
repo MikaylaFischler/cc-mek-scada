@@ -26,8 +26,11 @@ local pctl = {
         ---@class sys_auto_config
         process = {
             mode = PROCESS.INACTIVE,           ---@type PROCESS
+            alt_mode = false,
             burn_target = 0.0,
             charge_target = 0.0,
+            range_start = 10,
+            range_stop = 90,
             gen_target = 0.0,
             limits = {},                       ---@type number[]
             waste_product = PRODUCT.PLUTONIUM, ---@type WASTE_PRODUCT
@@ -85,25 +88,25 @@ function process.init(crd_io, coord_comms)
 
     local ctrl_states = settings.get("ControlStates", {})   ---@type sys_control_states
     local config = ctrl_states.process
+    local f_ps = crd_io.facility.ps
 
     -- facility auto control configuration
     if type(config) == "table" then
-        ctl_proc.mode = config.mode
-        ctl_proc.burn_target = config.burn_target
-        ctl_proc.charge_target = config.charge_target
-        ctl_proc.gen_target = config.gen_target
-        ctl_proc.limits = config.limits
-        ctl_proc.waste_product = config.waste_product
-        ctl_proc.pu_fallback = config.pu_fallback
-        ctl_proc.sps_low_power = config.sps_low_power
+        -- update each field if present in the config
+        for key, _ in pairs(ctl_proc) do
+            ctl_proc[key] = config[key] or ctl_proc[key]
+        end
 
-        pctl.io.facility.ps.publish("process_mode", ctl_proc.mode)
-        pctl.io.facility.ps.publish("process_burn_target", ctl_proc.burn_target)
-        pctl.io.facility.ps.publish("process_charge_target", pctl.io.energy_convert_from_fe(ctl_proc.charge_target))
-        pctl.io.facility.ps.publish("process_gen_target", pctl.io.energy_convert_from_fe(ctl_proc.gen_target))
-        pctl.io.facility.ps.publish("process_waste_product", ctl_proc.waste_product)
-        pctl.io.facility.ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
-        pctl.io.facility.ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
+        f_ps.publish("process_mode", ctl_proc.mode)
+        f_ps.publish("process_alt_mode", ctl_proc.alt_mode)
+        f_ps.publish("process_burn_target", ctl_proc.burn_target)
+        f_ps.publish("process_charge_target", pctl.io.energy_convert_from_fe(ctl_proc.charge_target))
+        f_ps.publish("process_range_start", ctl_proc.range_start)
+        f_ps.publish("process_range_stop", ctl_proc.range_stop)
+        f_ps.publish("process_gen_target", pctl.io.energy_convert_from_fe(ctl_proc.gen_target))
+        f_ps.publish("process_waste_product", ctl_proc.waste_product)
+        f_ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
+        f_ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
 
         for id = 1, math.min(#ctl_proc.limits, pctl.io.facility.num_units) do
             local unit = pctl.io.units[id]
@@ -470,18 +473,24 @@ end
 
 -- save process control settings
 ---@param mode PROCESS process control mode
+---@param alt_mode boolean true if using range control instead of charge control
 ---@param burn_target number burn rate target
 ---@param charge_target number charge level target
 ---@param gen_target number generation rate target
+---@param range_start integer range control activation threshold
+---@param range_stop integer range control shutoff threshold
 ---@param limits number[] unit burn rate limits
-function process.save(mode, burn_target, charge_target, gen_target, limits)
+function process.save(mode, alt_mode, burn_target, charge_target, gen_target, range_start, range_stop, limits)
     log.debug("PROCESS: SAVE")
 
     -- update config table
     local ctl_proc = pctl.control_states.process
     ctl_proc.mode = mode
+    ctl_proc.alt_mode = alt_mode
     ctl_proc.burn_target = burn_target
     ctl_proc.charge_target = charge_target
+    ctl_proc.range_start = range_start
+    ctl_proc.range_stop = range_stop
     ctl_proc.gen_target = gen_target
     ctl_proc.limits = limits
 

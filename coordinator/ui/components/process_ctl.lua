@@ -140,16 +140,39 @@ local function new_view(root, x, y)
     burn_sum.register(facility.ps, "burn_sum", burn_sum.update)
 
     local chg_tag = Div{parent=targets,y=6,width=8,height=4,fg_bg=blk_pur}
-    TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
+    local chg_tag_text = TextBox{parent=chg_tag,x=2,y=2,text="Charge Target",width=7,height=2}
 
     local chg_target = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
     local c_target = NumericSpinbox{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_target,x=18,y=2,text="M"..db.energy_label,fg_bg=style.theme.label_fg}
+
+    local chg_range = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box}
+    TextBox{parent=chg_range,x=2,y=2,text="ON",fg_bg=style.theme.label_fg}
+    local c_range_on = NumericSpinbox{parent=chg_range,x=5,y=1,whole_num_precision=2,fractional_precision=0,min=0,max=99,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    TextBox{parent=chg_range,x=8,y=2,text="%  OFF",fg_bg=style.theme.label_fg}
+    local c_range_off = NumericSpinbox{parent=chg_range,x=15,y=1,whole_num_precision=2,fractional_precision=0,min=1,max=100,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    TextBox{parent=chg_range,x=17,y=2,text="%",fg_bg=style.theme.label_fg}
+
     local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
-    SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function()end,fg_bg=cpair(colors.black,colors.pink)}
+    local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function()end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=style.theme.disabled}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
+    c_range_on.register(facility.ps, "process_range_start", c_range_on.set_value)
+    c_range_off.register(facility.ps, "process_range_stop", c_range_off.set_value)
     cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
+    chg_mode.register(facility.ps, "process_alt_mode", chg_mode.set_value)
+
+    targets.register(facility.ps, "process_alt_mode", function (alt)
+        if alt then
+            chg_target.hide()
+            chg_range.show()
+            chg_tag_text.set_value("Charge Range")
+        else
+            chg_target.show()
+            chg_range.hide()
+            chg_tag_text.set_value("Charge Target")
+        end
+    end)
 
     local gen_tag = Div{parent=targets,y=11,width=8,height=4,fg_bg=blk_pur}
     TextBox{parent=gen_tag,x=2,y=2,text="Gen. Target",width=7,height=2}
@@ -248,9 +271,24 @@ local function new_view(root, x, y)
     -------------------------
 
     local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
+    local alt_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Range", "Generation Rate" }
     local mode = RadioButton{parent=proc,x=34,y=1,options=ctl_opts,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple}
+    local alt_mode = RadioButton{parent=proc,x=34,y=1,options=alt_opts,radio_colors=cpair(style.theme.accent_dark,style.theme.accent_light),select_color=colors.purple,hidden=true}
 
     mode.register(facility.ps, "process_mode", mode.set_value)
+    alt_mode.register(facility.ps, "process_mode", alt_mode.set_value)
+
+    proc.register(facility.ps, "process_alt_mode", function (alt)
+        if alt then
+            mode.hide()
+            alt_mode.show()
+            chg_tag_text.set_value("Charge Range")
+        else
+            alt_mode.hide()
+            mode.show()
+            chg_tag_text.set_value("Charge Target")
+        end
+    end)
 
     local u_stat = Rectangle{parent=proc,border=border(1,colors.gray,true),thin=true,width=31,height=4,y=16,fg_bg=bw_fg_bg}
     local stat_line_1 = TextBox{parent=u_stat,y=1,text="UNKNOWN",width=31,alignment=ALIGN.CENTER,fg_bg=bw_fg_bg}
@@ -266,8 +304,8 @@ local function new_view(root, x, y)
         local limits = {}
         for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
 
-        process.save(mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
-                     db.energy_convert_to_fe(g_target.get_value()), limits)
+        process.save(mode.get_value(), chg_mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
+                     db.energy_convert_to_fe(g_target.get_value()), c_range_on.get_value(), c_range_off.get_value(), limits)
     end
 
     -- start automatic control after saving process control settings
@@ -298,18 +336,24 @@ local function new_view(root, x, y)
         if active then
             b_target.disable()
             c_target.disable()
+            c_range_on.disable()
+            c_range_off.disable()
             g_target.disable()
 
             mode.disable()
+            alt_mode.disable()
             start.disable()
 
             for i = 1, #rate_limits do rate_limits[i].disable() end
         else
             b_target.enable()
             c_target.enable()
+            c_range_on.enable()
+            c_range_off.enable()
             g_target.enable()
 
             mode.enable()
+            alt_mode.enable()
             if facility.auto_ready then start.enable() end
 
             for i = 1, #rate_limits do rate_limits[i].enable() end
