@@ -120,6 +120,7 @@ function facility.new(config)
         initial_ramp = true,
         waiting_on_ramp = false,    -- waiting on auto ramping
         waiting_on_stable = false,  -- waiting on gen rate stabilization
+        range_control_en = false,
         accumulator = 0.0,
         saturated = false,
         last_update = 0,

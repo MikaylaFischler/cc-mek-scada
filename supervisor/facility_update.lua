@@ -431,8 +431,42 @@ function update.auto_control(ExtChargeIdling)
             end
         end
 
-        local unallocated = allocate_burn_rate(self.burn_target, true)
-        self.saturated = self.burn_target == self.max_burn_combined or unallocated > 0
+        local unallocated = allocate_burn_rate(self.sp.burn_target, true)
+        self.saturated = self.sp.burn_target == self.max_burn_combined or unallocated > 0
+    elseif self.mode == PROCESS.RANGE_CONTROL then
+        -- run units at their limits if within the enable range
+        if state_changed then
+            self.time_start = now
+            self.saturated = true
+            self.waiting_on_ramp = false
+            self.range_control_en = false
+
+            self.status_text = { "RANGE CONTROL", "idle, sufficient charge" }
+            log.info("FAC: RANGE_CONTROL process mode started")
+        elseif self.range_control_en and (avg_charge >= self.sp.range_stop) then
+            self.range_control_en = false
+
+            self.status_text = { "RANGE CONTROL", "stopped, sufficient charge" }
+            log.info("FAC: RANGE_CONTROL process mode started")
+        elseif (not self.range_control_en) and (avg_charge <= self.sp.range_stop) then
+            self.range_control_en = true
+            self.waiting_on_ramp = true
+
+            self.status_text = { "RANGE CONTROL", "ramping reactors to limit" }
+            log.info("FAC: CONTROL process mode ramp completed")
+        elseif self.waiting_on_ramp then
+            if all_units_ramped() then
+                self.waiting_on_ramp = false
+
+                self.status_text = { "RANGE CONTROL", "running reactors at limit" }
+                log.info("FAC: CONTROL process mode ramp completed")
+            end
+        end
+
+        local burn_rate = util.trinary(self.range_control_en, self.max_burn_combined, 0)
+        local unallocated = allocate_burn_rate(burn_rate, true)
+
+        self.saturated = burn_rate == self.max_burn_combined or unallocated > 0
     elseif self.mode == PROCESS.CHARGE then
         -- target a level of charge
         if state_changed then
@@ -448,7 +482,7 @@ function update.auto_control(ExtChargeIdling)
             log.info("FAC: CHARGE mode starting PID control")
         elseif self.last_update < charge_update then
             -- convert to kFE to make constants not microscopic
-            local error = util.round((self.charge_setpoint - avg_charge) / 1000) / 1000
+            local error = util.round((self.sp.charge_setpoint - avg_charge) / 1000) / 1000
 
             -- stop accumulator when saturated to avoid windup
             if not self.saturated then
@@ -489,7 +523,7 @@ function update.auto_control(ExtChargeIdling)
         -- target a rate of generation
         if state_changed then
             -- estimate an initial output
-            local output = self.gen_rate_setpoint / self.charge_conversion
+            local output = self.sp.gen_rate_setpoint / self.charge_conversion
 
             local unallocated = allocate_burn_rate(output, true)
 
@@ -522,7 +556,7 @@ function update.auto_control(ExtChargeIdling)
             end
         elseif self.last_update < rate_update then
             -- convert to MFE (in rounded kFE) to make constants not microscopic
-            local error = util.round((self.gen_rate_setpoint - avg_inflow) / 1000) / 1000
+            local error = util.round((self.sp.gen_rate_setpoint - avg_inflow) / 1000) / 1000
 
             -- stop accumulator when saturated to avoid windup
             if not self.saturated then
@@ -538,7 +572,7 @@ function update.auto_control(ExtChargeIdling)
             local D = RATE_Kd * derivative
 
             -- velocity (rate) (derivative of charge level => rate) feed forward
-            local FF = self.gen_rate_setpoint / self.charge_conversion
+            local FF = self.sp.gen_rate_setpoint / self.charge_conversion
 
             local output = P + I + D + FF
 
