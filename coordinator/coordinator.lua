@@ -373,15 +373,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- send the resume ready state to the supervisor
-    ---@param mode PROCESS process control mode
-    ---@param burn_target number burn rate target
-    ---@param charge_target number charge level target
-    ---@param gen_target number generation rate target
-    ---@param limits number[] unit burn rate limits
-    function public.send_ready(mode, burn_target, charge_target, gen_target, limits)
-        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, {
-            mode, burn_target, charge_target, gen_target, limits
-        })
+    ---@param settings table auto control settings
+    function public.send_ready(settings)
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, table.unpack(settings))
     end
 
     -- send a facility command
@@ -392,15 +386,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param mode PROCESS process control mode
-    ---@param burn_target number burn rate target
-    ---@param charge_target number charge level target
-    ---@param gen_target number generation rate target
-    ---@param limits number[] unit burn rate limits
-    function public.send_auto_start(mode, burn_target, charge_target, gen_target, limits)
-        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
-            FAC_COMMAND.START, mode, burn_target, charge_target, gen_target, limits
-        })
+    ---@param settings table auto control settings
+    function public.send_auto_start(settings)
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(settings) })
     end
 
     -- send a unit command
@@ -588,7 +576,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 elseif cmd == FAC_COMMAND.STOP then
                                     process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.START then
-                                    if packet.length == 7 then
+                                    if packet.length == 9 then
                                         process.start_ack_handle({ table.unpack(packet.data, 2) })
                                     else
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")

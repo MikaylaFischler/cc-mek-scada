@@ -148,17 +148,17 @@ local function new_view(root, x, y)
 
     local chg_range = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box,hidden=true}
     TextBox{parent=chg_range,x=2,y=2,text="START",fg_bg=style.theme.label_fg}
-    local c_rng_start = NumericSpinbox{parent=chg_range,x=8,y=1,whole_num_precision=3,fractional_precision=0,min=0,max=99,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local range_start = NumericSpinbox{parent=chg_range,x=8,y=1,whole_num_precision=3,fractional_precision=0,min=0,max=99,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_range,x=11,y=2,text="% \x1a STOP",fg_bg=style.theme.label_fg}
-    local c_rng_stop = NumericSpinbox{parent=chg_range,x=20,y=1,whole_num_precision=3,fractional_precision=0,min=1,max=100,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    local range_stop = NumericSpinbox{parent=chg_range,x=20,y=1,whole_num_precision=3,fractional_precision=0,min=1,max=100,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_range,x=23,y=2,text="%",fg_bg=style.theme.label_fg}
 
     local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
     local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function(v)facility.ps.publish("process_alt_mode", v)end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=style.theme.disabled}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
-    c_rng_start.register(facility.ps, "process_range_start", c_rng_start.set_value)
-    c_rng_stop.register(facility.ps, "process_range_stop", c_rng_stop.set_value)
+    range_start.register(facility.ps, "process_range_start", range_start.set_value)
+    range_stop.register(facility.ps, "process_range_stop", range_stop.set_value)
     cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
     chg_mode.register(facility.ps, "process_alt_mode", chg_mode.set_value)
 
@@ -307,12 +307,12 @@ local function new_view(root, x, y)
         for i = 1, #rate_limits do limits[i] = rate_limits[i].get_value() end
 
         -- make sure stop is always above start (start maxes at 99 and stop maxes at 100 so this always works)
-        if c_rng_stop.get_value() <= c_rng_start.get_value() then
-            c_rng_stop.set_value(c_rng_start.get_value() + 1)
+        if range_stop.get_value() <= range_start.get_value() then
+            range_stop.set_value(range_start.get_value() + 1)
         end
 
-        process.save(mode.get_value(), chg_mode.get_value(), b_target.get_value(), db.energy_convert_to_fe(c_target.get_value()),
-                     db.energy_convert_to_fe(g_target.get_value()), c_rng_start.get_value(), c_rng_stop.get_value(), limits)
+        process.save(mode.get_value(), chg_mode.get_value(), b_target.get_value(), range_start.get_value(), range_stop.get_value(),
+                     db.energy_convert_to_fe(c_target.get_value()), db.energy_convert_to_fe(g_target.get_value()), limits)
     end
 
     -- start automatic control after saving process control settings
@@ -343,8 +343,8 @@ local function new_view(root, x, y)
         if active then
             b_target.disable()
             c_target.disable()
-            c_rng_start.disable()
-            c_rng_stop.disable()
+            range_start.disable()
+            range_stop.disable()
             g_target.disable()
 
             mode.disable()
@@ -355,8 +355,8 @@ local function new_view(root, x, y)
         else
             b_target.enable()
             c_target.enable()
-            c_rng_start.enable()
-            c_rng_stop.enable()
+            range_start.enable()
+            range_stop.enable()
             g_target.enable()
 
             mode.enable()

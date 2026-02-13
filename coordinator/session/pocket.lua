@@ -158,9 +158,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         log.info(log_tag .. "STOP PROCESS CTRL")
                         self.proc_handle.process_stop()
                     elseif cmd == FAC_COMMAND.START then
-                        if pkt.length == 6 then
+                        if pkt.length == 8 then
                             log.info(log_tag .. "START PROCESS CTRL")
-                            self.proc_handle.process_start_remote(pkt.data[2], pkt.data[3], pkt.data[4], pkt.data[5], pkt.data[6])
+                            self.proc_handle.process_start_remote({ table.unpack(pkt.data, 2) })
                         else
                             log.debug(log_tag .. "CRDN auto start (with configuration) packet length mismatch")
                         end

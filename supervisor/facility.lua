@@ -94,9 +94,13 @@ function facility.new(config)
         mode_set = PROCESS.MAX_BURN,    ---@type PROCESS
         start_fail = START_STATUS.OK,   ---@type START_STATUS
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
-        burn_target = 0.1,              -- burn rate target for aggregate burn mode
-        charge_setpoint = 0,            -- FE charge target setpoint
-        gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
+        sp = {
+            burn_target = 0.1,              -- burn rate target for aggregate burn mode
+            charge_setpoint = 0,            -- FE charge target setpoint
+            gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
+            range_start = 0,
+            range_stop = 1
+        },
         group_map = {},                 ---@type AUTO_GROUP[] units -> group IDs
         prio_defs = { {}, {}, {}, {} }, ---@type reactor_unit[][] priority definitions (each level is a table of units)
         at_max_burn = false,
@@ -207,21 +211,31 @@ function facility.new(config)
 
         -- only allow changes if not running
         if self.mode == PROCESS.INACTIVE then
-            if (type(auto_cfg.mode) == "number") and (auto_cfg.mode > PROCESS.INACTIVE) and (auto_cfg.mode <= PROCESS.GEN_RATE) then
+            if (type(auto_cfg.mode) == "number") and (auto_cfg.mode > PROCESS.INACTIVE) and (auto_cfg.mode <= PROCESS.RANGE_CONTROL) then
                 self.mode_set = auto_cfg.mode
             end
 
+            ready = self.mode_set > 0
+
             if (type(auto_cfg.burn_target) == "number") and auto_cfg.burn_target >= 0.1 then
-                self.burn_target = auto_cfg.burn_target
-            end
+                self.sp.burn_target = auto_cfg.burn_target
+            elseif self.mode_set == PROCESS.BURN_RATE then ready = false end
+
+            if (type(auto_cfg.range_start) == "number") and (auto_cfg.range_start >= 0) and (auto_cfg.range_start < 100) then
+                self.sp.range_start = auto_cfg.range_start
+            elseif self.mode_set == PROCESS.RANGE_CONTROL then ready = false end
+
+            if (type(auto_cfg.range_stop) == "number") and (auto_cfg.range_stop <= 100) and (auto_cfg.range_stop > auto_cfg.range_start) then
+                self.sp.range_stop = auto_cfg.range_stop
+            elseif self.mode_set == PROCESS.RANGE_CONTROL then ready = false end
 
             if (type(auto_cfg.charge_target) == "number") and auto_cfg.charge_target >= 0 then
-                self.charge_setpoint = auto_cfg.charge_target * CHARGE_SCALER
-            end
+                self.sp.charge_setpoint = auto_cfg.charge_target * CHARGE_SCALER
+            elseif self.mode_set == PROCESS.CHARGE then ready = false end
 
             if (type(auto_cfg.gen_target) == "number") and auto_cfg.gen_target >= 0 then
-                self.gen_rate_setpoint = auto_cfg.gen_target * GEN_SCALER
-            end
+                self.sp.gen_rate_setpoint = auto_cfg.gen_target * GEN_SCALER
+            elseif self.mode_set == PROCESS.GEN_RATE then ready = false end
 
             if (type(auto_cfg.limits) == "table") and (#auto_cfg.limits == config.UnitCount) then
                 for i = 1, config.UnitCount do
@@ -232,14 +246,6 @@ function facility.new(config)
                         self.units[i].set_burn_limit(limit)
                     end
                 end
-            end
-
-            ready = self.mode_set > 0
-
-            if ((self.mode_set == PROCESS.CHARGE) and (self.charge_setpoint <= 0)) or
-               ((self.mode_set == PROCESS.GEN_RATE) and (self.gen_rate_setpoint <= 0)) or
-               ((self.mode_set == PROCESS.BURN_RATE) and (self.burn_target < 0.1)) then
-                ready = false
             end
         end
 
@@ -455,9 +461,11 @@ function facility.new(config)
         return {
             ready,
             self.mode_set,
-            self.burn_target,
-            self.charge_setpoint / CHARGE_SCALER,
-            self.gen_rate_setpoint / GEN_SCALER,
+            self.sp.burn_target,
+            self.sp.range_start,
+            self.sp.range_stop,
+            self.sp.charge_setpoint / CHARGE_SCALER,
+            self.sp.gen_rate_setpoint / GEN_SCALER,
             limits
         }
     end
