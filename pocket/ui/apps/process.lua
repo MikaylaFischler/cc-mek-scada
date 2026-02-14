@@ -213,15 +213,15 @@ local function new_view(root)
 
         local range_start, range_stop ---@type NumberField, NumberField
 
-        local function _update_start_max(value) range_start.set_max(value - 1) end
-        local function _update_stop_min(value) range_stop.set_min(value + 1) end
+        local function _update_start_val(value) range_start.set_value(math.min(range_start.get_value(), value - 1)) end
+        local function _update_stop_val(value) range_stop.set_value(math.max(range_stop.get_value(), value + 1)) end
 
         TextBox{parent=s_div,y=12,text="Charge Range - Start",fg_bg=label_fg_bg}
-        range_start = NumberField{parent=s_div,y=13,width=15,default=0,min=0,max=99,align_right=true,on_unfocus=_update_stop_min,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        range_start = NumberField{parent=s_div,y=13,width=15,default=0,min=0,max=99,align_right=true,on_unfocus=_update_stop_val,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=s_div,x=17,y=13,text="%",fg_bg=label_fg_bg}
 
         TextBox{parent=s_div,y=15,text="Charge Range - Stop",fg_bg=label_fg_bg}
-        range_stop = NumberField{parent=s_div,y=16,width=15,default=0,min=1,max=100,align_right=true,on_unfocus=_update_start_max,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        range_stop = NumberField{parent=s_div,y=16,width=15,default=0,min=1,max=100,align_right=true,on_unfocus=_update_start_val,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=s_div,x=17,y=16,text="%",fg_bg=label_fg_bg}
 
         b_target.register(f_ps, "process_burn_target", b_target.set_value)
