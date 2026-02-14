@@ -19,6 +19,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field allow_negative? boolean true to allow negative numbers
 ---@field align_right? boolean true to align right while unfocused
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
+---@field on_unfocus? function callback when the field becomes unfocused
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -88,6 +89,59 @@ return function (args)
 
     -- make an interactive field manager
     local ifield = core.new_ifield(e, args.max_chars, args.fg_bg, args.dis_fg_bg, args.align_right)
+
+    -- parse provided input text and apply it
+    local function _parse_input()
+        local val, max, min = tonumber(e.value), tonumber(args.max), tonumber(args.min)
+
+        if val then
+            if args.max_int_digits or args.max_frac_digits then
+                local str = e.value
+                local ceil = false
+
+                if string.find(str, "-") then str = string.sub(e.value, 2) end
+                local parts = util.strtok(str, ".")
+
+                if parts[1] and args.max_int_digits then
+                    if string.len(parts[1]) > args.max_int_digits then
+                        parts[1] = string.rep("9", args.max_int_digits)
+                        ceil = true
+                    end
+                end
+
+                if args.allow_decimal and args.max_frac_digits then
+                    if ceil then
+                        parts[2] = string.rep("9", args.max_frac_digits)
+                    elseif parts[2] and (string.len(parts[2]) > args.max_frac_digits) then
+                        -- add a half of the highest precision fractional value in order to round using floor
+                        local scaled = math.fmod(val, 1) * (10 ^ (args.max_frac_digits))
+                        local value = math.floor(scaled + 0.5)
+                        local unscaled = value * (10 ^ (-args.max_frac_digits))
+                        parts[2] = string.sub(tostring(unscaled), 3) -- remove starting "0."
+                    end
+                end
+
+                if parts[2] then parts[2] = "." .. parts[2] else parts[2] = "" end
+
+                val = tonumber((parts[1] or "") .. parts[2]) or 0
+            end
+
+            if max and val > max then
+                _set_value(max)
+                ifield.nav_start()
+            elseif min and val < min then
+                _set_value(min)
+                ifield.nav_start()
+            else
+                _set_value(val)
+                ifield.nav_end()
+            end
+        else
+            e.value = ""
+        end
+
+        ifield.show()
+    end
 
     -- handle mouse interaction
     ---@param event mouse_interaction mouse event
@@ -163,14 +217,14 @@ return function (args)
     ---@param min integer minimum allowed value
     function e.set_min(min)
         args.min = min
-        e.on_unfocused()
+        _parse_input()
     end
 
     -- set maximum input value
     ---@param max integer maximum allowed value
     function e.set_max(max)
         args.max = max
-        e.on_unfocused()
+        _parse_input()
     end
 
     -- replace text with pasted text if its a number
@@ -185,55 +239,9 @@ return function (args)
 
     -- handle unfocused
     function e.on_unfocused()
-        local val, max, min = tonumber(e.value), tonumber(args.max), tonumber(args.min)
+        _parse_input()
 
-        if val then
-            if args.max_int_digits or args.max_frac_digits then
-                local str = e.value
-                local ceil = false
-
-                if string.find(str, "-") then str = string.sub(e.value, 2) end
-                local parts = util.strtok(str, ".")
-
-                if parts[1] and args.max_int_digits then
-                    if string.len(parts[1]) > args.max_int_digits then
-                        parts[1] = string.rep("9", args.max_int_digits)
-                        ceil = true
-                    end
-                end
-
-                if args.allow_decimal and args.max_frac_digits then
-                    if ceil then
-                        parts[2] = string.rep("9", args.max_frac_digits)
-                    elseif parts[2] and (string.len(parts[2]) > args.max_frac_digits) then
-                        -- add a half of the highest precision fractional value in order to round using floor
-                        local scaled = math.fmod(val, 1) * (10 ^ (args.max_frac_digits))
-                        local value = math.floor(scaled + 0.5)
-                        local unscaled = value * (10 ^ (-args.max_frac_digits))
-                        parts[2] = string.sub(tostring(unscaled), 3) -- remove starting "0."
-                    end
-                end
-
-                if parts[2] then parts[2] = "." .. parts[2] else parts[2] = "" end
-
-                val = tonumber((parts[1] or "") .. parts[2]) or 0
-            end
-
-            if max and val > max then
-                _set_value(max)
-                ifield.nav_start()
-            elseif min and val < min then
-                _set_value(min)
-                ifield.nav_start()
-            else
-                _set_value(val)
-                ifield.nav_end()
-            end
-        else
-            e.value = ""
-        end
-
-        ifield.show()
+        if type(args.on_unfocus) == "function" then args.on_unfocus(tonumber(e.value)) end
     end
 
     -- handle focus (not unfocus), enable, and redraw with show()
