@@ -146,11 +146,16 @@ local function new_view(root, x, y)
     local c_target = NumericSpinbox{parent=chg_target,x=2,y=1,whole_num_precision=15,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_target,x=18,y=2,text="M"..db.energy_label,fg_bg=style.theme.label_fg}
 
+    local range_start, range_stop ---@type NumericSpinbox, NumericSpinbox
+
+    local function _update_start_val(value) range_start.set_value(math.min(range_start.get_value(), value - 1)) end
+    local function _update_stop_val(value) range_stop.set_value(math.max(range_stop.get_value(), value + 1)) end
+
     local chg_range = Div{parent=targets,x=9,y=6,width=23,height=3,fg_bg=s_hi_box,hidden=true}
     TextBox{parent=chg_range,x=2,y=2,text="START",fg_bg=style.theme.label_fg}
-    local range_start = NumericSpinbox{parent=chg_range,x=8,y=1,whole_num_precision=3,fractional_precision=0,min=0,max=99,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    range_start = NumericSpinbox{parent=chg_range,x=8,y=1,whole_num_precision=3,fractional_precision=0,min=0,max=99,callback=_update_stop_val,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_range,x=11,y=2,text="% \x1a STOP",fg_bg=style.theme.label_fg}
-    local range_stop = NumericSpinbox{parent=chg_range,x=20,y=1,whole_num_precision=3,fractional_precision=0,min=1,max=100,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
+    range_stop = NumericSpinbox{parent=chg_range,x=20,y=1,whole_num_precision=3,fractional_precision=0,min=1,max=100,callback=_update_start_val,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_range,x=23,y=2,text="%",fg_bg=style.theme.label_fg}
 
     local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
