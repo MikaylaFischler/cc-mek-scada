@@ -601,7 +601,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param auto_cfg [ PROCESS, number, number, number, number[] ]
+    ---@param auto_cfg auto_ctl_cfg
     function public.send_auto_start(auto_cfg)
         _send_api(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(auto_cfg) })
     end

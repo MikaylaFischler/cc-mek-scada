@@ -549,6 +549,7 @@ function iorx.record_process_data(data)
     -- get unit data
     for u_id = 1, #io.units do
         local unit = io.units[u_id]
+        local u_ps = unit.unit_ps
         local u_data = data[u_id]
 
         unit.reactor_data.mek_status.status = u_data[1]
@@ -556,18 +557,19 @@ function iorx.record_process_data(data)
         unit.annunciator.AutoControl = u_data[6]
         unit.a_group = u_data[7]
 
-        unit.unit_ps.publish("status", u_data[1])
-        unit.unit_ps.publish("max_burn", u_data[2])
-        unit.unit_ps.publish("burn_limit", u_data[3])
-        unit.unit_ps.publish("U_AutoReady", u_data[4])
-        unit.unit_ps.publish("U_AutoDegraded", u_data[5])
-        unit.unit_ps.publish("AutoControl", u_data[6])
-        unit.unit_ps.publish("auto_group_id", unit.a_group)
-        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+        u_ps.publish("status", u_data[1])
+        u_ps.publish("max_burn", u_data[2])
+        u_ps.publish("burn_limit", u_data[3])
+        u_ps.publish("U_AutoReady", u_data[4])
+        u_ps.publish("U_AutoDegraded", u_data[5])
+        u_ps.publish("AutoControl", u_data[6])
+        u_ps.publish("auto_group_id", unit.a_group)
+        u_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
     end
 
     -- get facility data
     local fac = io.facility
+    local f_ps = fac.ps
     local f_data = data[#io.units + 1]
 
     fac.status_lines = f_data[1]
@@ -580,25 +582,27 @@ function iorx.record_process_data(data)
     fac.auto_scram = f_data[3]
     fac.ascram_status = f_data[4]
 
-    fac.ps.publish("status_line_1", fac.status_lines[1])
-    fac.ps.publish("status_line_2", fac.status_lines[2])
+    f_ps.publish("status_line_1", fac.status_lines[1])
+    f_ps.publish("status_line_2", fac.status_lines[2])
 
-    fac.ps.publish("auto_ready", fac.auto_ready)
-    fac.ps.publish("auto_active", fac.auto_active)
-    fac.ps.publish("auto_ramping", fac.auto_ramping)
-    fac.ps.publish("auto_saturated", fac.auto_saturated)
+    f_ps.publish("auto_ready", fac.auto_ready)
+    f_ps.publish("auto_active", fac.auto_active)
+    f_ps.publish("auto_ramping", fac.auto_ramping)
+    f_ps.publish("auto_saturated", fac.auto_saturated)
 
-    fac.ps.publish("auto_scram", fac.auto_scram)
-    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
-    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
-    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
-    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+    f_ps.publish("auto_scram", fac.auto_scram)
+    f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
+    f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    f_ps.publish("as_radiation", fac.ascram_status.radiation)
+    f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
 
-    fac.ps.publish("process_mode", f_data[5][1])
-    fac.ps.publish("process_burn_target", f_data[5][2])
-    fac.ps.publish("process_charge_target", f_data[5][3])
-    fac.ps.publish("process_gen_target", f_data[5][4])
+    f_ps.publish("process_mode", f_data[5][1])
+    f_ps.publish("process_burn_target", f_data[5][2])
+    f_ps.publish("process_range_start", f_data[5][3])
+    f_ps.publish("process_range_stop", f_data[5][4])
+    f_ps.publish("process_charge_target", f_data[5][5])
+    f_ps.publish("process_gen_target", f_data[5][6])
 end
 
 -- update waste app with unit data from API_GET_WASTE

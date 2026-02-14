@@ -204,7 +204,7 @@ function process.create_handle()
     end
 
     -- start automatic process control with remote settings that haven't been set on the coordinator
-    ---@param settings table auto control settings
+    ---@param settings auto_ctl_cfg auto control settings
     function handle.process_start_remote(settings)
         if f_request(F_CMD.START, handle.fac_ack.on_start) then
             pctl.comms.send_auto_start(settings)

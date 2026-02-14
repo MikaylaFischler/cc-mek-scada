@@ -373,9 +373,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- send the resume ready state to the supervisor
-    ---@param settings table auto control settings
+    ---@param settings auto_ctl_cfg auto control settings
     function public.send_ready(settings)
-        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, table.unpack(settings))
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, { table.unpack(settings) })
     end
 
     -- send a facility command
@@ -386,7 +386,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param settings table auto control settings
+    ---@param settings auto_ctl_cfg auto control settings
     function public.send_auto_start(settings)
         _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(settings) })
     end

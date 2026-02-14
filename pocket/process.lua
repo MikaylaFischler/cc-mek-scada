@@ -125,11 +125,13 @@ end
 -- process start command
 ---@param mode PROCESS process control mode
 ---@param burn_target number burn rate target
+---@param range_start integer range control activation threshold
+---@param range_stop integer range control shutoff threshold
 ---@param charge_target number charge level target
 ---@param gen_target number generation rate target
 ---@param limits number[] unit burn rate limits
-function process.process_start(mode, burn_target, charge_target, gen_target, limits)
-    self.comms.send_auto_start({ mode, burn_target, charge_target, gen_target, limits })
+function process.process_start(mode, burn_target, range_start, range_stop, charge_target, gen_target, limits)
+    self.comms.send_auto_start({ mode, burn_target, range_start, range_stop, charge_target, gen_target, limits })
     log.debug("PROCESS: START AUTO CTRL")
 end
 

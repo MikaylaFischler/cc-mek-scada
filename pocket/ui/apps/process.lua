@@ -161,7 +161,7 @@ local function new_view(root)
 
         TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
 
-        local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
+        local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate", "Charge Range" }
         local mode = RadioButton{parent=o_div,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
 
         mode.register(f_ps, "process_mode", mode.set_value)
@@ -169,6 +169,14 @@ local function new_view(root)
         TextBox{parent=o_div,y=9,text="Burn Rate Target",fg_bg=label_fg_bg}
         local b_target = NumberField{parent=o_div,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
         TextBox{parent=o_div,x=17,y=10,text="mB/t",fg_bg=label_fg_bg}
+
+        TextBox{parent=o_div,y=12,text="Charge Range - Start",fg_bg=label_fg_bg}
+        local rng_start = NumberField{parent=o_div,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=o_div,x=17,y=13,text="%",fg_bg=label_fg_bg}
+
+        TextBox{parent=o_div,y=12,text="Charge Range - Stop",fg_bg=label_fg_bg}
+        local rng_stop = NumberField{parent=o_div,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=o_div,x=17,y=13,text="%",fg_bg=label_fg_bg}
 
         TextBox{parent=o_div,y=12,text="Charge Level Target",fg_bg=label_fg_bg}
         local c_target = NumberField{parent=o_div,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
@@ -179,6 +187,8 @@ local function new_view(root)
         TextBox{parent=o_div,x=17,y=16,text="k"..db.energy_label.."/t",fg_bg=label_fg_bg}
 
         b_target.register(f_ps, "process_burn_target", b_target.set_value)
+        rng_start.register(f_ps, "process_range_start", rng_start.set_value)
+        rng_stop.register(f_ps, "process_range_stop", rng_stop.set_value)
         c_target.register(f_ps, "process_charge_target", c_target.set_value)
         g_target.register(f_ps, "process_gen_target", g_target.set_value)
 
@@ -205,8 +215,8 @@ local function new_view(root)
             local limits = {}
             for i = 1, #rate_limits do limits[i] = rate_limits[i].get_numeric() end
 
-            process.process_start(mode.get_value(), b_target.get_numeric(), db.energy_convert_to_fe(c_target.get_numeric()),
-                                  db.energy_convert_to_fe(g_target.get_numeric()), limits)
+            process.process_start(mode.get_value(), b_target.get_numeric(), rng_start.get_numeric(), rng_stop.get_numeric(),
+                                  db.energy_convert_to_fe(c_target.get_numeric()), db.energy_convert_to_fe(g_target.get_numeric()), limits)
         end
 
         local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}

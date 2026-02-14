@@ -210,6 +210,8 @@ end
 
 ---@alias color integer
 
+---@alias auto_ctl_cfg [ PROCESS, number, number, number, number, number, number[] ]
+
 --#region ENUMERATION TYPES
 
 ---@enum LISTEN_MODE
