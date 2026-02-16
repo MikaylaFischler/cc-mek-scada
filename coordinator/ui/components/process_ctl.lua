@@ -159,7 +159,7 @@ local function new_view(root, x, y)
     TextBox{parent=chg_range,x=23,y=2,text="%",fg_bg=style.theme.label_fg}
 
     local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
-    local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function(v)facility.ps.publish("process_alt_mode", v)end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=style.theme.disabled}
+    local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function(v)facility.ps.publish("process_alt_mode", v)end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=dis_colors}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
     range_start.register(facility.ps, "process_range_start", range_start.set_value)
@@ -354,6 +354,7 @@ local function new_view(root, x, y)
 
             mode.disable()
             alt_mode.disable()
+            chg_mode.disable()
             start.disable()
 
             for i = 1, #rate_limits do rate_limits[i].disable() end
@@ -366,6 +367,7 @@ local function new_view(root, x, y)
 
             mode.enable()
             alt_mode.enable()
+            chg_mode.enable()
             if facility.auto_ready then start.enable() end
 
             for i = 1, #rate_limits do rate_limits[i].enable() end
