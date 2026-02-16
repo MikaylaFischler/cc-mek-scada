@@ -290,6 +290,8 @@ local function new_view(root)
                 b_target.disable()
                 c_target.disable()
                 g_target.disable()
+                range_start.disable()
+                range_stop.disable()
 
                 mode.disable()
                 start.disable()
@@ -299,6 +301,8 @@ local function new_view(root)
                 b_target.enable()
                 c_target.enable()
                 g_target.enable()
+                range_start.enable()
+                range_stop.enable()
 
                 mode.enable()
                 if db.facility.auto_ready then start.enable() end
