@@ -140,6 +140,7 @@ function facility.new(config)
         test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
         im_stat_init = false,
+        imtx_percent = 0.0,
         avg_charge = util.mov_avg(3),  -- 3 seconds
         avg_inflow = util.mov_avg(6),  -- 3 seconds
         avg_outflow = util.mov_avg(6), -- 3 seconds

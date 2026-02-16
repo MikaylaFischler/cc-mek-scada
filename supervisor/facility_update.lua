@@ -230,6 +230,8 @@ function update.pre_auto()
             local input  = util.joules_to_fe_rf(db.state.last_input)
             local output = util.joules_to_fe_rf(db.state.last_output)
 
+            self.imtx_percent = db.tanks.energy_fill * 100
+
             if self.im_stat_init then
                 self.avg_charge.record(energy, charge_update)
                 self.avg_inflow.record(input, rate_update)
@@ -443,12 +445,12 @@ function update.auto_control(ExtChargeIdling)
 
             self.status_text = { "RANGE CONTROL", "idle, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
-        elseif self.range_control_en and (avg_charge >= self.sp.range_stop) then
+        elseif self.range_control_en and (self.imtx_percent >= self.sp.range_stop) then
             self.range_control_en = false
 
             self.status_text = { "RANGE CONTROL", "stopped, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
-        elseif (not self.range_control_en) and (avg_charge <= self.sp.range_stop) then
+        elseif (not self.range_control_en) and (self.imtx_percent <= self.sp.range_start) then
             self.range_control_en = true
             self.waiting_on_ramp = true
 
