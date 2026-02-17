@@ -439,7 +439,6 @@ function update.auto_control(ExtChargeIdling)
         -- run units at their limits if within the enable range
         if state_changed then
             self.time_start = now
-            self.saturated = true
             self.waiting_on_ramp = false
             self.range_control_en = false
 
@@ -447,6 +446,7 @@ function update.auto_control(ExtChargeIdling)
             log.info("FAC: RANGE_CONTROL process mode started")
         elseif self.range_control_en and (self.imtx_percent >= self.sp.range_stop) then
             self.range_control_en = false
+            self.waiting_on_ramp = false
 
             self.status_text = { "RANGE CONTROL", "stopped, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")

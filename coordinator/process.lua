@@ -518,6 +518,8 @@ function process.start_ack_handle(response)
     if p.mode == PROCESS.RANGE_CONTROL then
         p.mode = PROCESS.CHARGE
         p.alt_mode = true
+    elseif p.mode == PROCESS.CHARGE then
+        p.alt_mode = false
     end
 
     local f_ps = pctl.io.facility.ps
