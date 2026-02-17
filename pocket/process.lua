@@ -126,7 +126,7 @@ end
 ---@param mode PROCESS process control mode
 ---@param burn_target number burn rate target
 ---@param range_start integer range control activation threshold
----@param range_stop integer range control shutoff threshold
+---@param range_stop integer range control deactivation threshold
 ---@param charge_target number charge level target
 ---@param gen_target number generation rate target
 ---@param limits number[] unit burn rate limits

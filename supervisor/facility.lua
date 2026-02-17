@@ -95,11 +95,11 @@ function facility.new(config)
         start_fail = START_STATUS.OK,   ---@type START_STATUS
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
         sp = {
-            burn_target = 0.1,              -- burn rate target for aggregate burn mode
-            charge_setpoint = 0,            -- FE charge target setpoint
-            gen_rate_setpoint = 0,          -- FE/t charge rate target setpoint
-            range_start = 0,
-            range_stop = 1
+            burn_target = 0.1,          -- burn rate target for aggregate burn mode
+            range_start = 0,            -- start threshold for range control
+            range_stop = 1,             -- stop threshold for range control
+            charge_setpoint = 0,        -- FE charge target setpoint
+            gen_rate_setpoint = 0       -- FE/t charge rate target setpoint
         },
         group_map = {},                 ---@type AUTO_GROUP[] units -> group IDs
         prio_defs = { {}, {}, {}, {} }, ---@type reactor_unit[][] priority definitions (each level is a table of units)
