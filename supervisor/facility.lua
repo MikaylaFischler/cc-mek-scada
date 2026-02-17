@@ -96,8 +96,8 @@ function facility.new(config)
         max_burn_combined = 0.0,        -- maximum burn rate to clamp at
         sp = {
             burn_target = 0.1,          -- burn rate target for aggregate burn mode
-            range_start = 0,            -- start threshold for range control
-            range_stop = 1,             -- stop threshold for range control
+            range_start = 10,           -- start threshold for range control
+            range_stop = 90,            -- stop threshold for range control
             charge_setpoint = 0,        -- FE charge target setpoint
             gen_rate_setpoint = 0       -- FE/t charge rate target setpoint
         },
