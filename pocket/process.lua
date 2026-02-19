@@ -18,7 +18,7 @@ local self = {
 }
 
 -- initialize the process controller
----@param ioctl pkt_io iocontrl system
+---@param ioctl pkt_io iocontrol system
 ---@param pocket_comms pocket_comms pocket communications
 function process.init(ioctl, pocket_comms)
     self.io = ioctl
@@ -125,11 +125,13 @@ end
 -- process start command
 ---@param mode PROCESS process control mode
 ---@param burn_target number burn rate target
+---@param range_start integer range control activation threshold
+---@param range_stop integer range control deactivation threshold
 ---@param charge_target number charge level target
 ---@param gen_target number generation rate target
 ---@param limits number[] unit burn rate limits
-function process.process_start(mode, burn_target, charge_target, gen_target, limits)
-    self.comms.send_auto_start({ mode, burn_target, charge_target, gen_target, limits })
+function process.process_start(mode, burn_target, range_start, range_stop, charge_target, gen_target, limits)
+    self.comms.send_auto_start({ mode, burn_target, range_start, range_stop, charge_target, gen_target, limits })
     log.debug("PROCESS: START AUTO CTRL")
 end
 

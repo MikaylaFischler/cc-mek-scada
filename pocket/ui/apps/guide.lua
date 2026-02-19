@@ -239,7 +239,7 @@ local function new_view(root)
         PushButton{parent=coord_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
 
         load_text(false, "Main Display")
-        local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 300)
+        local main_disp_page = guide_section(sect_construct_data, coord_page, "Main Display", docs.c_ui.main, 310)
         load_text(false, "Flow Display")
         local flow_disp_page = guide_section(sect_construct_data, coord_page, "Flow Display", docs.c_ui.flow, 210)
         load_text(false, "Unit Displays")

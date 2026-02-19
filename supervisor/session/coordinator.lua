@@ -243,9 +243,11 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                     local config = {
                         mode = pkt.data[1],
                         burn_target = pkt.data[2],
-                        charge_target = pkt.data[3],
-                        gen_target = pkt.data[4],
-                        limits = pkt.data[5]
+                        range_start = pkt.data[3],
+                        range_stop = pkt.data[4],
+                        charge_target = pkt.data[5],
+                        gen_target = pkt.data[6],
+                        limits = pkt.data[7]
                     }
 
                     facility.boot_recovery_start(config)
@@ -276,14 +278,16 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                     elseif cmd == FAC_COMMAND.START then
                         facility.cancel_recovery()
 
-                        if pkt.length == 6 then
+                        if pkt.length == 8 then
                             ---@class start_auto_config
                             local config = {
                                 mode = pkt.data[2],          ---@type PROCESS
                                 burn_target = pkt.data[3],   ---@type number
-                                charge_target = pkt.data[4], ---@type number
-                                gen_target = pkt.data[5],    ---@type number
-                                limits = pkt.data[6]         ---@type number[]
+                                range_start = pkt.data[4],   ---@type integer
+                                range_stop = pkt.data[5],    ---@type integer
+                                charge_target = pkt.data[6], ---@type number
+                                gen_target = pkt.data[7],    ---@type number
+                                limits = pkt.data[8]         ---@type number[]
                             }
 
                             _send(CRDN_TYPE.FAC_CMD, { cmd, table.unpack(facility.auto_start(config)) })

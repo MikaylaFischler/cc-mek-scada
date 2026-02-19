@@ -13,6 +13,7 @@ local element = require("graphics.element")
 ---@field fractional_precision integer number of fractional digits
 ---@field arrow_fg_bg cpair arrow foreground/background colors
 ---@field arrow_disable? color color when disabled (default light gray)
+---@field callback? function function to call on touch
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -140,6 +141,8 @@ return function (args)
 
                 update_value()
                 show_num()
+
+                if type(args.callback) == "function" then args.callback(e.value) end
             end
         end
     end
