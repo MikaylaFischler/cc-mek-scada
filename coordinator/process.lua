@@ -97,28 +97,28 @@ function process.init(crd_io, coord_comms)
             ctl_proc[key] = config[key] or ctl_proc[key]
         end
 
-        f_ps.publish("process_mode", ctl_proc.mode)
-        f_ps.publish("process_alt_mode", ctl_proc.alt_mode)
-        f_ps.publish("process_burn_target", ctl_proc.burn_target)
-        f_ps.publish("process_range_start", ctl_proc.range_start)
-        f_ps.publish("process_range_stop", ctl_proc.range_stop)
-        f_ps.publish("process_charge_target", pctl.io.energy_convert_from_fe(ctl_proc.charge_target))
-        f_ps.publish("process_gen_target", pctl.io.energy_convert_from_fe(ctl_proc.gen_target))
-        f_ps.publish("process_waste_product", ctl_proc.waste_product)
-        f_ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
-        f_ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
-
-        for id = 1, math.min(#ctl_proc.limits, pctl.io.facility.num_units) do
-            local unit = pctl.io.units[id]
-            unit.unit_ps.publish("burn_limit", ctl_proc.limits[id])
-        end
-
         log.info("PROCESS: loaded auto control settings")
 
         -- notify supervisor of auto waste config
         pctl.comms.send_fac_command(F_CMD.SET_WASTE_MODE, ctl_proc.waste_product)
         pctl.comms.send_fac_command(F_CMD.SET_PU_FB, ctl_proc.pu_fallback)
         pctl.comms.send_fac_command(F_CMD.SET_SPS_LP, ctl_proc.sps_low_power)
+    end
+
+    f_ps.publish("process_mode", ctl_proc.mode)
+    f_ps.publish("process_alt_mode", ctl_proc.alt_mode)
+    f_ps.publish("process_burn_target", ctl_proc.burn_target)
+    f_ps.publish("process_range_start", ctl_proc.range_start)
+    f_ps.publish("process_range_stop", ctl_proc.range_stop)
+    f_ps.publish("process_charge_target", pctl.io.energy_convert_from_fe(ctl_proc.charge_target))
+    f_ps.publish("process_gen_target", pctl.io.energy_convert_from_fe(ctl_proc.gen_target))
+    f_ps.publish("process_waste_product", ctl_proc.waste_product)
+    f_ps.publish("process_pu_fallback", ctl_proc.pu_fallback)
+    f_ps.publish("process_sps_low_power", ctl_proc.sps_low_power)
+
+    for id = 1, math.min(#ctl_proc.limits, pctl.io.facility.num_units) do
+        local unit = pctl.io.units[id]
+        unit.unit_ps.publish("burn_limit", ctl_proc.limits[id])
     end
 
     -- unit waste states
