@@ -16,6 +16,7 @@ local FAC_COMMAND = comms.FAC_COMMAND
 local UNIT_COMMAND = comms.UNIT_COMMAND
 
 local AUTO_GROUP = types.AUTO_GROUP
+local PROCESS = types.PROCESS
 local WASTE_MODE = types.WASTE_MODE
 
 -- retry time constants in ms
@@ -158,9 +159,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         log.info(log_tag .. "STOP PROCESS CTRL")
                         self.proc_handle.process_stop()
                     elseif cmd == FAC_COMMAND.START then
-                        if pkt.length == 6 then
+                        if pkt.length == 8 then
                             log.info(log_tag .. "START PROCESS CTRL")
-                            self.proc_handle.process_start_remote(pkt.data[2], pkt.data[3], pkt.data[4], pkt.data[5], pkt.data[6])
+                            self.proc_handle.process_start_remote({ table.unpack(pkt.data, 2) })
                         else
                             log.debug(log_tag .. "CRDN auto start (with configuration) packet length mismatch")
                         end
@@ -374,13 +375,15 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     }
                 end
 
+                local mode = util.trinary(proc.alt_mode and proc.mode == PROCESS.CHARGE, PROCESS.RANGE_CONTROL, proc.mode)
+
                 -- facility data
                 data[#db.units + 1] = {
                     fac.status_lines,
                     { fac.auto_ready, fac.auto_active, fac.auto_ramping, fac.auto_saturated },
                     fac.auto_scram,
                     fac.ascram_status,
-                    { proc.mode, proc.burn_target, proc.charge_target, proc.gen_target }
+                    { mode, proc.burn_target, proc.range_start, proc.range_stop, proc.charge_target, proc.gen_target }
                 }
 
                 _send(CRDN_TYPE.API_GET_PROC, data)

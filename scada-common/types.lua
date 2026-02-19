@@ -210,6 +210,8 @@ end
 
 ---@alias color integer
 
+---@alias auto_ctl_cfg [ PROCESS, number, integer, integer, number, number, number[] ]
+
 --#region ENUMERATION TYPES
 
 ---@enum LISTEN_MODE
@@ -392,9 +394,10 @@ types.PROCESS = {
     BURN_RATE = 2,
     CHARGE = 3,
     GEN_RATE = 4,
-    MATRIX_FAULT_IDLE = 5,
-    SYSTEM_ALARM_IDLE = 6,
-    GEN_RATE_FAULT_IDLE = 7
+    RANGE_CONTROL = 5,
+    MATRIX_FAULT_IDLE = 6,
+    SYSTEM_ALARM_IDLE = 7,
+    GEN_RATE_FAULT_IDLE = 8
 }
 
 types.PROCESS_NAMES = {
@@ -403,6 +406,7 @@ types.PROCESS_NAMES = {
     "BURN_RATE",
     "CHARGE",
     "GEN_RATE",
+    "RANGE_CONTROL",
     "MATRIX_FAULT_IDLE",
     "SYSTEM_ALARM_IDLE",
     "GEN_RATE_FAULT_IDLE"

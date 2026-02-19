@@ -11,6 +11,7 @@ local MOUSE_CLICK = core.events.MOUSE_CLICK
 ---@field max_len? integer maximum string length
 ---@field censor? string character to replace text with when printing to screen
 ---@field dis_fg_bg? cpair foreground/background colors when disabled
+---@field on_unfocus? function callback when the field becomes unfocused
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -77,20 +78,20 @@ return function (args)
     end
 
     -- set the value
-    ---@param val string string to set
-    function e.set_value(val)
-        ifield.set_value(val)
-    end
+    e.set_value = ifield.set_value
 
     -- replace text with pasted text
-    ---@param text string string to set
-    function e.handle_paste(text)
-        ifield.set_value(text)
+    e.handle_paste = ifield.set_value
+
+    -- handle unfocused
+    function e.on_unfocused()
+        ifield.show()
+
+        if type(args.on_unfocus) == "function" then args.on_unfocus(e.value) end
     end
 
     -- handle focus, enable, and redraw with show()
     e.on_focused = ifield.show
-    e.on_unfocused = ifield.show
     e.on_enabled = ifield.show
     e.on_disabled = ifield.show
     e.redraw = ifield.show
