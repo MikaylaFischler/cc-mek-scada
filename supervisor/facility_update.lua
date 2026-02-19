@@ -442,25 +442,25 @@ function update.auto_control(ExtChargeIdling)
             self.waiting_on_ramp = false
             self.range_control_en = false
 
-            self.status_text = { "RANGE CONTROL", "idle, sufficient charge" }
+            self.status_text = { "CHARGE RANGE MODE", "idle, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
         elseif self.range_control_en and (self.imtx_percent >= self.sp.range_stop) then
             self.range_control_en = false
             self.waiting_on_ramp = false
 
-            self.status_text = { "RANGE CONTROL", "stopped, sufficient charge" }
+            self.status_text = { "CHARGE RANGE MODE", "stopped, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
         elseif (not self.range_control_en) and (self.imtx_percent <= self.sp.range_start) then
             self.range_control_en = true
             self.waiting_on_ramp = true
 
-            self.status_text = { "RANGE CONTROL", "ramping reactors to limit" }
+            self.status_text = { "CHARGE RANGE MODE", "ramping reactors to limit" }
             log.info("FAC: CONTROL process mode ramp completed")
         elseif self.waiting_on_ramp then
             if all_units_ramped() then
                 self.waiting_on_ramp = false
 
-                self.status_text = { "RANGE CONTROL", "running reactors at limit" }
+                self.status_text = { "CHARGE RANGE MODE", "running reactors at limit" }
                 log.info("FAC: CONTROL process mode ramp completed")
             end
         end
