@@ -475,7 +475,7 @@ end
 ---@param alt_mode boolean true if using range control instead of charge control
 ---@param burn_target number burn rate target
 ---@param range_start integer range control activation threshold
----@param range_stop integer range control shutoff threshold
+---@param range_stop integer range control deactivation threshold
 ---@param charge_target number charge level target
 ---@param gen_target number generation rate target
 ---@param limits number[] unit burn rate limits
@@ -518,6 +518,8 @@ function process.start_ack_handle(response)
     if p.mode == PROCESS.RANGE_CONTROL then
         p.mode = PROCESS.CHARGE
         p.alt_mode = true
+    elseif p.mode == PROCESS.CHARGE then
+        p.alt_mode = false
     end
 
     local f_ps = pctl.io.facility.ps

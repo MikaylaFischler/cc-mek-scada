@@ -1,8 +1,9 @@
 -- Button Graphics Element
 
+local util    = require("scada-common.util")
+
 local core    = require("graphics.core")
 local element = require("graphics.element")
-local util    = require("scada-common.util")
 
 ---@class switch_button_args
 ---@field text string button text

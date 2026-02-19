@@ -210,7 +210,7 @@ end
 
 ---@alias color integer
 
----@alias auto_ctl_cfg [ PROCESS, number, number, number, number, number, number[] ]
+---@alias auto_ctl_cfg [ PROCESS, number, integer, integer, number, number, number[] ]
 
 --#region ENUMERATION TYPES
 
