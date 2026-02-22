@@ -5,7 +5,7 @@ local plc  = require("reactor-plc.plc")
 
 local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
-local FAST_MAX_PERCENT_s = 0.04
+local FAST_MAX_PERCENT_s = 0.02
 
 local spctl = {}
 
@@ -33,7 +33,7 @@ local STATE_NAMES = {
 }
 
 local _spctl = {
-    fast_ramp_en = plc.config.FastRamp,
+    fast_ramp_en = false,
 
     max_br = 0.0,
     last_sp = 0.0,
@@ -52,6 +52,8 @@ local setpoints = nil   ---@type plc_setpoints
 function spctl.init(smem)
     rps       = smem.plc_sys.rps
     setpoints = smem.setpoints
+
+    _spctl.fast_ramp_en = plc.config.FastRamp
 end
 
 -- initialize ramping, or set right away if acceptable
@@ -94,6 +96,8 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     local new_br     = cur_br
 
     if state == STATES.INIT then
+        log.debug(util.c("SPCTL: initializing for ", util.trinary(_spctl.fast_ramp_en, "fast", "slow"), " burn rate ramping mode"))
+
         -- transition to the appropriate direction and phase
         if setpoints.burn_rate > cur_br then
             -- need to ramp up
