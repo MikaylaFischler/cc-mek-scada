@@ -140,13 +140,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local en_em_cool = Checkbox{parent=plc_c_3,y=11,label="Enable PLC Emergency Coolant Control",default=ini_cfg.EmerCoolEnable,box_fg_bg=cpair(colors.orange,colors.black)}
 
-    local function next_from_plc()
-        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(4) end
-    end
-
     local function submit_en_emcool()
         tmp_cfg.EmerCoolEnable = en_em_cool.get_value()
-        if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else next_from_plc() end
+        if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else plc_pane.set_value(6) end
     end
 
     PushButton{parent=plc_c_3,y=14,text="\x1b Back",callback=function()plc_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -183,6 +179,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local fast_ramp = Checkbox{parent=plc_c_6,y=12,label="Enable Fast Ramping",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_6,x=23,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function next_from_plc()
+        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(4) end
+    end
 
     local function submit_ramp()
         tmp_cfg.FastRamp = fast_ramp.get_value()
