@@ -7,6 +7,7 @@ local util      = require("scada-common.util")
 local backplane = require("reactor-plc.backplane")
 local databus   = require("reactor-plc.databus")
 local renderer  = require("reactor-plc.renderer")
+local spctl     = require("reactor-plc.spctl")
 
 local core      = require("graphics.core")
 
@@ -16,8 +17,6 @@ local MAIN_CLOCK    = 0.5 -- 2Hz,   10 ticks
 local RPS_SLEEP     = 250 -- 250ms, 5 ticks
 local COMMS_SLEEP   = 150 -- 150ms, 3 ticks
 local SP_CTRL_SLEEP = 250 -- 250ms, 5 ticks
-
-local BURN_RATE_RAMP_mB_s = 5.0
 
 -- main thread
 ---@nodiscard
@@ -349,6 +348,7 @@ function threads.thread__comms_tx(smem)
         -- load in from shared memory
         local plc_state    = smem.plc_state
         local plc_comms    = smem.plc_sys.plc_comms
+
         local comms_queue  = smem.q.mq_comms_tx
 
         local MQ__COMM_CMD = smem.q_types.MQ__COMM_CMD
@@ -499,88 +499,22 @@ function threads.thread__setpoint_control(smem)
         log.debug("OS: setpoint control thread start")
 
         -- load in from shared memory
-        local plc_state    = smem.plc_state
-        local rps          = smem.plc_sys.rps
-        local plc_dev      = smem.plc_dev
-        local setpoints    = smem.setpoints
+        local plc_state = smem.plc_state
+        local plc_dev   = smem.plc_dev
 
-        local last_update  = util.time()
-        local running      = false
-
-        local last_burn_sp = 0.0
+        local last_update = util.time()
 
         -- do not use the actual elapsed time, it could spike
         -- we do not want to have big jumps as that is what we are trying to avoid in the first place
         local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
 
+        -- init controller
+        spctl.init(smem)
+
         -- thread loop
         while true do
-            -- get reactor, may have changed do to disconnect/reconnect
-            local reactor = plc_dev.reactor
-
             if not plc_state.no_reactor then
-                -- check if we should start ramping
-                if setpoints.burn_rate_en and (setpoints.burn_rate ~= last_burn_sp) then
-                    local cur_burn_rate = reactor.getBurnRate()
-
-                    if (type(cur_burn_rate) == "number") and (setpoints.burn_rate ~= cur_burn_rate) and rps.is_active() then
-                        last_burn_sp = setpoints.burn_rate
-
-                        -- update without ramp if <= 2.5 mB/t increase
-                        -- no need to ramp down, as the ramp up poses the safety risks
-                        running = (setpoints.burn_rate - cur_burn_rate) > 2.5
-
-                        if running then
-                            log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_burn_rate, " mB/t to ", setpoints.burn_rate, " mB/t"))
-                        else
-                            log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
-                            reactor.setBurnRate(setpoints.burn_rate)
-                        end
-                    end
-                end
-
-                -- only check I/O if active to save on processing time
-                if running then
-                    -- clear so we can later evaluate if we should keep running
-                    running = false
-
-                    -- adjust burn rate (setpoints.burn_rate)
-                    if setpoints.burn_rate_en then
-                        if rps.is_active() then
-                            local current_burn_rate = reactor.getBurnRate()
-
-                            -- we yielded, check enable again
-                            if setpoints.burn_rate_en and (type(current_burn_rate) == "number") and (current_burn_rate ~= setpoints.burn_rate) then
-                                -- calculate new burn rate
-                                local new_burn_rate ---@type number
-
-                                if setpoints.burn_rate > current_burn_rate then
-                                    -- need to ramp up
-                                    new_burn_rate = current_burn_rate + (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                    if new_burn_rate > setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
-                                else
-                                    -- need to ramp down
-                                    new_burn_rate = current_burn_rate - (BURN_RATE_RAMP_mB_s * min_elapsed_s)
-                                    if new_burn_rate < setpoints.burn_rate then new_burn_rate = setpoints.burn_rate end
-                                end
-
-                                running = running or (new_burn_rate ~= setpoints.burn_rate)
-
-                                -- set the burn rate
-                                reactor.setBurnRate(new_burn_rate)
-                            end
-                        else
-                            log.debug("SPCTL: ramping aborted (reactor inactive)")
-                            setpoints.burn_rate_en = false
-                        end
-                    end
-                elseif setpoints.burn_rate_en then
-                    log.debug(util.c("SPCTL: ramping completed (setpoint of ", setpoints.burn_rate, " mB/t)"))
-                    setpoints.burn_rate_en = false
-                end
-
-                -- if ramping completed or was aborted, reset last burn setpoint so that if it is requested again it will be re-attempted
-                if not setpoints.burn_rate_en then last_burn_sp = 0 end
+                spctl.update(plc_dev.reactor, min_elapsed_s)
             end
 
             -- check for termination request

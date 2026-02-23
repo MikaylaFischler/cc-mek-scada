@@ -78,6 +78,8 @@ local tool_ctl = {
 local tmp_cfg = {
     Networked = false,
     UnitID = 0,
+    FastRamp = true,
+    FastRampConfirmed = false,
     EmerCoolEnable = false,
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
@@ -106,6 +108,8 @@ local settings_cfg = {}
 local fields = {
     { "Networked", "Networked", false },
     { "UnitID", "Unit ID", 1 },
+    { "FastRamp", "Fast Ramp", true },
+    { "FastRampConfirmed", "Fast Ramp Confirmed", false },
     { "EmerCoolEnable", "Emergency Coolant", false },
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },
