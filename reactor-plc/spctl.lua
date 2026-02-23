@@ -44,8 +44,8 @@ local _spctl = {
     last_state = STATES.STOPPED  ---@type RAMP_STATES
 }
 
-local rps       = nil   ---@type rps
-local setpoints = nil   ---@type plc_setpoints
+local rps       = nil ---@type rps
+local setpoints = nil ---@type plc_setpoints
 
 -- initialize with shared memory data
 ---@param smem plc_shared_memory
@@ -57,14 +57,13 @@ function spctl.init(smem)
 end
 
 -- initialize ramping, or set right away if acceptable
----@param reactor table
----@param cur_br number
+---@param reactor table reactor
+---@param cur_br number requested burn rate
 local function ramp_init(reactor, cur_br)
     _spctl.last_sp = setpoints.burn_rate
 
-    -- update without ramp if <= 2.5 mB/t increase
-    -- no need to ramp down, as the ramp up poses the safety risks
-    if (setpoints.burn_rate - cur_br) > 2.5 then
+    -- update without ramp if <= 2.5 mB/t change
+    if math.abs(setpoints.burn_rate - cur_br) > 2.5 then
         log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_br, " mB/t to ", setpoints.burn_rate, " mB/t"))
 
         _spctl.last_change = os.clock()
@@ -156,7 +155,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
 
         -- minimum is the slow rate, maintain old behavior
         -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
-        step = math.max((SLOW_RAMP_mB_s * elapsed_s), step)
+        step = math.max(SLOW_RAMP_mB_s * elapsed_s, step)
 
         -- don't exceed the setpoint
         new_br = math.min(cur_br + step, setpoints.burn_rate)
@@ -168,8 +167,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         local step   = scaler * _spctl.max_br
 
         -- minimum is the slow rate, maintain old behavior
-        -- if we overheat, it will be gentle and recoverable, then the user can solve the coolant issue rather than see the reactor not ramping
-        step = math.max((SLOW_RAMP_mB_s * elapsed_s), step)
+        step = math.max(SLOW_RAMP_mB_s * elapsed_s, step)
 
         -- don't fall below the setpoint
         new_br = math.max(cur_br - step, setpoints.burn_rate)
