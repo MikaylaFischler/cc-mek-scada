@@ -123,7 +123,7 @@ end
 -- identifies dangerous states and SCRAMs reactor if warranted<br>
 -- autonomous from main SCADA supervisor/coordinator control
 ---@nodiscard
----@param reactor table
+---@param reactor FissionReactor
 ---@param is_formed boolean
 function plc.rps_init(reactor, is_formed)
     local self = {
@@ -292,7 +292,7 @@ function plc.rps_init(reactor, is_formed)
     local public = {}
 
     -- re-link a reactor after a peripheral re-connect
-    ---@param new_reactor table reconnected reactor
+    ---@param new_reactor FissionReactor reconnected reactor
     function public.reconnect_reactor(new_reactor)
         reactor = new_reactor
     end
@@ -541,7 +541,7 @@ end
 ---@nodiscard
 ---@param version string PLC version
 ---@param tx_nic nic network interface device
----@param reactor table reactor device
+---@param reactor FissionReactor reactor device
 ---@param rps rps RPS reference
 ---@param conn_watchdog watchdog watchdog reference
 function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
@@ -859,7 +859,7 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     end
 
     -- reconnect a newly connected reactor
-    ---@param new_reactor table
+    ---@param new_reactor FissionReactor
     function public.reconnect_reactor(new_reactor)
         reactor = new_reactor
         self.status_cache = nil

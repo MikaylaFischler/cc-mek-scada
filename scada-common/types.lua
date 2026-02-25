@@ -1,75 +1,12 @@
 --
 -- Global Types
+-- note: for development, refer to the types/ directory for global comment-only @class and @alias definitions
 --
 
 ---@class types
 local types = {}
 
---#region CC: TWEAKED CLASSES https://tweaked.cc
-
----@class Redirect
----@field write fun(text: string) Write text at the current cursor position, moving the cursor to the end of the text.
----@field scroll fun(y: integer) Move all positions up (or down) by y pixels.
----@field getCursorPos fun() : x: integer, y: integer Get the position of the cursor.
----@field setCursorPos fun(x: integer, y: integer) Set the position of the cursor.
----@field getCursorBlink fun() : boolean Checks if the cursor is currently blinking.
----@field setCursorBlink fun(blink: boolean) Sets whether the cursor should be visible (and blinking) at the current cursor position.
----@field getSize fun() : width: integer, height: integer Get the size of the terminal.
----@field clear fun() Clears the terminal, filling it with the current background color.
----@field clearLine fun() Clears the line the cursor is currently on, filling it with the current background color.
----@field getTextColor fun() : color Return the color that new text will be written as.
----@field setTextColor fun(color: color) Set the colour that new text will be written as.
----@field getBackgroundColor fun() : color Return the current background color.
----@field setBackgroundColor fun(color: color) set the current background color.
----@field isColor fun() Determine if this terminal supports color.
----@field blit fun(text: string, textColor: string, backgroundColor: string) Writes text to the terminal with the specific foreground and background colors.
----@diagnostic disable-next-line: duplicate-doc-field
----@field setPaletteColor fun(index: color, color: integer) Set the palette for a specific color.
----@diagnostic disable-next-line: duplicate-doc-field
----@field setPaletteColor fun(index: color, r: number, g: number, b:number) Set the palette for a specific color. R/G/B are 0 to 1.
----@field getPaletteColor fun(color: color) :  r: number, g: number, b:number Get the current palette for a specific color.
-
----@class Window:Redirect
----@field getLine fun(y: integer) : content: string, fg: string, bg: string Get the buffered contents of a line in this window.
----@field setVisible fun(visible: boolean) Set whether this window is visible. Invisible windows will not be drawn to the screen until they are made visible again.
----@field isVisible fun() : visible: boolean Get whether this window is visible. Invisible windows will not be drawn to the screen until they are made visible again.
----@field redraw fun() Draw this window. This does nothing if the window is not visible.
----@field restoreCursor fun() Set the current terminal's cursor to where this window's cursor is. This does nothing if the window is not visible.
----@field getPosition fun() : x: integer, y: integer Get the position of the top left corner of this window.
----@field reposition fun(new_x: integer, new_y: integer, new_width?: integer, new_height?: integer, new_parent?: Redirect) Reposition or resize the given window.
-
----@class Monitor:Redirect
----@field setTextScale fun(scale: number) Set the scale of this monitor.
----@field getTextScale fun() : number Get the monitor's current text scale.
-
----@class Modem
----@field open fun(channel: integer) Open a channel on a modem.
----@field isOpen fun(channel: integer) : boolean Check if a channel is open.
----@field close fun(channel: integer) Close an open channel, meaning it will no longer receive messages.
----@field closeAll fun() Close all open channels.
----@field transmit fun(channel: integer, replyChannel: integer, payload: any) Sends a modem message on a certain channel.
----@field isWireless fun() : boolean Determine if this is a wired or wireless modem.
----@field getNamesRemote fun() : string[] List all remote peripherals on the wired network.
----@field isPresentRemote fun(name: string) : boolean Determine if a peripheral is available on this wired network.
----@field getTypeRemote fun(name: string) : string|nil Get the type of a peripheral is available on this wired network.
----@field hasTypeRemote fun(name: string, type: string) : boolean|nil Check a peripheral is of a particular .
----@field getMethodsRemote fun(name: string) : string[] Get all available methods for the remote peripheral with the given name.
----@field callRemote fun(remoteName: string, method: string, ...) : table Call a method on a peripheral on this wired network.
----@field getNameLocal fun() : string|nil Returns the network name of the current computer, if the modem is on.
-
----@class Speaker
----@field playNote fun(instrument: string, volume?: number, pitch?: number) : success: boolean Plays a note block note through the speaker.
----@field playSound fun(name: string, volume?: number, pitch?: number) : success: boolean Plays a Minecraft sound through the speaker.
----@field playAudio fun(audio: number[], volume?: number) : success: boolean Attempt to stream some audio data to the speaker.
----@field stop fun() Stop all audio being played by this speaker.
-
---#endregion
-
 --#region CLASSES
-
----@class tank_fluid
----@field name fluid
----@field amount integer
 
 -- create a new tank fluid
 ---@nodiscard
@@ -79,15 +16,13 @@ local types = {}
 function types.new_tank_fluid(n, a) return { name = n, amount = a } end
 
 -- create a new empty tank fluid
+---@see tank_fluid
 ---@nodiscard
 ---@return tank_fluid
 function types.new_empty_gas() return { type = "mekanism:empty_gas", amount = 0 } end
 
----@class radiation_reading
----@field radiation number
----@field unit string
-
 -- create a new radiation reading
+---@see radiation_reading
 ---@nodiscard
 ---@param r number radiaiton level
 ---@param u string radiation unit
@@ -95,20 +30,13 @@ function types.new_empty_gas() return { type = "mekanism:empty_gas", amount = 0 
 function types.new_radiation_reading(r, u) return { radiation = r, unit = u } end
 
 -- create a new zeroed radiation reading
+---@see radiation_reading
 ---@nodiscard
 ---@return radiation_reading
 function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv" } end
 
----@class coordinate_2d
----@field x integer
----@field y integer
-
----@class coordinate
----@field x integer
----@field y integer
----@field z integer
-
 -- create a new coordinate
+---@see coordinate
 ---@nodiscard
 ---@param x integer
 ---@param y integer
@@ -117,15 +45,10 @@ function types.new_zero_radiation_reading() return { radiation = 0, unit = "nSv"
 function types.new_coordinate(x, y, z) return { x = x, y = y, z = z } end
 
 -- create a new zero coordinate
+---@see coordinate
 ---@nodiscard
 ---@return coordinate
 function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
-
----@class rtu_advertisement
----@field type RTU_UNIT_TYPE
----@field index integer|false
----@field reactor integer
----@field rs_conns IO_PORT[][]|nil
 
 -- create a new reactor database
 ---@nodiscard
@@ -205,12 +128,6 @@ function types.new_reactor_db()
 end
 
 --#endregion
-
--- ALIASES --
-
----@alias color integer
-
----@alias auto_ctl_cfg [ PROCESS, number, integer, integer, number, number, number[] ]
 
 --#region ENUMERATION TYPES
 
@@ -530,56 +447,7 @@ types.ALARM_STATE_NAMES = {
 
 --#region STRING TYPES
 
----@alias side
----|"top"
----|"bottom"
----|"left"
----|"right"
----|"front"
----|"back"
-
----@alias os_event
----| "alarm"
----| "char"
----| "computer_command"
----| "disk"
----| "disk_eject"
----| "http_check"
----| "http_failure"
----| "http_success"
----| "key"
----| "key_up"
----| "modem_message"
----| "monitor_resize"
----| "monitor_touch"
----| "mouse_click"
----| "mouse_drag"
----| "mouse_scroll"
----| "mouse_up"
----| "double_click" (custom)
----| "paste"
----| "peripheral"
----| "peripheral_detach"
----| "rednet_message"
----| "redstone"
----| "speaker_audio_empty"
----| "task_complete"
----| "term_resize"
----| "terminate"
----| "timer"
----| "turtle_inventory"
----| "websocket_closed"
----| "websocket_failure"
----| "websocket_message"
----| "websocket_success"
----| "conn_test_complete" (custom)
-
----@alias fluid
----| "mekanism:empty_gas"
----| "minecraft:water"
----| "mekanism:sodium"
----| "mekanism:superheated_sodium"
-
+---@see fluid
 types.FLUID = {
     EMPTY_GAS = "mekanism:empty_gas",
     WATER = "minecraft:water",
@@ -587,21 +455,7 @@ types.FLUID = {
     SUPERHEATED_SODIUM = "mekanism:superheated_sodium"
 }
 
----@alias rps_trip_cause
----| "ok"
----| "high_dmg"
----| "high_temp"
----| "low_coolant"
----| "ex_waste"
----| "ex_heated_coolant"
----| "no_fuel"
----| "fault"
----| "timeout"
----| "manual"
----| "automatic"
----| "sys_fail"
----| "force_disabled"
-
+---@see rps_trip_cause
 types.RPS_TRIP_CAUSE = {
     OK = "ok",
     HIGH_DMG = "high_dmg",
@@ -618,22 +472,14 @@ types.RPS_TRIP_CAUSE = {
     FORCE_DISABLED = "force_disabled"
 }
 
----@alias container_mode
----| "BOTH"
----| "FILL"
----| "EMPTY"
-
+---@see container_mode
 types.CONTAINER_MODE = {
     BOTH = "BOTH",
     FILL = "FILL",
     EMPTY = "EMPTY"
 }
 
----@alias dumping_mode
----| "IDLE"
----| "DUMPING"
----| "DUMPING_EXCESS"
-
+---@see dumping_mode
 types.DUMPING_MODE = {
     IDLE = "IDLE",
     DUMPING = "DUMPING",

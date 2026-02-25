@@ -82,7 +82,7 @@ end
 -- handle a backplane peripheral attach
 ---@param iface string
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param print_no_fp function
 function backplane.attach(iface, type, device, print_no_fp)
     if type == "modem" then
@@ -128,7 +128,7 @@ end
 -- handle a backplane peripheral detach
 ---@param iface string
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param print_no_fp function
 function backplane.detach(iface, type, device, print_no_fp)
     if type == "modem" then
