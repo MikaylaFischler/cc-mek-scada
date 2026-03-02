@@ -4,6 +4,11 @@
 ---@field name fluid liquid/gas tag name
 ---@field amount integer amount in mB
 
+---@class item_stack
+---@field name string liquid/gas tag name
+---@field count integer amount in mB
+---@field nbt string JSON NBT string
+
 ---@class radiation_reading
 ---@field radiation number reading value
 ---@field unit string reading unit
