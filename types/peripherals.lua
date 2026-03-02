@@ -77,33 +77,89 @@
 ---@field scram fun() : nil	Disable the reactor.
 ---@field setBurnRate fun(rate: number) : number Set the burn rate.
 ---@field getBurnRate fun() : number Get the configured burn rate.
----@field getActualBurnRate fun() : number Get the actual burn rate (0 if no fuel).
+---@field getActualBurnRate fun() : number Get the actual burn rate, which may be fuel limited (mB).
 ---@field getMaxBurnRate fun() : integer Get the maximum burn rate according to the number of fuel assemblies.
 ---@field getStatus fun() : boolean Get the reactor enable status.
 ---@field getTemperature fun() : number Get the reactor core temperature (K).
----@field getHeatingRate fun() : integer Get the coolant heating rate.
+---@field getHeatingRate fun() : integer Get the coolant heating rate (mB/t).
 ---@field getBoilEfficiency fun() : number Reactor boil efficiency.
----@field getEnvironmentalLoss fun() : number Get the environmental loss factor.
+---@field getEnvironmentalLoss fun() : number Get the amount of heat lost to the environment in the last tick (K).
 ---@field getDamagePercent fun() : integer Get the reactor damage, 0 - 100%.
 ---@field isForceDisabled fun() : boolean If meltdowns are disabled, this returns true if the reactor was disabled instead of melting down.
 ---@field getFuelAssemblies fun() : integer Get the number of fuel assemblies.
 ---@field getFuelSurfaceArea fun() : integer Get the exposed fuel surface area.
 ---@field getHeatCapacity fun() : number Get the heat capacity of the reactor structure.
----@field getFuel fun() : tank_fluid Get the fuel.
----@field getFuelNeeded fun() : integer Get the remaining capacity available for fuel.
----@field getFuelCapacity fun() : integer Get the fuel capacity.
+---@field getFuel fun() : tank_fluid Get the contents of the fuel tank.
+---@field getFuelNeeded fun() : integer Get the remaining capacity available for fuel (mB).
+---@field getFuelCapacity fun() : integer Get the fuel capacity (mB).
 ---@field getFuelFilledPercentage fun() : number Get the fuel fill (0 - 1).
----@field getWaste fun() : tank_fluid Get the waste.
----@field getWasteNeeded fun() : integer Get the remaining capacity available for waste.
----@field getWasteCapacity fun() : integer Get the waste capacity.
+---@field getWaste fun() : tank_fluid Get the contents of the waste tank.
+---@field getWasteNeeded fun() : integer Get the remaining capacity available for waste (mB).
+---@field getWasteCapacity fun() : integer Get the waste capacity (mB).
 ---@field getWasteFilledPercentage fun() : number Get the waste fill (0 - 1).
----@field getCoolant fun() : tank_fluid Get the cooled coolant.
----@field getCoolantNeeded fun() : integer Get the remaining capacity available for cooled coolant.
----@field getCoolantCapacity fun() : integer Get the cooled coolant capacity.
+---@field getCoolant fun() : tank_fluid Get the contents of the cooled coolant tank.
+---@field getCoolantNeeded fun() : integer Get the remaining capacity available for cooled coolant (mB).
+---@field getCoolantCapacity fun() : integer Get the cooled coolant capacity (mB).
 ---@field getCoolantFilledPercentage fun() : number Get the cooled coolant fill (0 - 1).
----@field getHeatedCoolant fun() : tank_fluid Get the heated coolant.
----@field getHeatedCoolantNeeded fun() : integer Get the remaining capacity available for heated coolant.
----@field getHeatedCoolantCapacity fun() : integer Get the heated coolant capacity.
+---@field getHeatedCoolant fun() : tank_fluid Get the contents of the heated coolant tank.
+---@field getHeatedCoolantNeeded fun() : integer Get the remaining capacity available for heated coolant (mB).
+---@field getHeatedCoolantCapacity fun() : integer Get the heated coolant capacity (mB).
 ---@field getHeatedCoolantFilledPercentage fun() : number Get the heated coolant fill (0 - 1).
 
----#endregion
+---@class Boiler:MultiblockFormed
+---@field getSuperheaters fun() : integer Get the number of superheating elements.
+---@field getBoilCapacity fun() : integer Get the maximum boil rate based on the number of superheating elements.
+---@field getBoilRate fun() : integer Get the current boil rate (mB/t).
+---@field getMaxBoilRate fun() : integer Get the current maximum boil rate based on water and coolant supply (mB/t).
+---@field getTemperature fun() : number Get the boiler temperature (K).
+---@field getEnvironmentalLoss fun() : number Get the amount of heat lost to the environment in the last tick (K).
+---@field getCooledCoolant fun(): tank_fluid Get the contents of the cooled coolant tank.
+---@field getCooledCoolantNeeded fun() : integer Get the remaining capacity available for cooled coolant (mB).
+---@field getCooledCoolantCapacity fun() : integer Get the cooled coolant capacity (mB).
+---@field getCooledCoolantFilledPercentage fun() : number Get the cooled coolant fill (0 - 1).
+---@field getHeatedCoolant fun(): tank_fluid Get the contents of the heated coolant tank.
+---@field getHeatedCoolantNeeded fun() : integer Get the remaining capacity available for heated coolant (mB).
+---@field getHeatedCoolantCapacity fun() : integer Get the heated coolant capacity (mB).
+---@field getHeatedCoolantFilledPercentage fun() : number Get the heated coolant fill (0 - 1).
+---@field getWater fun(): tank_fluid Get the contents of the water tank.
+---@field getWaterCapacity fun() : integer Get the capacity of the water tank (mB).
+---@field getWaterNeeded fun() : integer Get the remaining capacity available for water (mB).
+---@field getWaterFilledPercentage fun() : number Get the water fill (0 - 1).
+---@field getSteam fun(): tank_fluid Get the contents of the steam tank.
+---@field getSteamCapacity fun() : integer Get the capacity of the steam tank (mB).
+---@field getSteamNeeded fun() : integer Get the remaining capacity available for steam (mB).
+---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
+
+---@class InductionMatrix:MultiblockFormed
+---@field getInstalledCells fun() : integer Get the number of installed cells.
+---@field getInstalledProviders fun() : integer Get the number of installed providers.
+---@field getTransferCap fun() : integer Get the input/output transfer capacity (J/t).
+---@field getLastInput fun() : integer Get the last input rate (J/t).
+---@field getLastOutput fun() : integer Get the last output rate (J/t).
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
+
+---@class DynamicTank:MultiblockFormed
+---@field getStored fun() : tank_fluid Get the contents of the tank.
+---@field getTankCapacity fun() : integer Get the tank capacity when used for liquids (mB).
+---@field getChemicalTankCapacity fun() : integer Get the tank capacity when used for chemicals (mB).
+---@field getFilledPercentage fun() : number Get the fill percentage (0 - 1).
+---@field getContainerEditMode fun() : container_mode Get the container mode.
+---@field incrementContainerEditMode fun() : nil Increment the container mode.
+---@field decrementContainerEditMode fun() : nil Decrement the container mode.
+---@field setContainerEditMode fun(mode: container_mode) : nil Set the container mode.
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
+
+---@class SPS:MultiblockFormed
+
+--#endregion
+
+--#region Advanced Peripherals Classes
+
+---@class EnvironmentDetector:PPMDevice
+---@note This is incomplete. It only lists the radiation functions that are used so I don't have to type them all out.
+---@field getRadiation fun() : { radition: string, unit: string } The current radiation level with a unit.
+---@field getRadiationRaw fun() : number The raw radiation in Sv/h.
+
+--#endregion
