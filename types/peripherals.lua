@@ -130,6 +130,27 @@
 ---@field getSteamNeeded fun() : integer Get the remaining capacity available for steam (mB).
 ---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
 
+---@class Turbine:MultiblockFormed
+---@field getBlades fun() : integer Get the number of turbine blades.
+---@field getCoils fun() : integer Get the number of coils.
+---@field getVents fun() : integer Get the number of vents.
+---@field getCondensers fun() : integer Get the number of saturating condensers.
+---@field getDispersers fun() : integer Get the number of pressure dispersers.
+---@field getProductionRate fun() : integer Get the current energy production rate (J/t).
+---@field getMaxProduction fun() : integer Get the maximum possible energy production rate (J/t).
+---@field getFlowRate fun() : integer Get the current steam flow rate (mB/t).
+---@field getMaxFlowRate fun() : integer Get the maximum possible steam flow rate (mB/t).
+---@field getMaxWaterOutput fun() : integer Get the maximum possible water output rate (mB/t).
+---@field getSteam fun(): tank_fluid Get the contents of the steam tank.
+---@field getSteamCapacity fun() : integer Get the capacity of the steam tank (mB).
+---@field getSteamNeeded fun() : integer Get the remaining capacity available for steam (mB).
+---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
+---@field getLastSteamInputRate fun() : integer Get the steam input rate last tick (mB/t).
+---@field getDumpingMode  fun(): dumping_mode Get the steam dumping mode.
+---@field incrementDumpingMode fun() : nil Increment the steam dumping mode.
+---@field decrementDumpingMode fun() : nil Decrement the steam dumping mode.
+---@field setDumpingMode fun(mode: dumping_mode) : nil Set the steam dumping mode.
+
 ---@class InductionMatrix:MultiblockFormed
 ---@field getInstalledCells fun() : integer Get the number of installed cells.
 ---@field getInstalledProviders fun() : integer Get the number of installed providers.
