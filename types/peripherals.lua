@@ -152,6 +152,31 @@
 ---@field getOutputItem fun() : item_stack Get the contents of the output slot.
 
 ---@class SPS:MultiblockFormed
+---@field getCoils fun() : integer Get the number of supercharged coils.
+---@field getProcessRate fun() : number Get the current process rate (mB/t).
+---@field getInput fun() : tank_fluid Get the contents of the input tank.
+---@field getInputCapacity fun() : integer Get the capacity of the input tank (mB).
+---@field getInputNeeded fun() : integer Get the remaining capacity available of the input tank (mB).
+---@field getInputFilledPercentage fun() : number Get the fill percentage of the input tank (0 - 1).
+---@field getOutput fun() : tank_fluid Get the contents of the output tank.
+---@field getOutputCapacity fun() : integer Get the capacity of the output tank (mB).
+---@field getOutputNeeded fun() : integer Get the remaining capacity available of the output tank (mB).
+---@field getOutputFilledPercentage fun() : number Get the fill percentage of the output tank (0 - 1).
+
+---@class SolarNeutronActivator:MultiblockFormed
+---@field canSeeSun fun() : boolean Check if the SNA can see the sun.
+---@field getProductionRate fun() : number Get the current production rate (mB/t).
+---@field getPeakProductionRate fun() : number Get the peak possible production rate in the current location (mB/t).
+---@field getInput fun() : tank_fluid Get the contents of the input tank.
+---@field getInputCapacity fun() : integer Get the capacity of the input tank (mB).
+---@field getInputNeeded fun() : integer Get the remaining capacity available of the input tank (mB).
+---@field getInputFilledPercentage fun() : number Get the fill percentage of the input tank (0 - 1).
+---@field getOutput fun() : tank_fluid Get the contents of the output tank.
+---@field getOutputCapacity fun() : integer Get the capacity of the output tank (mB).
+---@field getOutputNeeded fun() : integer Get the remaining capacity available of the output tank (mB).
+---@field getOutputFilledPercentage fun() : number Get the fill percentage of the output tank (0 - 1).
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
 
 --#endregion
 
