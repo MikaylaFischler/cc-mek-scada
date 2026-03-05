@@ -4,7 +4,7 @@ local sps_rtu = {}
 
 -- create new super-critical phase shifter (SPS) device
 ---@nodiscard
----@param sps table
+---@param sps SPS|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function sps_rtu.new(sps)
     local unit = rtu.init_unit(sps)

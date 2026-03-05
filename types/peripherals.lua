@@ -58,6 +58,21 @@
 ---@field playAudio fun(audio: number[], volume?: number) : success: boolean Attempt to stream some audio data to the speaker.
 ---@field stop fun() Stop all audio being played by this speaker.
 
+---@class RedstoneRelay:PPMDevice
+---@field setOutput fun(side: string, on: boolean) Turn the redstone signal of a specific side on or off.
+---@field getOutput fun(side: string) : boolean Get the current redstone output of a specific side.
+---@field getInput fun(side: string) : boolean Get the current redstone input of a specific side.
+---@field setAnalogOutput fun(side: string, value: integer) Set the redstone signal strength for a specific side.
+---@field setAnalogueOutput fun(side: string, value: integer) Set the redstone signal strength for a specific side.
+---@field getAnalogOutput fun(side: string) : integer Get the redstone output signal strength for a specific side.
+---@field getAnalogueOutput fun(side: string) : integer Get the redstone output signal strength for a specific side.
+---@field getAnalogInput fun(side: string) : integer Get the redstone input signal strength for a specific side.
+---@field getAnalogueInput fun(side: string) : integer Get the redstone input signal strength for a specific side.
+---@field setBundledOutput fun(side: string, output: integer) Set the bundled cable output for a specific side.
+---@field getBundledOutput fun(side: string) : integer Get the bundled cable output for a specific side.
+---@field getBundledInput fun(side: string)	: integer Get the bundled cable input for a specific side.
+---@field testBundledInput fun(side: string, mask: integer) : boolean Determine if a specific combination of colors are on for the given side.
+
 --#endregion
 
 --#region Mekanism Classes
@@ -73,8 +88,8 @@
 ---@field getMaxPos fun() : coordinate Get the maximum corner of the multiblock.
 
 ---@class FissionReactor:MultiblockFormed
----@field activate fun() : nil Enable the reactor.
----@field scram fun() : nil	Disable the reactor.
+---@field activate fun() Enable the reactor.
+---@field scram fun() Disable the reactor.
 ---@field setBurnRate fun(rate: number) : number Set the burn rate.
 ---@field getBurnRate fun() : number Get the configured burn rate.
 ---@field getActualBurnRate fun() : number Get the actual burn rate, which may be fuel limited (mB).
@@ -147,9 +162,9 @@
 ---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
 ---@field getLastSteamInputRate fun() : integer Get the steam input rate last tick (mB/t).
 ---@field getDumpingMode  fun(): dumping_mode Get the steam dumping mode.
----@field incrementDumpingMode fun() : nil Increment the steam dumping mode.
----@field decrementDumpingMode fun() : nil Decrement the steam dumping mode.
----@field setDumpingMode fun(mode: dumping_mode) : nil Set the steam dumping mode.
+---@field incrementDumpingMode fun() Increment the steam dumping mode.
+---@field decrementDumpingMode fun() Decrement the steam dumping mode.
+---@field setDumpingMode fun(mode: dumping_mode) Set the steam dumping mode.
 
 ---@class InductionMatrix:MultiblockFormed
 ---@field getInstalledCells fun() : integer Get the number of installed cells.
@@ -166,9 +181,9 @@
 ---@field getChemicalTankCapacity fun() : integer Get the tank capacity when used for chemicals (mB).
 ---@field getFilledPercentage fun() : number Get the fill percentage (0 - 1).
 ---@field getContainerEditMode fun() : container_mode Get the container mode.
----@field incrementContainerEditMode fun() : nil Increment the container mode.
----@field decrementContainerEditMode fun() : nil Decrement the container mode.
----@field setContainerEditMode fun(mode: container_mode) : nil Set the container mode.
+---@field incrementContainerEditMode fun() Increment the container mode.
+---@field decrementContainerEditMode fun() Decrement the container mode.
+---@field setContainerEditMode fun(mode: container_mode) Set the container mode.
 ---@field getInputItem fun() : item_stack Get the contents of the input slot.
 ---@field getOutputItem fun() : item_stack Get the contents of the output slot.
 

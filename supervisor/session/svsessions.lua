@@ -523,7 +523,7 @@ end
 ---@param nic nic interface to use for this session
 ---@param source_addr integer RTU gateway computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
----@param advertisement table RTU capability advertisement
+---@param advertisement rtu_advert_msg RTU capability advertisement
 ---@param version string RTU gateway version
 ---@return integer session_id
 function svsessions.establish_rtu_session(nic, source_addr, i_seq_num, advertisement, version)

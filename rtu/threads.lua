@@ -32,7 +32,7 @@ local COMMS_SLEEP = 100 -- 100ms, 2 ticks
 ---@param println_ts function
 ---@param iface string
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param unit rtu_registry_entry
 local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
     local sys = smem.rtu_sys

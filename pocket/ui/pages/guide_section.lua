@@ -25,10 +25,10 @@ local DOC_TYPE  = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
----@param data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
+---@param data pkt__sect_construct_data
 ---@param base_page nav_tree_page
 ---@param title string
----@param items table
+---@param items pkt__doc_item[]
 ---@param scroll_height integer
 ---@return nav_tree_page
 return function (data, base_page, title, items, scroll_height)
@@ -53,7 +53,7 @@ return function (data, base_page, title, items, scroll_height)
     local page_end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_list
+        local item = items[i]
 
         if item.type == DOC_TYPE.SECTION then
             ---@cast item pocket_doc_sect
