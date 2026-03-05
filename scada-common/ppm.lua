@@ -43,7 +43,7 @@ local function peri_init(iface)
         fault_counts = {},          ---@type { [string]: integer }
         auto_cf = true,
         type = VIRTUAL_DEVICE_TYPE, ---@type string
-        device = {}                 ---@type { [string]: function }
+        device = {}                 ---@type ppm_generic
     }
 
     if iface ~= "__virtual__" then
@@ -99,13 +99,7 @@ local function peri_init(iface)
         end
     end
 
-    -- initialization process (re-map)
-    for key, func in pairs(self.device) do
-        self.fault_counts[key] = 0
-        self.device[key] = protect_peri_function(key, func)
-    end
-
-    -- fault management & monitoring functions
+    -- generic fault management & monitoring functions
 
     local function clear_fault() self.faulted = false end
     local function get_last_fault() return self.last_fault end
@@ -132,6 +126,26 @@ local function peri_init(iface)
     self.device.__p_is_healthy  = is_healthy
     self.device.__p_enable_afc  = enable_afc
     self.device.__p_disable_afc = disable_afc
+
+    ---@class PPMDevice
+    local dev = {}
+
+    dev.__p_clear_fault = clear_fault
+    dev.__p_last_fault  = get_last_fault
+    dev.__p_is_faulted  = is_faulted
+    dev.__p_is_ok       = is_ok
+    dev.__p_is_healthy  = is_healthy
+    dev.__p_enable_afc  = enable_afc
+    dev.__p_disable_afc = disable_afc
+
+    self.device = dev
+
+    -- peripheral call initialization process (re-map)
+
+    for key, func in pairs(self.device) do
+        self.fault_counts[key] = 0
+        self.device[key] = protect_peri_function(key, func)
+    end
 
     -- add default index function to catch undefined indicies
 
@@ -245,7 +259,7 @@ end
 -- mount a specified device
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return string|nil type, table|nil device
+---@return string|nil type, ppm_generic|nil device
 function ppm.mount(iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
@@ -269,7 +283,7 @@ end
 -- unmount and remount a specified device
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return string|nil type, table|nil device
+---@return string|nil type, ppm_generic|nil device
 function ppm.remount(iface)
     local ifaces = peripheral.getNames()
     local pm_dev = nil
@@ -295,7 +309,7 @@ end
 
 -- mount a virtual placeholder device
 ---@nodiscard
----@return string type, table device
+---@return string type, ppm_generic device
 function ppm.mount_virtual()
     local iface = "ppm_vdev_" .. _ppm.next_vid
 
@@ -308,7 +322,7 @@ function ppm.mount_virtual()
 end
 
 -- manually unmount a peripheral from the PPM
----@param device table device table
+---@param device ppm_generic device table
 function ppm.unmount(device)
     if device then
         for iface, data in pairs(_ppm.mounts) do
@@ -324,7 +338,7 @@ end
 -- handle peripheral_detach event
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return string|nil type, table|nil device
+---@return string|nil type, ppm_generic|nil device
 function ppm.handle_unmount(iface)
     local pm_dev = nil
     local pm_type = nil
@@ -375,7 +389,7 @@ end
 
 -- get a mounted peripheral side/interface by device table
 ---@nodiscard
----@param device table device table
+---@param device ppm_generic device table
 ---@return string|nil iface CC peripheral interface
 function ppm.get_iface(device)
     if device then
@@ -390,7 +404,7 @@ end
 -- get a mounted peripheral by side/interface
 ---@nodiscard
 ---@param iface string CC peripheral interface
----@return { [string]: function }|nil device function table
+---@return ppm_generic|nil device function table
 function ppm.get_periph(iface)
     if _ppm.mounts[iface] then
         return _ppm.mounts[iface].dev
@@ -410,7 +424,7 @@ end
 -- get all mounted peripherals by type
 ---@nodiscard
 ---@param type string type name
----@return table devices device function tables
+---@return ppm_generic[] devices device function tables
 function ppm.get_all_devices(type)
     local devices = {}
 
@@ -426,7 +440,7 @@ end
 -- get a mounted peripheral by type (if multiple, returns the first)
 ---@nodiscard
 ---@param type string type name
----@return table|nil device, string|nil iface device and interface
+---@return ppm_generic|nil device, string|nil iface device and interface
 function ppm.get_device(type)
     local device, d_iface = nil, nil
 
@@ -445,8 +459,14 @@ end
 
 -- get the fission reactor (if multiple, returns the first)
 ---@nodiscard
----@return table|nil reactor, string|nil iface reactor and interface
-function ppm.get_fission_reactor() return ppm.get_device("fissionReactorLogicAdapter") end
+---@return FissionReactor|nil reactor, string|nil iface reactor and interface
+function ppm.get_fission_reactor()
+    local dev, iface = ppm.get_device("fissionReactorLogicAdapter")
+
+    ---@cast dev FissionReactor|nil
+
+    return dev, iface
+end
 
 -- get a modem by name
 ---@nodiscard
@@ -457,6 +477,8 @@ function ppm.get_modem(iface)
     local device = _ppm.mounts[iface]
 
     if device and device.type == "modem" then modem = device.dev end
+
+    ---@cast modem Modem|nil
 
     return modem
 end

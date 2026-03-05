@@ -4,7 +4,7 @@ local boilerv_rtu = {}
 
 -- create new boiler device
 ---@nodiscard
----@param boiler table
+---@param boiler Boiler|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function boilerv_rtu.new(boiler)
     local unit = rtu.init_unit(boiler)

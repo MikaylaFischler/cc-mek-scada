@@ -450,7 +450,7 @@ function facility.new(config)
 
     -- set automatic control configuration and start the process
     ---@param auto_cfg start_auto_config configuration
-    ---@return table response ready state (successfully started) and current configuration (after updating)
+    ---@return auto_start_ack response ready state (successfully started) and current configuration (after updating)
     function public.auto_start(auto_cfg)
         local ready, limits = _auto_check_and_save(auto_cfg)
 

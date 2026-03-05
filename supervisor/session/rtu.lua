@@ -41,7 +41,7 @@ local PERIODICS = {
 ---@param in_queue mqueue in message queue
 ---@param out_queue mqueue out message queue
 ---@param timeout number communications timeout
----@param advertisement table RTU gateway device advertisement
+---@param advertisement rtu_advert_msg RTU gateway device advertisement
 ---@param facility facility facility data table
 ---@param fp_ok boolean if the front panel UI is running
 function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, advertisement, facility, fp_ok)

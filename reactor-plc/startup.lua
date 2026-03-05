@@ -19,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.11.5"
+local R_PLC_VERSION = "v1.11.6"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -107,7 +107,7 @@ local function main()
         -- global PLC devices, still initialized by the backplane
         ---@class plc_dev
         plc_dev = {
-            reactor = nil       ---@type table
+            reactor = nil       ---@type FissionReactor
         },
 
         -- system objects

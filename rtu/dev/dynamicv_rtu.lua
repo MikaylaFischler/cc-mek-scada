@@ -4,7 +4,7 @@ local dynamicv_rtu = {}
 
 -- create new dynamic tank device
 ---@nodiscard
----@param dynamic_tank table
+---@param dynamic_tank DynamicTank|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function dynamicv_rtu.new(dynamic_tank)
     local unit = rtu.init_unit(dynamic_tank)

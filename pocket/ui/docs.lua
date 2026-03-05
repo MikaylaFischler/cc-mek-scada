@@ -70,8 +70,8 @@ local function tip(body)
 end
 
 ---@param type DOC_LIST_TYPE
----@param items table
----@param colors table|nil colors for indicators or nil for normal lists
+---@param items string[]
+---@param colors color[]|nil colors for indicators or nil for normal lists
 local function list(type, items, colors)
     ---@class pocket_doc_list
     local list_def = { type = DOC_ITEM_TYPE.LIST, list_type = type, items = items, colors = colors }

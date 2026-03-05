@@ -57,7 +57,7 @@ function spctl.init(smem)
 end
 
 -- initialize ramping, or set right away if acceptable
----@param reactor table reactor
+---@param reactor FissionReactor reactor
 ---@param cur_br number requested burn rate
 local function ramp_init(reactor, cur_br)
     _spctl.last_sp = setpoints.burn_rate
@@ -83,7 +83,7 @@ local function ramp_reset()
 end
 
 -- run the setpoint ramp controller loop
----@param reactor table reactor
+---@param reactor FissionReactor reactor
 ---@param cur_br number current burn rate
 ---@param cur_ccool number coolant filled percentage (0 to 1)
 ---@param elapsed_s number seconds elapsed in the ramp
@@ -195,7 +195,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
 end
 
 -- update setpoint controller
----@param reactor table
+---@param reactor FissionReactor
 ---@param elapsed_s integer iteration elapsed time reference
 function spctl.update(reactor, elapsed_s)
     -- check if we should start ramping

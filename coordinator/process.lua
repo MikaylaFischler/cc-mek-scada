@@ -498,7 +498,7 @@ function process.save(mode, alt_mode, burn_target, range_start, range_stop, char
 end
 
 -- handle a start command acknowledgement
----@param response table ack and configuration reply
+---@param response auto_start_ack ack and configuration reply
 function process.start_ack_handle(response)
     local ack = response[1]
 

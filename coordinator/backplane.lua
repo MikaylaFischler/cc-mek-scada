@@ -79,6 +79,7 @@ function backplane.init_displays(config)
 
     local disp, iface = ppm.get_periph(config.MainDisplay), config.MainDisplay
 
+    ---@cast disp Monitor
     displays.main = disp
     displays.main_iface = iface
 
@@ -102,6 +103,7 @@ function backplane.init_displays(config)
     if not config.DisableFlowView then
         disp, iface = ppm.get_periph(config.FlowDisplay), config.FlowDisplay
 
+        ---@cast disp Monitor
         displays.flow = disp
         displays.flow_iface = iface
 
@@ -126,6 +128,7 @@ function backplane.init_displays(config)
     for i = 1, config.UnitCount do
         disp, iface = ppm.get_periph(config.UnitDisplays[i]), config.UnitDisplays[i]
 
+        ---@cast disp Monitor
         displays.unit_displays[i] = disp
         displays.unit_ifaces[i] = iface
 
@@ -212,7 +215,10 @@ function backplane.init(config, __shared_memory)
 
     -- Speaker Init
 
-    _bp.speaker = ppm.get_device("speaker")
+    local speaker = ppm.get_device("speaker")
+
+    ---@cast speaker Speaker|nil
+    _bp.speaker = speaker
 
     if not _bp.speaker then
         log_boot("annunciator alarm speaker not found")
@@ -258,7 +264,7 @@ end
 
 -- handle a backplane peripheral attach
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param iface string
 function backplane.attach(type, device, iface)
     local MQ__RENDER_DATA = _bp.smem.q_types.MQ__RENDER_DATA
@@ -377,7 +383,7 @@ end
 
 -- handle a backplane peripheral detach
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param iface string
 function backplane.detach(type, device, iface)
     local MQ__RENDER_CMD  = _bp.smem.q_types.MQ__RENDER_CMD

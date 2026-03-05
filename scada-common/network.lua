@@ -169,7 +169,7 @@ function network.nic(modem, lld_tx_chan)
 
     -- check if a peripheral is this modem
     ---@nodiscard
-    ---@param device table
+    ---@param device ppm_generic
     function public.is_modem(device) return device == modem end
 
     -- wrap modem functions, then create custom functions
