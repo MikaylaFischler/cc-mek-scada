@@ -1,5 +1,7 @@
 -- Global Classes
 
+-- Note: uses of generic `table` type can be found by searching the following regex: @(param \w+|type|return) table
+
 ---@class tank_fluid
 ---@field name fluid liquid/gas tag name
 ---@field amount integer amount in mB

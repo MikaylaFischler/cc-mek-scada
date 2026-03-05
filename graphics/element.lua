@@ -552,7 +552,7 @@ function element.new(args, constraint, child_offset_x, child_offset_y)
 
     -- get all children
     ---@nodiscard
-    ---@return table children table of graphics_element objects
+    ---@return graphics_element[] children this element's children
     function public.get_children()
         local list = {}
         for k, v in pairs(protected.children) do list[k] = v.get() end

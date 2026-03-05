@@ -7,6 +7,7 @@
 ---@alias color integer
 
 ---@alias auto_ctl_cfg [ PROCESS, number, integer, integer, number, number, number[] ]
+---@alias auto_start_ack [ boolean, PROCESS, number, integer, integer, number, number, number[] ]
 
 ---@alias rtu_advert_msg [ RTU_UNIT_TYPE, integer|false, integer, IO_PORT[][]|nil ][]
 
