@@ -197,7 +197,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     TextBox{parent=plc_c_7,y=1,text="!! CAUTION !!",fg_bg=cpair(colors.red,colors._INHERIT)}
     TextBox{parent=plc_c_7,y=2,height=6,text="Fast ramping has an increased risk of your reactor running low on coolant and overheating. First test this under supervision, as an insufficient cooling setup or lack of auxiliary coolant can cause the reactor to ramp faster than your turbine(s)/boiler(s) can handle."}
-    TextBox{parent=plc_c_7,y=9,height=4,text="In most cases, the low coolant or high temperature automatic SCRAM should prevent damage to the reactor as long as coolant is not lost from the cooling loop.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_7,y=9,height=3,text="In nearly all cases, the automatic SCRAM will still prevent a meltdown if coolant was not lost.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_7,y=12,height=1,text="If you didn't mean to enable this, go back.",fg_bg=cpair(colors.cyan,colors._INHERIT)}
 
     local fast_ramp_confirm = Checkbox{parent=plc_c_7,y=14,x=13,label="Don't show this warning again",default=ini_cfg.FastRampConfirmed,box_fg_bg=cpair(colors.orange,colors.black)}
 
