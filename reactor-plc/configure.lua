@@ -35,7 +35,8 @@ local changes = {
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
-    { "v1.10.0", { "Added support for wired communications modems" } }
+    { "v1.10.0", { "Added support for wired communications modems" } },
+    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } }
 }
 
 ---@class plc_configurator

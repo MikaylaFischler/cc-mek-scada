@@ -3,7 +3,6 @@
 --
 
 require("/initenv").init_env()
-local backplane = require("reactor-plc.backplane")
 
 local comms     = require("scada-common.comms")
 local crash     = require("scada-common.crash")
@@ -13,13 +12,14 @@ local network   = require("scada-common.network")
 local ppm       = require("scada-common.ppm")
 local util      = require("scada-common.util")
 
+local backplane = require("reactor-plc.backplane")
 local configure = require("reactor-plc.configure")
 local databus   = require("reactor-plc.databus")
 local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.11.6"
+local R_PLC_VERSION = "v1.11.7"
 
 local println = util.println
 local println_ts = util.println_ts
