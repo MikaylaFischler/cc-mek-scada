@@ -26,8 +26,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.1.0"
-comms.api_version = "0.0.10"
+comms.version = "3.2.0"
+comms.api_version = "0.1.0"
 
 ---@alias frame scada_frame|authd_frame
 ---@alias packet_container modbus_container|rplc_container|mgmt_container|crdn_container

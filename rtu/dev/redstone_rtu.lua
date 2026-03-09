@@ -11,7 +11,7 @@ local digital_write = rsio.digital_write
 
 -- create new redstone device
 ---@nodiscard
----@param relay? table optional redstone relay to use instead of the computer's redstone interface
+---@param relay? RedstoneRelay|ppm_generic optional redstone relay to use instead of the computer's redstone interface
 ---@return rtu_rs_device interface, boolean faulted
 function redstone_rtu.new(relay)
     local unit = rtu.init_unit()
@@ -35,7 +35,7 @@ function redstone_rtu.new(relay)
     }
 
     -- change the phy in use (a relay or rs)
-    ---@param new_phy table
+    ---@param new_phy RedstoneRelay|ppm_generic
     function public.remount_phy(new_phy) phy = new_phy end
 
     -- NOTE: for runtime speed, inversion logic results in extra code here but less code when functions are called

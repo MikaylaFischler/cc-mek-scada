@@ -174,6 +174,7 @@ end
 -- check if a watchdog timer event matches that of one of the provided sessions
 ---@param sessions sv_session_structs[]
 ---@param timer_event number
+---@return boolean was_watchdog if this event was one of the watchdogs
 local function _check_watchdogs(sessions, timer_event)
     for i = 1, #sessions do
         local session = sessions[i]
@@ -182,9 +183,12 @@ local function _check_watchdogs(sessions, timer_event)
             if triggered then
                 log.debug(util.c("SVS: watchdog closing session ", session, "..."))
                 _shutdown(session)
+                return true
             end
         end
     end
+
+    return false
 end
 
 -- delete any closed sessions
@@ -519,7 +523,7 @@ end
 ---@param nic nic interface to use for this session
 ---@param source_addr integer RTU gateway computer ID
 ---@param i_seq_num integer initial (most recent) sequence number
----@param advertisement table RTU capability advertisement
+---@param advertisement rtu_advert_msg RTU capability advertisement
 ---@param version string RTU gateway version
 ---@return integer session_id
 function svsessions.establish_rtu_session(nic, source_addr, i_seq_num, advertisement, version)
@@ -648,8 +652,13 @@ end
 
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
+---@return boolean was_watchdog if this event was one of the watchdogs
 function svsessions.check_all_watchdogs(timer_event)
-    for _, list in pairs(self.sessions) do _check_watchdogs(list, timer_event) end
+    for _, list in pairs(self.sessions) do
+        if _check_watchdogs(list, timer_event) then return true end
+    end
+
+    return false
 end
 
 -- iterate all sessions, and update facility/unit data & process control logic

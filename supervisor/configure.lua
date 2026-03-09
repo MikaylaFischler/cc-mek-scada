@@ -186,18 +186,18 @@ local function config_view(display)
 
     TextBox{parent=display,y=1,text="Supervisor Configurator",alignment=CENTER,fg_bg=style.header}
 
-    local root_pane_div = Div{parent=display,x=1,y=2}
+    local root_pane_div = Div{parent=display,y=2}
 
-    local main_page = Div{parent=root_pane_div,x=1,y=1}
-    local fac_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local net_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local log_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local summary = Div{parent=root_pane_div,x=1,y=1}
-    local changelog = Div{parent=root_pane_div,x=1,y=1}
-    local import_err = Div{parent=root_pane_div,x=1,y=1}
+    local main_page = Div{parent=root_pane_div,y=1}
+    local fac_cfg = Div{parent=root_pane_div,y=1}
+    local net_cfg = Div{parent=root_pane_div,y=1}
+    local log_cfg = Div{parent=root_pane_div,y=1}
+    local clr_cfg = Div{parent=root_pane_div,y=1}
+    local summary = Div{parent=root_pane_div,y=1}
+    local changelog = Div{parent=root_pane_div,y=1}
+    local import_err = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,fac_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
 
     --#region Main Page
 
@@ -271,20 +271,20 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
-    TextBox{parent=changelog,x=1,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
 
-    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local c_log = ListBox{parent=cl,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
         TextBox{parent=c_log,text=change[1],fg_bg=bw_fg_bg}
         for _, v in ipairs(change[2]) do
             local e = Div{parent=c_log,height=#util.strwrap(v,46)}
-            TextBox{parent=e,y=1,x=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
-    PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=cl,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 end

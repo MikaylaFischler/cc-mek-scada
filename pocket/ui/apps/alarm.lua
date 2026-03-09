@@ -2,7 +2,7 @@
 -- Alarm Test App
 --
 
-local iocontrol      = require("pocket.iocontrol")
+local ioctl          = require("pocket.ioctl")
 local pocket         = require("pocket.pocket")
 
 local core           = require("graphics.core")
@@ -30,15 +30,15 @@ local c_blue_gray = cpair(colors.blue, colors.gray)
 -- create alarm test page view
 ---@param root Container parent
 local function new_view(root)
-    local db    = iocontrol.get_db()
+    local db    = ioctl.get_db()
     local ps    = db.ps
     local ttest = db.diag.tone_test
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.ALARMS, frame, nil, true)
 
-    local main     = Div{parent=frame,x=1,y=1}
+    local main     = Div{parent=frame,y=1}
     local page_div = Div{parent=main,y=2,width=main.get_width()}
 
     --#region alarm testing
@@ -168,7 +168,7 @@ local function new_view(root)
     --#endregion
 
     -- setup multipane
-    local u_pane = MultiPane{parent=page_div,x=1,y=1,panes={alarms_div,tones_div,info_div}}
+    local u_pane = MultiPane{parent=page_div,y=1,panes={alarms_div,tones_div,info_div}}
     app.set_root_pane(u_pane)
 
     local list = {

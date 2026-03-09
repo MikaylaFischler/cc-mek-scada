@@ -7,7 +7,7 @@ local util       = require("scada-common.util")
 
 local lockbox    = require("lockbox")
 
-local iocontrol  = require("pocket.iocontrol")
+local ioctl      = require("pocket.ioctl")
 local pocket     = require("pocket.pocket")
 
 local core       = require("graphics.core")
@@ -27,9 +27,9 @@ local APP_ID = pocket.APP_ID
 -- create about page view
 ---@param root Container parent
 local function create_pages(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.ABOUT, frame)
 
@@ -38,7 +38,7 @@ local function create_pages(root)
     local fw_page = app.new_page(about_page, 3)
     local hw_page = app.new_page(about_page, 4)
 
-    local about = Div{parent=frame,x=1,y=2}
+    local about = Div{parent=frame,y=2}
 
     TextBox{parent=about,y=1,text="System Information",alignment=ALIGN.CENTER}
 
@@ -54,7 +54,7 @@ local function create_pages(root)
 
     local config = pocket.config
 
-    local nt_div = Div{parent=frame,x=1,y=2}
+    local nt_div = Div{parent=frame,y=2}
     TextBox{parent=nt_div,y=1,text="Network Details",alignment=ALIGN.CENTER}
 
     PushButton{parent=nt_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
@@ -83,14 +83,14 @@ local function create_pages(root)
 
     --#region Firmware Versions
 
-    local fw_div = Div{parent=frame,x=1,y=2}
+    local fw_div = Div{parent=frame,y=2}
     TextBox{parent=fw_div,y=1,text="Firmware Versions",alignment=ALIGN.CENTER}
 
     PushButton{parent=fw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
 
-    local fw_list_box = ListBox{parent=fw_div,x=1,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+    local fw_list_box = ListBox{parent=fw_div,y=3,scroll_height=100,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
-    local fw_list = Div{parent=fw_list_box,x=1,y=2,height=18}
+    local fw_list = Div{parent=fw_list_box,y=2,height=18}
 
     TextBox{parent=fw_list,x=2,text="Pocket Version",fg_bg=label}
     TextBox{parent=fw_list,x=2,text=db.version}
@@ -119,7 +119,7 @@ local function create_pages(root)
 
     --#region Host Versions
 
-    local hw_div = Div{parent=frame,x=1,y=2}
+    local hw_div = Div{parent=frame,y=2}
     TextBox{parent=hw_div,y=1,text="Host Versions",alignment=ALIGN.CENTER}
 
     PushButton{parent=hw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
@@ -134,7 +134,7 @@ local function create_pages(root)
 
     --#endregion
 
-    local root_pane = MultiPane{parent=frame,x=1,y=1,panes={about,nt_div,fw_div,hw_div}}
+    local root_pane = MultiPane{parent=frame,y=1,panes={about,nt_div,fw_div,hw_div}}
 
     app.set_root_pane(root_pane)
 end

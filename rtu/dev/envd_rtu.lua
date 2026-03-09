@@ -4,7 +4,7 @@ local envd_rtu = {}
 
 -- create new environment detector device
 ---@nodiscard
----@param envd table
+---@param envd EnvironmentDetector|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function envd_rtu.new(envd)
     local unit = rtu.init_unit(envd)

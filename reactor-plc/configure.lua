@@ -35,7 +35,8 @@ local changes = {
     { "v1.6.15", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
-    { "v1.10.0", { "Added support for wired communications modems" } }
+    { "v1.10.0", { "Added support for wired communications modems" } },
+    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } }
 }
 
 ---@class plc_configurator
@@ -78,6 +79,8 @@ local tool_ctl = {
 local tmp_cfg = {
     Networked = false,
     UnitID = 0,
+    FastRamp = true,
+    FastRampConfirmed = false,
     EmerCoolEnable = false,
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
@@ -106,6 +109,8 @@ local settings_cfg = {}
 local fields = {
     { "Networked", "Networked", false },
     { "UnitID", "Unit ID", 1 },
+    { "FastRamp", "Fast Ramp", true },
+    { "FastRampConfirmed", "Fast Ramp Confirmed", false },
     { "EmerCoolEnable", "Emergency Coolant", false },
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },
@@ -152,18 +157,18 @@ local function config_view(display)
 
     TextBox{parent=display,y=1,text="Reactor PLC Configurator",alignment=CENTER,fg_bg=style.header}
 
-    local root_pane_div = Div{parent=display,x=1,y=2}
+    local root_pane_div = Div{parent=display,y=2}
 
-    local main_page = Div{parent=root_pane_div,x=1,y=1}
-    local plc_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local net_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local log_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local clr_cfg = Div{parent=root_pane_div,x=1,y=1}
-    local summary = Div{parent=root_pane_div,x=1,y=1}
-    local changelog = Div{parent=root_pane_div,x=1,y=1}
-    local check_sys = Div{parent=root_pane_div,x=1,y=1}
+    local main_page = Div{parent=root_pane_div,y=1}
+    local plc_cfg = Div{parent=root_pane_div,y=1}
+    local net_cfg = Div{parent=root_pane_div,y=1}
+    local log_cfg = Div{parent=root_pane_div,y=1}
+    local clr_cfg = Div{parent=root_pane_div,y=1}
+    local summary = Div{parent=root_pane_div,y=1}
+    local changelog = Div{parent=root_pane_div,y=1}
+    local check_sys = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,x=1,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,check_sys}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,plc_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,check_sys}}
 
     --#region Main Page
 
@@ -231,20 +236,20 @@ local function config_view(display)
 
     local cl = Div{parent=changelog,x=2,y=4,width=49}
 
-    TextBox{parent=changelog,x=1,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
+    TextBox{parent=changelog,y=2,text=" Config Change Log",fg_bg=bw_fg_bg}
 
-    local c_log = ListBox{parent=cl,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local c_log = ListBox{parent=cl,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     for _, change in ipairs(changes) do
         TextBox{parent=c_log,text=change[1],fg_bg=bw_fg_bg}
         for _, v in ipairs(change[2]) do
             local e = Div{parent=c_log,height=#util.strwrap(v,46)}
-            TextBox{parent=e,y=1,x=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
+            TextBox{parent=e,y=1,text="- ",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=e,y=1,x=3,text=v,height=e.get_height(),fg_bg=cpair(colors.gray,colors.white)}
         end
     end
 
-    PushButton{parent=cl,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=cl,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

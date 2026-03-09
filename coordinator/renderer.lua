@@ -6,7 +6,7 @@ local log         = require("scada-common.log")
 local util        = require("scada-common.util")
 
 local coordinator = require("coordinator.coordinator")
-local iocontrol   = require("coordinator.iocontrol")
+local ioctl       = require("coordinator.ioctl")
 
 local style       = require("coordinator.ui.style")
 local pgi         = require("coordinator.ui.pgi")
@@ -193,7 +193,7 @@ function renderer.try_start_ui()
             if engine.monitors.main ~= nil then
                 engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
                 main_view(engine.ui.main_display)
-                iocontrol.fp_monitor_state("main", 3)
+                ioctl.fp_monitor_state("main", 3)
                 util.nop()
             end
 
@@ -201,7 +201,7 @@ function renderer.try_start_ui()
             if engine.monitors.flow ~= nil then
                 engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
                 flow_view(engine.ui.flow_display)
-                iocontrol.fp_monitor_state("flow", 3)
+                ioctl.fp_monitor_state("flow", 3)
                 util.nop()
             end
 
@@ -209,7 +209,7 @@ function renderer.try_start_ui()
             for idx, display in pairs(engine.monitors.unit_displays) do
                 engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
                 unit_view(engine.ui.unit_displays[idx], idx)
-                iocontrol.fp_monitor_state(idx, 3)
+                ioctl.fp_monitor_state(idx, 3)
                 util.nop()
             end
         end)
@@ -239,17 +239,17 @@ function renderer.close_ui()
 
     if engine.ui.main_display ~= nil then
         engine.ui.main_display.delete()
-        iocontrol.fp_monitor_state("main", 2)
+        ioctl.fp_monitor_state("main", 2)
     end
 
     if engine.ui.flow_display ~= nil then
         engine.ui.flow_display.delete()
-        iocontrol.fp_monitor_state("flow", 2)
+        ioctl.fp_monitor_state("flow", 2)
     end
 
     for idx, display in pairs(engine.ui.unit_displays) do
         display.delete()
-        iocontrol.fp_monitor_state(idx, 2)
+        ioctl.fp_monitor_state(idx, 2)
     end
 
     -- report ui as not ready
@@ -360,7 +360,7 @@ function renderer.handle_resize(name)
             ui.main_display = nil
         end
 
-        iocontrol.fp_monitor_state("main", 2)
+        ioctl.fp_monitor_state("main", 2)
 
         engine.dmesg_window.setVisible(not engine.ui_ready)
 
@@ -372,7 +372,7 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
-                iocontrol.fp_monitor_state("main", 3)
+                ioctl.fp_monitor_state("main", 3)
 
                 log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
@@ -399,7 +399,7 @@ function renderer.handle_resize(name)
             ui.flow_display = nil
         end
 
-        iocontrol.fp_monitor_state("flow", 2)
+        ioctl.fp_monitor_state("flow", 2)
 
         if engine.ui_ready then
             local draw_start = util.time_ms()
@@ -409,7 +409,7 @@ function renderer.handle_resize(name)
             end)
 
             if ok then
-                iocontrol.fp_monitor_state("flow", 3)
+                ioctl.fp_monitor_state("flow", 3)
 
                 log_render("flow view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
             else
@@ -438,7 +438,7 @@ function renderer.handle_resize(name)
                     ui.unit_displays[idx] = nil
                 end
 
-                iocontrol.fp_monitor_state(idx, 2)
+                ioctl.fp_monitor_state(idx, 2)
 
                 if engine.ui_ready then
                     local draw_start = util.time_ms()
@@ -448,7 +448,7 @@ function renderer.handle_resize(name)
                     end)
 
                     if ok then
-                        iocontrol.fp_monitor_state(idx, 3)
+                        ioctl.fp_monitor_state(idx, 3)
 
                         log_render("unit " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
                     else

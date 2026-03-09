@@ -5,7 +5,7 @@
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 local process       = require("pocket.process")
 
@@ -49,19 +49,19 @@ local hzd_dis_colors = style.hzd_dis_colors
 local function new_view(root)
     local btn_fg_bg = cpair(colors.green, colors.black)
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.CONTROL, frame, nil, false, true)
 
-    local load_div = Div{parent=frame,x=1,y=1}
-    local main = Div{parent=frame,x=1,y=1}
+    local load_div = Div{parent=frame,y=1}
+    local main = Div{parent=frame,y=1}
 
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.green,colors._INHERIT)}
 
-    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+    local load_pane = MultiPane{parent=main,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
@@ -126,13 +126,13 @@ local function new_view(root)
             u_page.tasks = { update }
 
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
-            PushButton{parent=u_div,x=1,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()prev(i)end}
+            PushButton{parent=u_div,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()prev(i)end}
             PushButton{parent=u_div,x=21,y=1,text=">",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=function()next(i)end}
 
             local rate = DataIndicator{parent=u_div,y=3,lu_colors=lu_col,label="Burn",unit="mB/t",format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
             local temp = DataIndicator{parent=u_div,lu_colors=lu_col,label="Temp",unit=db.temp_label,format="%10.2f",value=0,commas=true,width=26,fg_bg=text_fg}
 
-            local ctrl = IconIndicator{parent=u_div,x=1,y=6,label="Control State",states=mode_states}
+            local ctrl = IconIndicator{parent=u_div,y=6,label="Control State",states=mode_states}
 
             rate.register(u_ps, "act_burn_rate", rate.update)
             temp.register(u_ps, "temp", function (t) temp.update(db.temp_convert(t)) end)
@@ -201,7 +201,7 @@ local function new_view(root)
         db.facility.ack_alarms_ack = ack_a.on_response
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        local u_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(u_pane)
 
         set_sidebar()

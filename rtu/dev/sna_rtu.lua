@@ -4,7 +4,7 @@ local sna_rtu = {}
 
 -- create new solar neutron activator (SNA) device
 ---@nodiscard
----@param sna table
+---@param sna SolarNeutronActivator|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function sna_rtu.new(sna)
     local unit = rtu.init_unit(sna)

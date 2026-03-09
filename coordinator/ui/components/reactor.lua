@@ -1,6 +1,6 @@
 local types          = require("scada-common.types")
 
-local iocontrol      = require("coordinator.iocontrol")
+local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
@@ -25,7 +25,7 @@ local function new_view(root, x, y, ps)
     local text_fg = style.theme.text_fg
     local lu_col = style.lu_colors
 
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
     local reactor = Rectangle{parent=root,border=border(1,colors.gray,true),width=30,height=7,x=x,y=y}
 

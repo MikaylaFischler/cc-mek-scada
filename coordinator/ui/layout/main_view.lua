@@ -4,7 +4,7 @@
 
 local util          = require("scada-common.util")
 
-local iocontrol     = require("coordinator.iocontrol")
+local ioctl         = require("coordinator.ioctl")
 
 local style         = require("coordinator.ui.style")
 
@@ -25,17 +25,17 @@ local ALIGN = core.ALIGN
 local function init(main)
     local s_header = style.theme.header
 
-    local facility = iocontrol.get_db().facility
-    local units = iocontrol.get_db().units
+    local fac   = ioctl.get_db().facility
+    local units = ioctl.get_db().units
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=ALIGN.CENTER,fg_bg=s_header}
-    local ping = DataIndicator{parent=main,x=1,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=style.lg_white,width=12,fg_bg=s_header}
+    local ping = DataIndicator{parent=main,y=1,label="SVTT",format="%d",value=0,unit="ms",lu_colors=style.lg_white,width=12,fg_bg=s_header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
     local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,fg_bg=s_header}
 
-    ping.register(facility.ps, "sv_ping", ping.update)
-    datetime.register(facility.ps, "date_time", datetime.set_value)
+    ping.register(fac.ps, "sv_ping", ping.update)
+    datetime.register(fac.ps, "date_time", datetime.set_value)
 
     ---@type Div, Div, Div, Div
     local uo_1, uo_2, uo_3, uo_4
@@ -44,12 +44,12 @@ local function init(main)
     local row_1_height = 0
 
     -- unit overviews
-    if facility.num_units >= 1 then
+    if fac.num_units >= 1 then
         uo_1 = unit_overview(main, 2, 3, units[1])
         row_1_height = uo_1.get_height()
     end
 
-    if facility.num_units >= 2 then
+    if fac.num_units >= 2 then
         uo_2 = unit_overview(main, 84, 3, units[2])
         row_1_height = math.max(row_1_height, uo_2.get_height())
     end
@@ -58,14 +58,14 @@ local function init(main)
 
     util.nop()
 
-    if facility.num_units >= 3 then
+    if fac.num_units >= 3 then
         -- base offset 3, spacing 1, max height of units 1 and 2
         local row_2_offset = cnc_y_start
 
         uo_3 = unit_overview(main, 2, row_2_offset, units[3])
         cnc_y_start = row_2_offset + uo_3.get_height() + 1
 
-        if facility.num_units == 4 then
+        if fac.num_units == 4 then
             uo_4 = unit_overview(main, 84, row_2_offset, units[4])
             cnc_y_start = math.max(cnc_y_start, row_2_offset + uo_4.get_height() + 1)
         end
@@ -88,7 +88,7 @@ local function init(main)
 
     util.nop()
 
-    imatrix(main, 131, cnc_bottom_align_start, facility.induction_ps_tbl[1])
+    imatrix(main, 131, cnc_bottom_align_start, fac.induction_ps_tbl[1])
 end
 
 return init

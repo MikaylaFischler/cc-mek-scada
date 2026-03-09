@@ -1,8 +1,8 @@
-local comms     = require("scada-common.comms")
-local log       = require("scada-common.log")
-local util      = require("scada-common.util")
+local comms = require("scada-common.comms")
+local log   = require("scada-common.log")
+local util  = require("scada-common.util")
 
-local iocontrol = require("pocket.iocontrol")
+local ioctl = require("pocket.ioctl")
 
 local PROTOCOL = comms.PROTOCOL
 local DEVICE_TYPE = comms.DEVICE_TYPE
@@ -12,7 +12,7 @@ local CRDN_TYPE = comms.CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
 
-local LINK_STATE = iocontrol.LINK_STATE
+local LINK_STATE = ioctl.LINK_STATE
 
 local pocket = {}
 
@@ -276,8 +276,8 @@ function pocket.init_nav(smem)
 
             if (req_sv and not p_comms.is_sv_linked()) or (req_api and not p_comms.is_api_linked()) then
                 -- report required connction(s)
-                iocontrol.get_db().loader_require = { sv = req_sv, api = req_api }
-                iocontrol.get_db().ps.toggle("loader_reqs")
+                ioctl.get_db().loader_require = { sv = req_sv, api = req_api }
+                ioctl.get_db().ps.toggle("loader_reqs")
 
                 -- bring up the app loader
                 self.loader_return = app_id
@@ -489,13 +489,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         sv_watchdog.cancel()
         nav.unload_sv()
 
-        self.sv.r_seq_num = nil
-        self.sv.addr = comms.BROADCAST
-
         if self.sv.linked then
             self.sv.linked = false
             _send_sv(MGMT_TYPE.CLOSE, {})
         end
+
+        self.sv.r_seq_num = nil
+        self.sv.addr = comms.BROADCAST
     end
 
     -- close connection to coordinator API server
@@ -503,13 +503,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         api_watchdog.cancel()
         nav.unload_api()
 
-        self.api.r_seq_num = nil
-        self.api.addr = comms.BROADCAST
-
         if self.api.linked then
             self.api.linked = false
             _send_crd(MGMT_TYPE.CLOSE, {})
         end
+
+        self.api.r_seq_num = nil
+        self.api.addr = comms.BROADCAST
     end
 
     -- close the connections to the servers
@@ -522,11 +522,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     function public.link_update()
         if not (self.sv.linked and self.api.linked) then
             if self.api.linked then
-                iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY, false, nil)
+                ioctl.report_link_state(LINK_STATE.API_LINK_ONLY, false, nil)
             elseif self.sv.linked then
-                iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, nil, false)
+                ioctl.report_link_state(LINK_STATE.SV_LINK_ONLY, nil, false)
             else
-                iocontrol.report_link_state(LINK_STATE.UNLINKED, false, false)
+                ioctl.report_link_state(LINK_STATE.UNLINKED, false, false)
             end
 
             if self.establish_delay_counter <= 0 then
@@ -601,7 +601,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param auto_cfg [ PROCESS, number, number, number, number[] ]
+    ---@param auto_cfg auto_ctl_cfg
     function public.send_auto_start(auto_cfg)
         _send_api(CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(auto_cfg) })
     end
@@ -660,8 +660,8 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
     -- handle a packet
     ---@param packet mgmt_packet|crdn_packet|nil
     function public.handle_packet(packet)
-        local diag = iocontrol.get_db().diag
-        local ps   = iocontrol.get_db().ps
+        local diag = ioctl.get_db().diag
+        local ps   = ioctl.get_db().ps
 
         if packet ~= nil then
             local l_chan   = packet.scada_frame.local_channel()
@@ -699,13 +699,13 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local ack = packet.data[2] == true
 
                                 if cmd == FAC_COMMAND.SCRAM_ALL then
-                                    iocontrol.get_db().facility.scram_ack(ack)
+                                    ioctl.get_db().facility.scram_ack(ack)
                                 elseif cmd == FAC_COMMAND.STOP then
-                                    iocontrol.get_db().facility.stop_ack(ack)
+                                    ioctl.get_db().facility.stop_ack(ack)
                                 elseif cmd == FAC_COMMAND.START then
-                                    iocontrol.get_db().facility.start_ack(ack)
+                                    ioctl.get_db().facility.start_ack(ack)
                                 elseif cmd == FAC_COMMAND.ACK_ALL_ALARMS then
-                                    iocontrol.get_db().facility.ack_alarms_ack(ack)
+                                    ioctl.get_db().facility.ack_alarms_ack(ack)
                                 elseif cmd == FAC_COMMAND.SET_WASTE_MODE then
                                 elseif cmd == FAC_COMMAND.SET_PU_FB then
                                 elseif cmd == FAC_COMMAND.SET_SPS_LP then
@@ -722,7 +722,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 local unit_id = packet.data[2]
                                 local ack = packet.data[3] == true
 
-                                local unit = iocontrol.get_db().units[unit_id]  ---@type pioctl_unit
+                                local unit = ioctl.get_db().units[unit_id]  ---@type pkt_io_unit
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then
@@ -740,31 +740,31 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_FAC then
                             if _check_length(packet, 11) then
-                                iocontrol.rx.record_facility_data(packet.data)
+                                ioctl.rx.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_FAC_DTL then
                             if _check_length(packet, 12) then
-                                iocontrol.rx.record_fac_detail_data(packet.data)
+                                ioctl.rx.record_fac_detail_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
-                            if _check_length(packet, 12) and type(packet.data[1]) == "number" and iocontrol.get_db().units[packet.data[1]] then
-                                iocontrol.rx.record_unit_data(packet.data)
+                            if _check_length(packet, 12) and type(packet.data[1]) == "number" and ioctl.get_db().units[packet.data[1]] then
+                                ioctl.rx.record_unit_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_CTRL then
-                            if _check_length(packet, #iocontrol.get_db().units) then
-                                iocontrol.rx.record_control_data(packet.data)
+                            if _check_length(packet, #ioctl.get_db().units) then
+                                ioctl.rx.record_control_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_PROC then
-                            if _check_length(packet, #iocontrol.get_db().units + 1) then
-                                iocontrol.rx.record_process_data(packet.data)
+                            if _check_length(packet, #ioctl.get_db().units + 1) then
+                                ioctl.rx.record_process_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_WASTE then
-                            if _check_length(packet, #iocontrol.get_db().units + 1) then
-                                iocontrol.rx.record_waste_data(packet.data)
+                            if _check_length(packet, #ioctl.get_db().units + 1) then
+                                ioctl.rx.record_waste_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_RAD then
-                            if _check_length(packet, #iocontrol.get_db().units + 1) then
-                                iocontrol.rx.record_radiation_data(packet.data)
+                            if _check_length(packet, #ioctl.get_db().units + 1) then
+                                ioctl.rx.record_radiation_data(packet.data)
                             end
                         else _fail_type(packet) end
                     else
@@ -787,7 +787,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
                                 _send_api_keep_alive_ack(timestamp)
 
-                                iocontrol.report_crd_tt(trip_time)
+                                ioctl.report_crd_tt(trip_time)
                             end
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
@@ -811,19 +811,19 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         -- get configuration
                                         local conf = { num_units = fac_config[1], cooling = fac_config[2] }
 
-                                        iocontrol.init_fac(conf)
+                                        ioctl.init_fac(conf)
 
                                         log.info("coordinator connection established")
                                         self.establish_delay_counter = 0
                                         self.api.linked = true
                                         self.api.addr = src_addr
 
-                                        iocontrol.report_crd_link_error("")
+                                        ioctl.report_crd_link_error("")
 
                                         if self.sv.linked then
-                                            iocontrol.report_link_state(LINK_STATE.LINKED, nil, self.api.addr)
+                                            ioctl.report_link_state(LINK_STATE.LINKED, nil, self.api.addr)
                                         else
-                                            iocontrol.report_link_state(LINK_STATE.API_LINK_ONLY, nil, self.api.addr)
+                                            ioctl.report_link_state(LINK_STATE.API_LINK_ONLY, nil, self.api.addr)
                                         end
                                     else
                                         log.debug("invalid facility configuration table received from coordinator, establish failed")
@@ -835,19 +835,19 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if self.api.last_est_ack ~= est_ack then
                                     if est_ack == ESTABLISH_ACK.DENY then
                                         log.info("coordinator connection denied")
-                                        iocontrol.report_crd_link_error("denied")
+                                        ioctl.report_crd_link_error("denied")
                                     elseif est_ack == ESTABLISH_ACK.COLLISION then
                                         log.info("coordinator connection denied due to collision")
-                                        iocontrol.report_crd_link_error("collision")
+                                        ioctl.report_crd_link_error("collision")
                                     elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                         log.info("coordinator comms version mismatch")
-                                        iocontrol.report_crd_link_error("comms version mismatch")
+                                        ioctl.report_crd_link_error("comms version mismatch")
                                     elseif est_ack == ESTABLISH_ACK.BAD_API_VERSION then
                                         log.info("coordinator api version mismatch")
-                                        iocontrol.report_crd_link_error("API version mismatch")
+                                        ioctl.report_crd_link_error("API version mismatch")
                                     else
                                         log.debug("coordinator SCADA_MGMT establish packet reply unsupported")
-                                        iocontrol.report_crd_link_error("unknown reply")
+                                        ioctl.report_crd_link_error("unknown reply")
                                     end
                                 end
 
@@ -900,7 +900,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
                                 _send_sv_keep_alive_ack(timestamp)
 
-                                iocontrol.report_svr_tt(trip_time)
+                                ioctl.report_svr_tt(trip_time)
                             end
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
@@ -954,7 +954,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 log.debug("supervisor SCADA diag alarm set packet length/type mismatch")
                             end
                         elseif packet.type == MGMT_TYPE.INFO_LIST_CMP then
-                            iocontrol.rx.record_network_data(packet.data)
+                            ioctl.rx.record_network_data(packet.data)
                         else _fail_type(packet) end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
@@ -967,27 +967,27 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 self.sv.linked = true
                                 self.sv.addr = src_addr
 
-                                iocontrol.report_svr_link_error("")
+                                ioctl.report_svr_link_error("")
 
                                 if self.api.linked then
-                                    iocontrol.report_link_state(LINK_STATE.LINKED, self.sv.addr, nil)
+                                    ioctl.report_link_state(LINK_STATE.LINKED, self.sv.addr, nil)
                                 else
-                                    iocontrol.report_link_state(LINK_STATE.SV_LINK_ONLY, self.sv.addr, nil)
+                                    ioctl.report_link_state(LINK_STATE.SV_LINK_ONLY, self.sv.addr, nil)
                                 end
                             else
                                 if self.sv.last_est_ack ~= est_ack then
                                     if est_ack == ESTABLISH_ACK.DENY then
                                         log.info("supervisor connection denied")
-                                        iocontrol.report_svr_link_error("denied")
+                                        ioctl.report_svr_link_error("denied")
                                     elseif est_ack == ESTABLISH_ACK.COLLISION then
                                         log.info("supervisor connection denied due to collision")
-                                        iocontrol.report_svr_link_error("collision")
+                                        ioctl.report_svr_link_error("collision")
                                     elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                         log.info("supervisor comms version mismatch")
-                                        iocontrol.report_svr_link_error("comms version mismatch")
+                                        ioctl.report_svr_link_error("comms version mismatch")
                                     else
                                         log.debug("supervisor SCADA_MGMT establish packet reply unsupported")
-                                        iocontrol.report_svr_link_error("unknown reply")
+                                        ioctl.report_svr_link_error("unknown reply")
                                     end
                                 end
 

@@ -171,11 +171,11 @@ local function init(panel, config)
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
-    local status_trip_rct = Rectangle{parent=status,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local status_trip_rct = Rectangle{parent=status,height=3,border=border(1,s_hi_box.bkg,true),even_inner=true}
     local status_trip = Div{parent=status_trip_rct,height=1,fg_bg=s_hi_box}
     local scram = LED{parent=status_trip,width=10,label="RPS TRIP",colors=ind_red,flash=true,period=flasher.PERIOD.BLINK_250_MS}
 
-    local controls_rct = Rectangle{parent=status,width=status.get_width()-2,height=3,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local controls_rct = Rectangle{parent=status,width=status.get_width()-2,height=3,border=border(1,s_hi_box.bkg,true),even_inner=true}
     local controls = Div{parent=controls_rct,width=controls_rct.get_width()-2,height=1,fg_bg=s_hi_box}
     local button_padding = math.floor((controls.get_width() - 14) / 3)
     PushButton{parent=controls,x=button_padding+1,y=1,min_width=7,text="SCRAM",callback=databus.rps_scram,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.black,colors.red_off)}
@@ -184,7 +184,7 @@ local function init(panel, config)
     active.register(databus.ps, "reactor_active", active.update)
     scram.register(databus.ps, "rps_scram", scram.update)
 
-    local hw_labels = Rectangle{parent=status,width=status.get_width()-2,height=5,x=1,border=border(1,s_hi_box.bkg,true),even_inner=true}
+    local hw_labels = Rectangle{parent=status,width=status.get_width()-2,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
 ---@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())

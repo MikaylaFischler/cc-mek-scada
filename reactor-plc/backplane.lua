@@ -114,6 +114,7 @@ function backplane.init(config, __shared_memory)
 
         -- mount a virtual peripheral to init the RPS with
         local _, dev = ppm.mount_virtual()
+---@diagnostic disable-next-line: assign-type-mismatch
         plc_dev.reactor = dev
 
         log.info("BKPLN: mounted virtual device as reactor")
@@ -156,7 +157,7 @@ end
 -- handle a backplane peripheral attach
 ---@param iface string
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param print_no_fp function
 function backplane.attach(iface, type, device, print_no_fp)
     local MQ__RPS_CMD = _bp.smem.q_types.MQ__RPS_CMD
@@ -170,6 +171,8 @@ function backplane.attach(iface, type, device, print_no_fp)
 
     if type ~= nil and device ~= nil then
         if type == "fissionReactorLogicAdapter" then
+            ---@cast device FissionReactor
+
             if not state.no_reactor then
                 log.warning("BKPLN: !! DANGER !! an additional reactor (" .. iface .. ") was connected and will not be used!")
                 log.warning(multi_reactor_warn)
@@ -195,8 +198,6 @@ function backplane.attach(iface, type, device, print_no_fp)
             if ((not networked) or (state.wd_modem or state.wl_modem)) and state.reactor_formed then
                 state.degraded = false
             end
-
-            _bp.smem.q.mq_rps.push_command(MQ__RPS_CMD.SCRAM)
 
             sys.rps.reconnect_reactor(dev.reactor)
             if networked then
@@ -271,7 +272,7 @@ end
 -- handle a backplane peripheral detach
 ---@param iface string
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param print_no_fp function
 function backplane.detach(iface, type, device, print_no_fp)
     local MQ__RPS_CMD = _bp.smem.q_types.MQ__RPS_CMD
@@ -283,6 +284,8 @@ function backplane.detach(iface, type, device, print_no_fp)
     local sys   = _bp.smem.plc_sys
 
     if type == "fissionReactorLogicAdapter" then
+        ---@cast device FissionReactor
+
         log.info("BKPLN: REACTOR LINK_DOWN " .. iface)
 
         -- detect and warn about multiple reactors

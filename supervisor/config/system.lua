@@ -75,21 +75,21 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local net_c_5 = Div{parent=net_cfg,x=2,y=4,width=49}
     local net_c_6 = Div{parent=net_cfg,x=2,y=4,width=49}
 
-    local net_pane = MultiPane{parent=net_cfg,x=1,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4,net_c_5,net_c_6}}
+    local net_pane = MultiPane{parent=net_cfg,y=4,panes={net_c_1,net_c_2,net_c_3,net_c_4,net_c_5,net_c_6}}
 
-    TextBox{parent=net_cfg,x=1,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
+    TextBox{parent=net_cfg,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
-    TextBox{parent=net_c_1,x=1,y=1,text="Please select the network interface(s)."}
+    TextBox{parent=net_c_1,y=1,text="Please select the network interface(s)."}
     TextBox{parent=net_c_1,x=41,y=1,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function on_wired_change(_) tool_ctl.gen_modem_list() end
 
-    local wireless = Checkbox{parent=net_c_1,x=1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black)}
+    local wireless = Checkbox{parent=net_c_1,y=3,label="Wireless/Ender Modem",default=ini_cfg.WirelessModem,box_fg_bg=cpair(colors.lightBlue,colors.black)}
     TextBox{parent=net_c_1,x=24,y=3,text="(required for Pocket)",fg_bg=g_lg_fg_bg}
-    local wired = Checkbox{parent=net_c_1,x=1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
+    local wired = Checkbox{parent=net_c_1,y=5,label="Wired Modem",default=ini_cfg.WiredModem~=false,box_fg_bg=cpair(colors.lightBlue,colors.black),callback=on_wired_change}
     TextBox{parent=net_c_1,x=3,y=6,text="this one MUST ONLY connect to SCADA computers",fg_bg=cpair(colors.red,colors._INHERIT)}
     TextBox{parent=net_c_1,x=3,y=7,text="connecting it to peripherals will cause issues",fg_bg=g_lg_fg_bg}
-    local modem_list = ListBox{parent=net_c_1,x=1,y=8,height=5,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local modem_list = ListBox{parent=net_c_1,y=8,height=5,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local modem_err = TextBox{parent=net_c_1,x=8,y=14,width=35,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -114,12 +114,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
     end
 
-    PushButton{parent=net_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_2,x=1,y=1,text="Please assign device connection interfaces if you selected multiple network interfaces."}
+    TextBox{parent=net_c_2,y=1,text="Please assign device connection interfaces if you selected multiple network interfaces."}
     TextBox{parent=net_c_2,x=39,y=2,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
-    TextBox{parent=net_c_2,x=1,y=4,text="Reactor PLC\nRTU Gateway\nCoordinator",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_2,y=4,text="Reactor PLC\nRTU Gateway\nCoordinator",fg_bg=g_lg_fg_bg}
     local opts = { "Wireless", "Wired", "Both" }
     local plc_listen = Radio2D{parent=net_c_2,x=14,y=4,rows=1,columns=3,default=ini_cfg.PLC_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     local rtu_listen = Radio2D{parent=net_c_2,x=14,rows=1,columns=3,default=ini_cfg.RTU_Listen,options=opts,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lightBlue,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
@@ -175,29 +175,29 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         net_pane.set_value(3)
     end
 
-    PushButton{parent=net_c_2,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_2,y=14,text="\x1b Back",callback=function()net_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_2,x=44,y=14,text="Next \x1a",callback=submit_net_cfg_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=1,text="Please set the network channels below."}
-    TextBox{parent=net_c_3,x=1,y=3,height=4,text="Each of the 5 uniquely named channels must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_3,y=1,text="Please set the network channels below."}
+    TextBox{parent=net_c_3,y=3,height=4,text="Each of the 5 uniquely named channels must be the same for each device in this SCADA network. For multiplayer servers, it is recommended to not use the default channels.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=8,width=18,text="Supervisor Channel"}
+    TextBox{parent=net_c_3,y=8,width=18,text="Supervisor Channel"}
     local svr_chan = NumberField{parent=net_c_3,x=21,y=8,width=7,default=ini_cfg.SVR_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_3,x=29,y=8,height=4,text="[SVR_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=9,width=11,text="PLC Channel"}
+    TextBox{parent=net_c_3,y=9,width=11,text="PLC Channel"}
     local plc_chan = NumberField{parent=net_c_3,x=21,y=9,width=7,default=ini_cfg.PLC_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_3,x=29,y=9,height=4,text="[PLC_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=10,width=19,text="RTU Gateway Channel"}
+    TextBox{parent=net_c_3,y=10,width=19,text="RTU Gateway Channel"}
     local rtu_chan = NumberField{parent=net_c_3,x=21,y=10,width=7,default=ini_cfg.RTU_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_3,x=29,y=10,height=4,text="[RTU_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=11,width=19,text="Coordinator Channel"}
+    TextBox{parent=net_c_3,y=11,width=19,text="Coordinator Channel"}
     local crd_chan = NumberField{parent=net_c_3,x=21,y=11,width=7,default=ini_cfg.CRD_Channel,min=1,max=65535,fg_bg=bw_fg_bg}
     TextBox{parent=net_c_3,x=29,y=11,height=4,text="[CRD_CHANNEL]",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_3,x=1,y=12,width=14,text="Pocket Channel"}
+    TextBox{parent=net_c_3,y=12,width=14,text="Pocket Channel"}
     self.pkt_chan = NumberField{parent=net_c_3,x=21,y=12,width=7,default=ini_cfg.PKT_Channel,min=1,max=65535,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
     TextBox{parent=net_c_3,x=29,y=12,height=4,text="[PKT_CHANNEL]",fg_bg=g_lg_fg_bg}
 
@@ -217,22 +217,22 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else chan_err.show() end
     end
 
-    PushButton{parent=net_c_3,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_3,y=14,text="\x1b Back",callback=function()net_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_3,x=44,y=14,text="Next \x1a",callback=submit_channels,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=1,text="Please set the connection timeouts below."}
-    TextBox{parent=net_c_4,x=1,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_4,y=1,text="Please set the connection timeouts below."}
+    TextBox{parent=net_c_4,y=3,height=4,text="You generally should not need to modify these. On slow servers, you can try to increase this to make the system wait longer before assuming a disconnection. The default for all is 5 seconds.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=8,width=11,text="PLC Timeout"}
+    TextBox{parent=net_c_4,y=8,width=11,text="PLC Timeout"}
     local plc_timeout = NumberField{parent=net_c_4,x=21,y=8,width=7,default=ini_cfg.PLC_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=9,width=19,text="RTU Gateway Timeout"}
+    TextBox{parent=net_c_4,y=9,width=19,text="RTU Gateway Timeout"}
     local rtu_timeout = NumberField{parent=net_c_4,x=21,y=9,width=7,default=ini_cfg.RTU_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=10,width=19,text="Coordinator Timeout"}
+    TextBox{parent=net_c_4,y=10,width=19,text="Coordinator Timeout"}
     local crd_timeout = NumberField{parent=net_c_4,x=21,y=10,width=7,default=ini_cfg.CRD_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg}
 
-    TextBox{parent=net_c_4,x=1,y=11,width=14,text="Pocket Timeout"}
+    TextBox{parent=net_c_4,y=11,width=14,text="Pocket Timeout"}
     self.pkt_timeout = NumberField{parent=net_c_4,x=21,y=11,width=7,default=ini_cfg.PKT_Timeout,min=2,max=25,max_chars=6,max_frac_digits=2,allow_decimal=true,fg_bg=bw_fg_bg,dis_fg_bg=cpair(colors.lightGray,colors.white)}
 
     TextBox{parent=net_c_4,x=29,y=8,height=4,width=7,text="seconds\nseconds\nseconds\nseconds",fg_bg=g_lg_fg_bg}
@@ -259,14 +259,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else ct_err.show() end
     end
 
-    PushButton{parent=net_c_4,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_4,y=14,text="\x1b Back",callback=function()net_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_4,x=44,y=14,text="Next \x1a",callback=submit_timeouts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_5,x=1,y=1,text="Please set the wireless trusted range below."}
-    TextBox{parent=net_c_5,x=1,y=3,height=3,text="Setting this to a value larger than 0 prevents wireless connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
-    TextBox{parent=net_c_5,x=1,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_5,y=1,text="Please set the wireless trusted range below."}
+    TextBox{parent=net_c_5,y=3,height=3,text="Setting this to a value larger than 0 prevents wireless connections with devices that many meters (blocks) away in any direction.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_5,y=7,height=2,text="This is optional. You can disable this functionality by setting the value to 0.",fg_bg=g_lg_fg_bg}
 
-    local range = NumberField{parent=net_c_5,x=1,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
+    local range = NumberField{parent=net_c_5,y=10,width=10,default=ini_cfg.TrustedRange,min=0,max_chars=20,allow_decimal=true,fg_bg=bw_fg_bg}
 
     local tr_err = TextBox{parent=net_c_5,x=8,y=14,width=35,text="Please set the trusted range.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -279,14 +279,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else tr_err.show() end
     end
 
-    PushButton{parent=net_c_5,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_5,y=14,text="\x1b Back",callback=function()net_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_5,x=44,y=14,text="Next \x1a",callback=submit_tr,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=net_c_6,x=1,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
-    TextBox{parent=net_c_6,x=1,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for wireless security on multiplayer servers. All devices on the same wireless network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
+    TextBox{parent=net_c_6,y=1,height=2,text="Optionally, set the facility authentication key below. Do NOT use one of your passwords."}
+    TextBox{parent=net_c_6,y=4,height=6,text="This enables verifying that messages are authentic, so it is intended for wireless security on multiplayer servers. All devices on the same wireless network MUST use the same key if any device has a key. This does result in some extra computation (can slow things down).",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=net_c_6,x=1,y=11,text="Auth Key (Wireless Only, Not Used for Wired)"}
-    local key, _ = TextField{parent=net_c_6,x=1,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
+    TextBox{parent=net_c_6,y=11,text="Auth Key (Wireless Only, Not Used for Wired)"}
+    local key, _ = TextField{parent=net_c_6,y=12,max_len=64,value=ini_cfg.AuthKey,width=32,height=1,fg_bg=bw_fg_bg}
 
     local function censor_key(enable) key.censor(tri(enable, "*", nil)) end
 
@@ -306,7 +306,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else key_err.show() end
     end
 
-    PushButton{parent=net_c_6,x=1,y=14,text="\x1b Back",callback=function()net_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_6,y=14,text="\x1b Back",callback=function()net_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_6,x=44,y=14,text="Next \x1a",callback=submit_auth,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -315,17 +315,17 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     local log_c_1 = Div{parent=log_cfg,x=2,y=4,width=49}
 
-    TextBox{parent=log_cfg,x=1,y=2,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
+    TextBox{parent=log_cfg,y=2,text=" Logging Configuration",fg_bg=cpair(colors.black,colors.pink)}
 
-    TextBox{parent=log_c_1,x=1,y=1,text="Please configure logging below."}
+    TextBox{parent=log_c_1,y=1,text="Please configure logging below."}
 
-    TextBox{parent=log_c_1,x=1,y=3,text="Log File Mode"}
-    local mode = RadioButton{parent=log_c_1,x=1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
+    TextBox{parent=log_c_1,y=3,text="Log File Mode"}
+    local mode = RadioButton{parent=log_c_1,y=4,default=ini_cfg.LogMode+1,options={"Append on Startup","Replace on Startup"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.pink}
 
-    TextBox{parent=log_c_1,x=1,y=7,text="Log File Path"}
-    local path = TextField{parent=log_c_1,x=1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
+    TextBox{parent=log_c_1,y=7,text="Log File Path"}
+    local path = TextField{parent=log_c_1,y=8,width=49,height=1,value=ini_cfg.LogPath,max_len=128,fg_bg=bw_fg_bg}
 
-    local en_dbg = Checkbox{parent=log_c_1,x=1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
+    local en_dbg = Checkbox{parent=log_c_1,y=10,default=ini_cfg.LogDebug,label="Enable Logging Debug Messages",box_fg_bg=cpair(colors.pink,colors.black)}
     TextBox{parent=log_c_1,x=3,y=11,height=2,text="This results in much larger log files. It is best to only use this when there is a problem.",fg_bg=g_lg_fg_bg}
 
     local path_err = TextBox{parent=log_c_1,x=8,y=14,width=35,text="Please provide a log file path.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -342,7 +342,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         else path_err.show() end
     end
 
-    PushButton{parent=log_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -354,17 +354,17 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local clr_c_3 = Div{parent=clr_cfg,x=2,y=4,width=49}
     local clr_c_4 = Div{parent=clr_cfg,x=2,y=4,width=49}
 
-    local clr_pane = MultiPane{parent=clr_cfg,x=1,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
+    local clr_pane = MultiPane{parent=clr_cfg,y=4,panes={clr_c_1,clr_c_2,clr_c_3,clr_c_4}}
 
-    TextBox{parent=clr_cfg,x=1,y=2,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+    TextBox{parent=clr_cfg,y=2,text=" Color Configuration",fg_bg=cpair(colors.black,colors.magenta)}
 
-    TextBox{parent=clr_c_1,x=1,y=1,height=2,text="Here you can select the color theme for the front panel."}
-    TextBox{parent=clr_c_1,x=1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=clr_c_1,y=1,height=2,text="Here you can select the color theme for the front panel."}
+    TextBox{parent=clr_c_1,y=4,height=2,text="Click 'Accessibility' below to access colorblind assistive options.",fg_bg=g_lg_fg_bg}
 
-    TextBox{parent=clr_c_1,x=1,y=7,text="Front Panel Theme"}
-    local fp_theme = RadioButton{parent=clr_c_1,x=1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    TextBox{parent=clr_c_1,y=7,text="Front Panel Theme"}
+    local fp_theme = RadioButton{parent=clr_c_1,y=8,default=ini_cfg.FrontPanelTheme,options=themes.FP_THEME_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
-    TextBox{parent=clr_c_2,x=1,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
+    TextBox{parent=clr_c_2,y=1,height=6,text="This system uses color heavily to distinguish ok and not, with some indicators using many colors. By selecting a mode below, indicators will change as shown. For non-standard modes, indicators with more than two colors will be split up."}
 
     TextBox{parent=clr_c_2,x=21,y=7,text="Preview"}
     local _ = IndLight{parent=clr_c_2,x=21,y=8,label="Good",colors=cpair(colors.black,colors.green)}
@@ -393,8 +393,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
     end
 
-    TextBox{parent=clr_c_2,x=1,y=7,width=10,text="Color Mode"}
-    local c_mode = RadioButton{parent=clr_c_2,x=1,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    TextBox{parent=clr_c_2,y=7,width=10,text="Color Mode"}
+    local c_mode = RadioButton{parent=clr_c_2,y=8,default=ini_cfg.ColorMode,options=themes.COLOR_MODE_NAMES,callback=recolor,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
 
     TextBox{parent=clr_c_2,x=21,y=13,height=2,width=18,text="Note: exact color varies by theme.",fg_bg=g_lg_fg_bg}
 
@@ -435,7 +435,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
     end
 
-    PushButton{parent=clr_c_1,x=1,y=14,text="\x1b Back",callback=back_from_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=clr_c_1,y=14,text="\x1b Back",callback=back_from_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=clr_c_1,x=8,y=14,min_width=15,text="Accessibility",callback=show_access,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.color_next = PushButton{parent=clr_c_1,x=44,y=14,text="Next \x1a",callback=submit_colors,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     tool_ctl.color_apply = PushButton{parent=clr_c_1,x=43,y=14,min_width=7,text="Apply",callback=submit_colors,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
@@ -447,12 +447,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         clr_pane.set_value(1)
     end
 
-    TextBox{parent=clr_c_3,x=1,y=1,text="Settings saved!"}
-    PushButton{parent=clr_c_3,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=clr_c_3,y=1,text="Settings saved!"}
+    PushButton{parent=clr_c_3,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
     PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=clr_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=clr_c_4,x=1,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    TextBox{parent=clr_c_4,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=clr_c_4,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
     PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -464,11 +464,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local sum_c_3 = Div{parent=summary,x=2,y=4,width=49}
     local sum_c_4 = Div{parent=summary,x=2,y=4,width=49}
 
-    local sum_pane = MultiPane{parent=summary,x=1,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
+    local sum_pane = MultiPane{parent=summary,y=4,panes={sum_c_1,sum_c_2,sum_c_3,sum_c_4}}
 
-    TextBox{parent=summary,x=1,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
+    TextBox{parent=summary,y=2,text=" Summary",fg_bg=cpair(colors.black,colors.green)}
 
-    local setting_list = ListBox{parent=sum_c_1,x=1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local setting_list = ListBox{parent=sum_c_1,y=1,height=12,width=49,scroll_height=100,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function back_from_settings()
         if tool_ctl.viewing_config or self.importing_legacy then
@@ -564,11 +564,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
     end
 
-    PushButton{parent=sum_c_1,x=1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_1,y=14,text="\x1b Back",callback=back_from_settings,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.show_key_btn = PushButton{parent=sum_c_1,x=8,y=14,min_width=17,text="Unhide Auth Key",callback=function()self.show_auth_key()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.settings_apply = PushButton{parent=sum_c_1,x=43,y=14,min_width=7,text="Apply",callback=save_and_continue,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=sum_c_2,x=1,y=1,text="Settings saved!"}
+    TextBox{parent=sum_c_2,y=1,text="Settings saved!"}
 
     local function go_home()
         main_pane.set_value(1)
@@ -578,21 +578,21 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         sum_pane.set_value(1)
     end
 
-    PushButton{parent=sum_c_2,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_2,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_3,x=1,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
+    TextBox{parent=sum_c_3,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
     local function delete_legacy()
         fs.delete("/supervisor/config.lua")
         exit()
     end
 
-    PushButton{parent=sum_c_3,x=1,y=14,min_width=8,text="Cancel",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=sum_c_3,y=14,min_width=8,text="Cancel",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_3,x=44,y=14,min_width=6,text="OK",callback=delete_legacy,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.gray)}
 
-    TextBox{parent=sum_c_4,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=sum_c_4,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=sum_c_4,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=sum_c_4,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
     --#endregion
@@ -601,12 +601,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
     local i_err = Div{parent=import_err,x=2,y=4,width=49}
 
-    TextBox{parent=import_err,x=1,y=2,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
-    TextBox{parent=i_err,x=1,y=1,text="There is a problem with your config.lua file:"}
+    TextBox{parent=import_err,y=2,text=" Import Error",fg_bg=cpair(colors.black,colors.red)}
+    TextBox{parent=i_err,y=1,text="There is a problem with your config.lua file:"}
 
-    local import_err_msg = TextBox{parent=i_err,x=1,y=3,height=6,text=""}
+    local import_err_msg = TextBox{parent=i_err,y=3,height=6,text=""}
 
-    PushButton{parent=i_err,x=1,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=i_err,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=i_err,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
 
     --#endregion
@@ -870,7 +870,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
                 local textbox
                 if height > 1 then
-                    textbox = TextBox{parent=line,x=1,y=2,text=val,height=height-1}
+                    textbox = TextBox{parent=line,y=2,text=val,height=height-1}
                 else
                     textbox = TextBox{parent=line,x=label_w+1,y=1,text=val,alignment=RIGHT}
                 end
@@ -900,19 +900,19 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
 
         if missing.tmp and tmp_cfg.WiredModem then
-            local line = Div{parent=modem_list,x=1,y=1,height=1}
+            local line = Div{parent=modem_list,y=1,height=1}
 
-            TextBox{parent=line,x=1,y=1,width=4,text="Used",fg_bg=cpair(tri(enable,colors.blue,colors.gray),colors.white)}
+            TextBox{parent=line,y=1,width=4,text="Used",fg_bg=cpair(tri(enable,colors.blue,colors.gray),colors.white)}
             PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}.disable()
             TextBox{parent=line,x=15,y=1,text="[missing]",fg_bg=cpair(colors.red,colors.white)}
             TextBox{parent=line,x=25,y=1,text=tmp_cfg.WiredModem}
         end
 
         if missing.ini and ini_cfg.WiredModem and (tmp_cfg.WiredModem ~= ini_cfg.WiredModem) then
-            local line = Div{parent=modem_list,x=1,y=1,height=1}
+            local line = Div{parent=modem_list,y=1,height=1}
             local used = tmp_cfg.WiredModem == ini_cfg.WiredModem
 
-            TextBox{parent=line,x=1,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
+            TextBox{parent=line,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
             local select_btn = PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()select(ini_cfg.WiredModem)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}
             TextBox{parent=line,x=15,y=1,text="[missing]",fg_bg=cpair(colors.red,colors.white)}
             TextBox{parent=line,x=25,y=1,text=ini_cfg.WiredModem}
@@ -922,10 +922,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
         -- list wired modems
         for iface, _ in pairs(modems) do
-            local line = Div{parent=modem_list,x=1,y=1,height=1}
+            local line = Div{parent=modem_list,y=1,height=1}
             local used = tmp_cfg.WiredModem == iface
 
-            TextBox{parent=line,x=1,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
+            TextBox{parent=line,y=1,width=4,text=tri(used,"Used","----"),fg_bg=cpair(tri(used and enable,colors.blue,colors.gray),colors.white)}
             local select_btn = PushButton{parent=line,x=6,y=1,min_width=8,height=1,text="SELECT",callback=function()select(iface)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=g_lg_fg_bg}
             TextBox{parent=line,x=15,y=1,text=iface}
 

@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.8.1"
+util.version = "1.8.4"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -199,7 +199,7 @@ function util.sign(x) return util.trinary(x < 0, -1, 1) end
 ---@return integer rounded
 function util.round(x) return math.floor(x + 0.5) end
 
--- get a new moving average object
+-- get a new moving average object (FIR filter)
 ---@nodiscard
 ---@param length integer history length
 function util.mov_avg(length)

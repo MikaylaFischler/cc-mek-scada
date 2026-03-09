@@ -18,7 +18,7 @@ local TNK_STATE = types.TANK_STATE
 local MTX_STATE = types.IMATRIX_STATE
 local SPS_STATE = types.SPS_STATE
 
-local io        ---@type pocket_ioctl
+local io        ---@type pkt_io
 local iorx = {} ---@class iorx
 
 -- populate facility data from API_GET_FAC
@@ -72,6 +72,7 @@ end
 ---@param data table
 function iorx.record_unit_data(data)
     local unit = io.units[data[1]]
+    local u_ps = unit.unit_ps
 
     unit.connected = data[2]
     local comp_statuses = data[3]
@@ -80,8 +81,8 @@ function iorx.record_unit_data(data)
 
     local next_c_stat = 1
 
-    unit.unit_ps.publish("auto_group_id", unit.a_group)
-    unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+    u_ps.publish("auto_group_id", unit.a_group)
+    u_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
 
     --#region Annunciator
 
@@ -106,7 +107,7 @@ function iorx.record_unit_data(data)
 
             if not every then rcs_disconn = true end
 
-            unit.unit_ps.publish("U_" .. key, every)
+            u_ps.publish("U_" .. key, every)
         elseif key == "HeatingRateLow" or key == "WaterLevelLow" then
             -- split up array for all boilers
             local any = false
@@ -121,7 +122,7 @@ function iorx.record_unit_data(data)
                 rcs_hazard = true
             end
 
-            unit.unit_ps.publish("U_" .. key, any)
+            u_ps.publish("U_" .. key, any)
         elseif key == "SteamDumpOpen" or key == "TurbineOverSpeed" or key == "GeneratorTrip" or key == "TurbineTrip" then
             -- split up array for all turbines
             local any = false
@@ -136,10 +137,10 @@ function iorx.record_unit_data(data)
                 rcs_hazard = true
             end
 
-            unit.unit_ps.publish("U_" .. key, any)
+            u_ps.publish("U_" .. key, any)
         else
             -- non-table fields
-            unit.unit_ps.publish(key, val)
+            u_ps.publish(key, val)
         end
     end
 
@@ -157,7 +158,7 @@ function iorx.record_unit_data(data)
         rcs_status = 1
     end
 
-    unit.unit_ps.publish("U_RCS", rcs_status)
+    u_ps.publish("U_RCS", rcs_status)
 
     --#endregion
 
@@ -193,27 +194,27 @@ function iorx.record_unit_data(data)
 
         for key, val in pairs(unit.reactor_data) do
             if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                unit.unit_ps.publish(key, val)
+                u_ps.publish(key, val)
             end
         end
 
         for key, val in pairs(unit.reactor_data.rps_status) do
-            unit.unit_ps.publish(key, val)
+            u_ps.publish(key, val)
         end
 
         for key, val in pairs(unit.reactor_data.mek_struct) do
-            unit.unit_ps.publish(key, val)
+            u_ps.publish(key, val)
         end
 
         for key, val in pairs(unit.reactor_data.mek_status) do
-            unit.unit_ps.publish(key, val)
+            u_ps.publish(key, val)
         end
     end
 
-    unit.unit_ps.publish("U_ControlStatus", control_status)
-    unit.unit_ps.publish("U_ReactorStatus", reactor_status)
-    unit.unit_ps.publish("U_ReactorStateStatus", comp_statuses[next_c_stat])
-    unit.unit_ps.publish("U_RPS", rps_status)
+    u_ps.publish("U_ControlStatus", control_status)
+    u_ps.publish("U_ReactorStatus", reactor_status)
+    u_ps.publish("U_ReactorStateStatus", comp_statuses[next_c_stat])
+    u_ps.publish("U_RPS", rps_status)
 
     next_c_stat = next_c_stat + 1
 
@@ -493,7 +494,7 @@ function iorx.record_unit_data(data)
         table.insert(ecam, { color = colors.green, text = "TURBINE" .. plural .. util.trinary(unit.turbine_flow_stable, " STABLE", " STABILIZING"), items = {}})
     end
 
-    unit.unit_ps.publish("U_ECAM", textutils.serialize(ecam))
+    u_ps.publish("U_ECAM", textutils.serialize(ecam))
 
     --#endregion
 end
@@ -503,43 +504,45 @@ end
 function iorx.record_control_data(data)
     for u_id = 1, #data do
         local unit = io.units[u_id]
+        local u_ps = unit.unit_ps
         local u_data = data[u_id]
+        local rct = unit.reactor_data
 
         unit.connected = u_data[1]
 
-        unit.reactor_data.rps_tripped = u_data[2]
-        unit.unit_ps.publish("rps_tripped", u_data[2])
-        unit.reactor_data.mek_status.status = u_data[3]
-        unit.unit_ps.publish("status", u_data[3])
-        unit.reactor_data.mek_status.temp = u_data[4]
-        unit.unit_ps.publish("temp", u_data[4])
-        unit.reactor_data.mek_status.burn_rate = u_data[5]
-        unit.unit_ps.publish("burn_rate", u_data[5])
-        unit.reactor_data.mek_status.act_burn_rate = u_data[6]
-        unit.unit_ps.publish("act_burn_rate", u_data[6])
-        unit.reactor_data.mek_struct.max_burn = u_data[7]
-        unit.unit_ps.publish("max_burn", u_data[7])
+        rct.rps_tripped = u_data[2]
+        u_ps.publish("rps_tripped", u_data[2])
+        rct.mek_status.status = u_data[3]
+        u_ps.publish("status", u_data[3])
+        rct.mek_status.temp = u_data[4]
+        u_ps.publish("temp", u_data[4])
+        rct.mek_status.burn_rate = u_data[5]
+        u_ps.publish("burn_rate", u_data[5])
+        rct.mek_status.act_burn_rate = u_data[6]
+        u_ps.publish("act_burn_rate", u_data[6])
+        rct.mek_struct.max_burn = u_data[7]
+        u_ps.publish("max_burn", u_data[7])
 
         unit.annunciator.AutoControl = u_data[8]
-        unit.unit_ps.publish("AutoControl", u_data[8])
+        u_ps.publish("AutoControl", u_data[8])
 
         unit.a_group = u_data[9]
-        unit.unit_ps.publish("auto_group_id", unit.a_group)
-        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+        u_ps.publish("auto_group_id", unit.a_group)
+        u_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
 
         local control_status = 1
 
         if unit.connected then
-            if unit.reactor_data.rps_tripped then
+            if rct.rps_tripped then
                 control_status = 2
             end
 
-            if unit.reactor_data.mek_status.status then
+            if rct.mek_status.status then
                 control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
             end
         end
 
-        unit.unit_ps.publish("U_ControlStatus", control_status)
+        u_ps.publish("U_ControlStatus", control_status)
     end
 end
 
@@ -549,6 +552,7 @@ function iorx.record_process_data(data)
     -- get unit data
     for u_id = 1, #io.units do
         local unit = io.units[u_id]
+        local u_ps = unit.unit_ps
         local u_data = data[u_id]
 
         unit.reactor_data.mek_status.status = u_data[1]
@@ -556,18 +560,19 @@ function iorx.record_process_data(data)
         unit.annunciator.AutoControl = u_data[6]
         unit.a_group = u_data[7]
 
-        unit.unit_ps.publish("status", u_data[1])
-        unit.unit_ps.publish("max_burn", u_data[2])
-        unit.unit_ps.publish("burn_limit", u_data[3])
-        unit.unit_ps.publish("U_AutoReady", u_data[4])
-        unit.unit_ps.publish("U_AutoDegraded", u_data[5])
-        unit.unit_ps.publish("AutoControl", u_data[6])
-        unit.unit_ps.publish("auto_group_id", unit.a_group)
-        unit.unit_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
+        u_ps.publish("status", u_data[1])
+        u_ps.publish("max_burn", u_data[2])
+        u_ps.publish("burn_limit", u_data[3])
+        u_ps.publish("U_AutoReady", u_data[4])
+        u_ps.publish("U_AutoDegraded", u_data[5])
+        u_ps.publish("AutoControl", u_data[6])
+        u_ps.publish("auto_group_id", unit.a_group)
+        u_ps.publish("auto_group", types.AUTO_GROUP_NAMES[unit.a_group + 1])
     end
 
     -- get facility data
     local fac = io.facility
+    local f_ps = fac.ps
     local f_data = data[#io.units + 1]
 
     fac.status_lines = f_data[1]
@@ -580,25 +585,27 @@ function iorx.record_process_data(data)
     fac.auto_scram = f_data[3]
     fac.ascram_status = f_data[4]
 
-    fac.ps.publish("status_line_1", fac.status_lines[1])
-    fac.ps.publish("status_line_2", fac.status_lines[2])
+    f_ps.publish("status_line_1", fac.status_lines[1])
+    f_ps.publish("status_line_2", fac.status_lines[2])
 
-    fac.ps.publish("auto_ready", fac.auto_ready)
-    fac.ps.publish("auto_active", fac.auto_active)
-    fac.ps.publish("auto_ramping", fac.auto_ramping)
-    fac.ps.publish("auto_saturated", fac.auto_saturated)
+    f_ps.publish("auto_ready", fac.auto_ready)
+    f_ps.publish("auto_active", fac.auto_active)
+    f_ps.publish("auto_ramping", fac.auto_ramping)
+    f_ps.publish("auto_saturated", fac.auto_saturated)
 
-    fac.ps.publish("auto_scram", fac.auto_scram)
-    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
-    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
-    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
-    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+    f_ps.publish("auto_scram", fac.auto_scram)
+    f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
+    f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    f_ps.publish("as_radiation", fac.ascram_status.radiation)
+    f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
 
-    fac.ps.publish("process_mode", f_data[5][1])
-    fac.ps.publish("process_burn_target", f_data[5][2])
-    fac.ps.publish("process_charge_target", f_data[5][3])
-    fac.ps.publish("process_gen_target", f_data[5][4])
+    f_ps.publish("process_mode", f_data[5][1])
+    f_ps.publish("process_burn_target", f_data[5][2])
+    f_ps.publish("process_range_start", f_data[5][3])
+    f_ps.publish("process_range_stop", f_data[5][4])
+    f_ps.publish("process_charge_target", f_data[5][5])
+    f_ps.publish("process_gen_target", f_data[5][6])
 end
 
 -- update waste app with unit data from API_GET_WASTE
@@ -607,6 +614,7 @@ function iorx.record_waste_data(data)
     -- get unit data
     for u_id = 1, #io.units do
         local unit = io.units[u_id]
+        local u_ps = unit.unit_ps
         local u_data = data[u_id]
 
         unit.waste_mode = u_data[1]
@@ -617,53 +625,55 @@ function iorx.record_waste_data(data)
         unit.sna_out_rate = u_data[6]
         unit.waste_stats = u_data[7]
 
-        unit.unit_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
-        unit.unit_ps.publish("U_WasteMode", unit.waste_mode)
-        unit.unit_ps.publish("U_WasteProduct", unit.waste_product)
+        u_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+        u_ps.publish("U_WasteMode", unit.waste_mode)
+        u_ps.publish("U_WasteProduct", unit.waste_product)
 
-        unit.unit_ps.publish("sna_count", unit.num_snas)
-        unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
-        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
-        unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
+        u_ps.publish("sna_count", unit.num_snas)
+        u_ps.publish("sna_peak_rate", unit.sna_peak_rate)
+        u_ps.publish("sna_max_rate", unit.sna_max_rate)
+        u_ps.publish("sna_out_rate", unit.sna_out_rate)
 
-        unit.unit_ps.publish("pu_rate", unit.waste_stats[1])
-        unit.unit_ps.publish("po_rate", unit.waste_stats[2])
-        unit.unit_ps.publish("po_pl_rate", unit.waste_stats[3])
+        u_ps.publish("pu_rate", unit.waste_stats[1])
+        u_ps.publish("po_rate", unit.waste_stats[2])
+        u_ps.publish("po_pl_rate", unit.waste_stats[3])
     end
 
     -- get facility data
     local fac = io.facility
+    local f_ps = fac.ps
     local f_data = data[#io.units + 1]
 
     fac.auto_current_waste_product = f_data[1]
     fac.auto_pu_fallback_active = f_data[2]
     fac.auto_sps_disabled = f_data[3]
 
-    fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
-    fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
-    fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
+    f_ps.publish("current_waste_product", fac.auto_current_waste_product)
+    f_ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+    f_ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
 
-    fac.ps.publish("process_waste_product", f_data[4])
-    fac.ps.publish("process_pu_fallback", f_data[5])
-    fac.ps.publish("process_sps_low_power", f_data[6])
+    f_ps.publish("process_waste_product", f_data[4])
+    f_ps.publish("process_pu_fallback", f_data[5])
+    f_ps.publish("process_sps_low_power", f_data[6])
 
     fac.waste_stats = f_data[7]
 
-    fac.ps.publish("burn_sum", fac.waste_stats[1])
-    fac.ps.publish("pu_rate", fac.waste_stats[2])
-    fac.ps.publish("po_rate", fac.waste_stats[3])
-    fac.ps.publish("po_pl_rate", fac.waste_stats[4])
-    fac.ps.publish("po_am_rate", fac.waste_stats[5])
-    fac.ps.publish("spent_waste_rate", fac.waste_stats[6])
+    f_ps.publish("burn_sum", fac.waste_stats[1])
+    f_ps.publish("pu_rate", fac.waste_stats[2])
+    f_ps.publish("po_rate", fac.waste_stats[3])
+    f_ps.publish("po_pl_rate", fac.waste_stats[4])
+    f_ps.publish("po_am_rate", fac.waste_stats[5])
+    f_ps.publish("spent_waste_rate", fac.waste_stats[6])
 
     fac.sps_ps_tbl[1].publish("SPSStateStatus", f_data[8])
-    fac.ps.publish("sps_process_rate", f_data[9])
+    f_ps.publish("sps_process_rate", f_data[9])
 end
 
 -- update facility app with facility and unit data from API_GET_FAC_DTL
 ---@param data table
 function iorx.record_fac_detail_data(data)
     local fac = io.facility
+    local f_ps = fac.ps
 
     local tank_statuses = data[5]
     local next_t_stat = 1
@@ -675,14 +685,14 @@ function iorx.record_fac_detail_data(data)
     fac.auto_scram = data[3]
     fac.ascram_status = data[4]
 
-    fac.ps.publish("all_sys_ok", fac.all_sys_ok)
-    fac.ps.publish("rtu_count", fac.rtu_count)
-    fac.ps.publish("auto_scram", fac.auto_scram)
-    fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-    fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
-    fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
-    fac.ps.publish("as_radiation", fac.ascram_status.radiation)
-    fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+    f_ps.publish("all_sys_ok", fac.all_sys_ok)
+    f_ps.publish("rtu_count", fac.rtu_count)
+    f_ps.publish("auto_scram", fac.auto_scram)
+    f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
+    f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    f_ps.publish("as_radiation", fac.ascram_status.radiation)
+    f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
 
     -- unit data
 

@@ -1,11 +1,11 @@
 
-local log       = require("scada-common.log")
-local mqueue    = require("scada-common.mqueue")
-local util      = require("scada-common.util")
+local log    = require("scada-common.log")
+local mqueue = require("scada-common.mqueue")
+local util   = require("scada-common.util")
 
-local iocontrol = require("coordinator.iocontrol")
+local ioctl  = require("coordinator.ioctl")
 
-local pocket    = require("coordinator.session.pocket")
+local pocket = require("coordinator.session.pocket")
 
 local apisessions = {}
 
@@ -112,7 +112,7 @@ function apisessions.establish_session(source_addr, i_seq_num, version)
 
     setmetatable(pkt_s, mt)
 
-    iocontrol.fp_pkt_connected(id, version, source_addr)
+    ioctl.fp_pkt_connected(id, version, source_addr)
     log.debug(util.c("API: established new session: ", pkt_s))
 
     self.next_id = id + 1
@@ -123,6 +123,7 @@ end
 
 -- attempt to identify which session's watchdog timer fired
 ---@param timer_event number
+---@return boolean was_watchdog if this event was one of the watchdogs
 function apisessions.check_all_watchdogs(timer_event)
     for i = 1, #self.sessions do
         local session = self.sessions[i]
@@ -131,9 +132,12 @@ function apisessions.check_all_watchdogs(timer_event)
             if triggered then
                 log.debug(util.c("API: watchdog closing session ", session, "..."))
                 _shutdown(session)
+                return true
             end
         end
     end
+
+    return false
 end
 
 -- iterate all the API sessions

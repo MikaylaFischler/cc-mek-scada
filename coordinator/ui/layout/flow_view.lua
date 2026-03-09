@@ -5,7 +5,7 @@
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
-local iocontrol      = require("coordinator.iocontrol")
+local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
@@ -43,20 +43,20 @@ local function init(main)
     local lu_col = style.lu_colors
     local lu_c_d = style.lu_colors_dark
 
-    local facility = iocontrol.get_db().facility
-    local units = iocontrol.get_db().units
+    local fac   = ioctl.get_db().facility
+    local units = ioctl.get_db().units
 
-    local tank_defs  = facility.tank_defs
-    local tank_conns = facility.tank_conns
-    local tank_list  = facility.tank_list
-    local tank_types = facility.tank_fluid_types
+    local tank_defs  = fac.tank_defs
+    local tank_conns = fac.tank_conns
+    local tank_list  = fac.tank_list
+    local tank_types = fac.tank_fluid_types
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
     local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,fg_bg=style.theme.header}
 
-    datetime.register(facility.ps, "date_time", datetime.set_value)
+    datetime.register(fac.ps, "date_time", datetime.set_value)
 
     local po_pipes = {}
     local emcool_pipes = {}
@@ -83,9 +83,9 @@ local function init(main)
         return first, last
     end
 
-    if facility.tank_mode == 0 or facility.tank_mode == 8 then
+    if fac.tank_mode == 0 or fac.tank_mode == 8 then
         -- (0) tanks belong to reactor units OR (8) 4 total facility tanks (A B C D)
-        for i = 1, facility.num_units do
+        for i = 1, fac.num_units do
             if units[i].has_tank then
                 local y = y_ofs(i)
                 local color = c_clr(i)
@@ -116,7 +116,7 @@ local function init(main)
             end
         end
 
-        if facility.tank_mode == 1 then
+        if fac.tank_mode == 1 then
             -- (1) 1 total facility tank (A A A A)
             local first_fdef, last_fdef = find_fdef(1, #tank_defs)
 
@@ -133,7 +133,7 @@ local function init(main)
                     end
                 end
             end
-        elseif facility.tank_mode == 2 then
+        elseif fac.tank_mode == 2 then
             -- (2) 2 total facility tanks (A A A B)
             local first_fdef, last_fdef = find_fdef(1, math.min(3, #tank_defs))
 
@@ -155,7 +155,7 @@ local function init(main)
                     end
                 end
             end
-        elseif facility.tank_mode == 3 then
+        elseif fac.tank_mode == 3 then
             -- (3) 2 total facility tanks (A A B B)
             for _, a in pairs({ 1, 3 }) do
                 local b = a + 1
@@ -168,7 +168,7 @@ local function init(main)
                     table.insert(emcool_pipes, pipe(0, y_ofs(b), 1, y_ofs(b) + 6, c_clr(b), true))
                 end
             end
-        elseif facility.tank_mode == 4 then
+        elseif fac.tank_mode == 4 then
             -- (4) 2 total facility tanks (A B B B)
             local first_fdef, last_fdef = find_fdef(2, #tank_defs)
 
@@ -190,7 +190,7 @@ local function init(main)
                     end
                 end
             end
-        elseif facility.tank_mode == 5 then
+        elseif fac.tank_mode == 5 then
             -- (5) 3 total facility tanks (A A B C)
             local first_fdef, last_fdef = find_fdef(1, math.min(2, #tank_defs))
 
@@ -212,7 +212,7 @@ local function init(main)
                     end
                 end
             end
-        elseif facility.tank_mode == 6 then
+        elseif fac.tank_mode == 6 then
             -- (6) 3 total facility tanks (A B B C)
             local first_fdef, last_fdef = find_fdef(2, math.min(3, #tank_defs))
 
@@ -234,7 +234,7 @@ local function init(main)
                     end
                 end
             end
-        elseif facility.tank_mode == 7 then
+        elseif fac.tank_mode == 7 then
             -- (7) 3 total facility tanks (A B C C)
             local first_fdef, last_fdef = find_fdef(3, #tank_defs)
 
@@ -265,7 +265,7 @@ local function init(main)
         PipeNetwork{parent=main,x=2,y=3,pipes=emcool_pipes,bg=style.theme.bg}
     end
 
-    for i = 1, facility.num_units do
+    for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
         unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, i)
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
@@ -298,7 +298,7 @@ local function init(main)
     -- auxiliary coolant valves --
     ------------------------------
 
-    for i = 1, facility.num_units do
+    for i = 1, fac.num_units do
         if units[i].aux_coolant then
             local vx
             local vy = 3 + y_ofs(i)
@@ -340,7 +340,7 @@ local function init(main)
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
-            TextBox{parent=tank,text=" ",x=1,y=1,fg_bg=style.lg_gray}
+            TextBox{parent=tank,text=" ",y=1,fg_bg=style.lg_gray}
             TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=ALIGN.CENTER,fg_bg=style.wh_gray}
 
             local tank_box = Rectangle{parent=tank,border=border(1,colors.gray,true),width=20,height=12}
@@ -376,12 +376,12 @@ local function init(main)
                 can_fill.register(units[i].tank_ps_tbl[1], "container_mode", _can_fill)
                 can_empty.register(units[i].tank_ps_tbl[1], "container_mode", _can_empty)
             else
-                status.register(facility.tank_ps_tbl[f_id], "computed_status", status.update)
-                tank_pcnt.register(facility.tank_ps_tbl[f_id], "fill", function (f) tank_pcnt.update(f * 100) end)
-                tank_amnt.register(facility.tank_ps_tbl[f_id], "stored", function (sto) tank_amnt.update(sto.amount) end)
-                level.register(facility.tank_ps_tbl[f_id], "fill", level.update)
-                can_fill.register(facility.tank_ps_tbl[f_id], "container_mode", _can_fill)
-                can_empty.register(facility.tank_ps_tbl[f_id], "container_mode", _can_empty)
+                status.register(fac.tank_ps_tbl[f_id], "computed_status", status.update)
+                tank_pcnt.register(fac.tank_ps_tbl[f_id], "fill", function (f) tank_pcnt.update(f * 100) end)
+                tank_amnt.register(fac.tank_ps_tbl[f_id], "stored", function (sto) tank_amnt.update(sto.amount) end)
+                level.register(fac.tank_ps_tbl[f_id], "fill", level.update)
+                can_fill.register(fac.tank_ps_tbl[f_id], "container_mode", _can_fill)
+                can_empty.register(fac.tank_ps_tbl[f_id], "container_mode", _can_empty)
             end
         end
     end
@@ -394,24 +394,24 @@ local function init(main)
 
     local sps = Div{parent=main,x=140,y=3,height=12}
 
-    TextBox{parent=sps,text=" ",width=24,x=1,y=1,fg_bg=style.lg_gray}
+    TextBox{parent=sps,text=" ",width=24,y=1,fg_bg=style.lg_gray}
     TextBox{parent=sps,text="SPS",alignment=ALIGN.CENTER,width=24,fg_bg=wh_gray}
 
     local sps_box = Rectangle{parent=sps,border=border(1,colors.gray,true),width=24,height=10}
 
     local status = StateIndicator{parent=sps_box,x=5,y=1,states=style.sps.states,value=1,min_width=14}
 
-    status.register(facility.sps_ps_tbl[1], "computed_status", status.update)
+    status.register(fac.sps_ps_tbl[1], "computed_status", status.update)
 
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",width=10,fg_bg=style.label}
     local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=s_field}
 
-    sps_in.register(facility.ps, "po_am_rate", sps_in.update)
+    sps_in.register(fac.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",width=15,fg_bg=style.label}
     local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=s_field}
 
-    sps_rate.register(facility.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
+    sps_rate.register(fac.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
     ----------------
     -- statistics --
@@ -421,7 +421,7 @@ local function init(main)
     local raw_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
 
-    sum_raw_waste.register(facility.ps, "burn_sum", sum_raw_waste.update)
+    sum_raw_waste.register(fac.ps, "burn_sum", sum_raw_waste.update)
 
     TextBox{parent=main,x=145,y=21,text="PROC. WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
     local pr_waste  = Rectangle{parent=main,x=145,y=22,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
@@ -429,15 +429,15 @@ local function init(main)
     local po = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Po",unit="mB/t",format="%9.2f",value=0,width=17}
     local popl = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="PoPl",unit="mB/t",format="%7.2f",value=0,width=17}
 
-    pu.register(facility.ps, "pu_rate", pu.update)
-    po.register(facility.ps, "po_rate", po.update)
-    popl.register(facility.ps, "po_pl_rate", popl.update)
+    pu.register(fac.ps, "pu_rate", pu.update)
+    po.register(fac.ps, "po_rate", po.update)
+    popl.register(fac.ps, "po_pl_rate", popl.update)
 
     TextBox{parent=main,x=145,y=28,text="SPENT WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
     local sp_waste  = Rectangle{parent=main,x=145,y=29,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
-    sum_sp_waste.register(facility.ps, "spent_waste_rate", sum_sp_waste.update)
+    sum_sp_waste.register(fac.ps, "spent_waste_rate", sum_sp_waste.update)
 end
 
 return init

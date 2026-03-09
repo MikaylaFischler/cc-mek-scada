@@ -15,12 +15,12 @@ local util        = require("scada-common.util")
 local backplane   = require("coordinator.backplane")
 local configure   = require("coordinator.configure")
 local coordinator = require("coordinator.coordinator")
-local iocontrol   = require("coordinator.iocontrol")
+local ioctl       = require("coordinator.ioctl")
 local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "v1.7.8"
+local COORDINATOR_VERSION = "v1.8.2"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -137,7 +137,7 @@ local function main()
     ----------------------------------------
 
     -- report versions
-    iocontrol.fp_versions(COORDINATOR_VERSION, comms.version)
+    ioctl.fp_versions(COORDINATOR_VERSION, comms.version)
 
     -- init renderer
     renderer.configure(config)

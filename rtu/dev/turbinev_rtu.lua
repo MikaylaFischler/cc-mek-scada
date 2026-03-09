@@ -4,7 +4,7 @@ local turbinev_rtu = {}
 
 -- create new turbine device
 ---@nodiscard
----@param turbine table
+---@param turbine Turbine|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function turbinev_rtu.new(turbine)
     local unit = rtu.init_unit(turbine)

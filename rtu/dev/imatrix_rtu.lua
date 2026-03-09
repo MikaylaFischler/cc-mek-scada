@@ -2,9 +2,9 @@ local rtu = require("rtu.rtu")
 
 local imatrix_rtu = {}
 
--- create new induction matrix (mek 10.1+) device
+-- create new induction matrix device
 ---@nodiscard
----@param imatrix table
+---@param imatrix InductionMatrix|ppm_generic
 ---@return rtu_device interface, boolean faulted
 function imatrix_rtu.new(imatrix)
     local unit = rtu.init_unit(imatrix)

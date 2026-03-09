@@ -163,11 +163,11 @@ return function (args)
     end
 
     -- draw a particular map cell
-    ---@param map table 2D cell map
+    ---@param map _pipe_map_entry[][] 2D cell map
     ---@param x integer x coord
     ---@param y integer y coord
     local function draw_map_cell(map, x, y)
-        local entry = map[x][y] ---@type _pipe_map_entry already confirmed not false
+        local entry = map[x][y]
         local char
         local invert = false
 

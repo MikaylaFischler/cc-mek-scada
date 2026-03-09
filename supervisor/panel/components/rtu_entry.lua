@@ -33,9 +33,9 @@ local function init(parent, id)
 
     local ps_prefix = "rtu_" .. id .. "_"
 
-    TextBox{parent=entry,x=1,y=1,text="",width=8,fg_bg=s_hi_box}
-    local rtu_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box,nav_active=cpair(colors.gray,colors.black)}
-    TextBox{parent=entry,x=1,y=3,text="",width=8,fg_bg=s_hi_box}
+    TextBox{parent=entry,y=1,text="",width=8,fg_bg=s_hi_box}
+    local rtu_addr = TextBox{parent=entry,y=2,text="@ C ??",alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box,nav_active=cpair(colors.gray,colors.black)}
+    TextBox{parent=entry,y=3,text="",width=8,fg_bg=s_hi_box}
     rtu_addr.register(databus.ps, ps_prefix .. "addr", rtu_addr.set_value)
 
     TextBox{parent=entry,x=10,y=2,text="UNITS:",width=7}

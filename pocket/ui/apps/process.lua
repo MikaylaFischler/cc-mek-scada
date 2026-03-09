@@ -5,7 +5,7 @@
 local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
-local iocontrol     = require("pocket.iocontrol")
+local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
 local process       = require("pocket.process")
 
@@ -26,6 +26,8 @@ local RadioButton   = require("graphics.elements.controls.RadioButton")
 local NumberField   = require("graphics.elements.form.NumberField")
 
 local IconIndicator = require("graphics.elements.indicators.IconIndicator")
+
+local PROCESS = types.PROCESS
 
 local ALIGN  = core.ALIGN
 local cpair  = core.cpair
@@ -50,19 +52,19 @@ local dis_colors      = cpair(colors.white, colors.lightGray)
 -- new process control page view
 ---@param root Container parent
 local function new_view(root)
-    local db = iocontrol.get_db()
+    local db = ioctl.get_db()
 
-    local frame = Div{parent=root,x=1,y=1}
+    local frame = Div{parent=root,y=1}
 
     local app = db.nav.register_app(APP_ID.PROCESS, frame, nil, false, true)
 
-    local load_div = Div{parent=frame,x=1,y=1}
-    local main = Div{parent=frame,x=1,y=1}
+    local load_div = Div{parent=frame,y=1}
+    local main = Div{parent=frame,y=1}
 
     TextBox{parent=load_div,y=12,text="Loading...",alignment=ALIGN.CENTER}
     WaitingAnim{parent=load_div,x=math.floor(main.get_width()/2)-1,y=8,fg_bg=cpair(colors.purple,colors._INHERIT)}
 
-    local load_pane = MultiPane{parent=main,x=1,y=1,panes={load_div,main}}
+    local load_pane = MultiPane{parent=main,y=1,panes={load_div,main}}
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
@@ -77,7 +79,7 @@ local function new_view(root)
         local panes = {} ---@type Div[]
 
         -- create all page divs
-        for _ = 1, db.facility.num_units + 3 do
+        for _ = 1, db.facility.num_units + 4 do
             local div = Div{parent=page_div}
             table.insert(panes, div)
         end
@@ -107,7 +109,7 @@ local function new_view(root)
             TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
 
             TextBox{parent=u_div,y=3,text="Auto Rate Limit",fg_bg=label_fg_bg}
-            rate_limits[i] = NumberField{parent=u_div,x=1,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+            rate_limits[i] = NumberField{parent=u_div,y=4,width=16,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
             TextBox{parent=u_div,x=18,y=4,text="mB/t",width=4,fg_bg=label_fg_bg}
 
             rate_limits[i].register(unit.unit_ps, "max_burn", rate_limits[i].set_max)
@@ -151,36 +153,82 @@ local function new_view(root)
 
         --#endregion
 
-        --#region process control options page
+        --#region process control mode page
 
-        local o_pane = panes[db.facility.num_units + 2]
-        local o_div = Div{parent=o_pane,x=2,width=main.get_width()-2}
+        local m_pane = panes[db.facility.num_units + 3]
+        local m_div = Div{parent=m_pane,x=2,width=main.get_width()-2}
 
-        local opt_page = app.new_page(nil, db.facility.num_units + 2)
-        opt_page.tasks = { update }
+        local mode_page = app.new_page(nil, db.facility.num_units + 3)
+        mode_page.tasks = { update }
 
-        TextBox{parent=o_div,y=1,text="Process Options",alignment=ALIGN.CENTER}
+        TextBox{parent=m_div,y=1,text="Process Mode",alignment=ALIGN.CENTER}
 
-        local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate" }
-        local mode = RadioButton{parent=o_div,x=1,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,dis_fg_bg=style.btn_disable}
+        local desc = TextBox{parent=m_div,y=9,height=9,text="",fg_bg=label_fg_bg}
+
+        local function _set_desc(m)
+            if m == PROCESS.MAX_BURN then
+                desc.set_value("This mode runs all assigned reactors at their configured unit auto rate limits.")
+            elseif m == PROCESS.BURN_RATE then
+                desc.set_value("This mode runs assigned reactors by priority group to meet the requested burn rate. Primary ones are used, then secondary if they can't keep up, etc.")
+            elseif m == PROCESS.CHARGE then
+                desc.set_value("This mode runs assigned reactors by priority group to meet the requested induction matrix charge level. Primary ones are used, then secondary if they can't keep up, etc.")
+            elseif m == PROCESS.GEN_RATE then
+                desc.set_value("This mode runs assigned reactors by priority group to meet the requested energy generation rate. Primary ones are used, then secondary if they can't keep up, etc.")
+            elseif m == PROCESS.RANGE_CONTROL then
+                desc.set_value("This mode runs all assigned reactors at their configured unit auto rate limits once charge drops below the start percentage until it meets the stop percentage.")
+            else
+                desc.set_value("Unknown mode selected.")
+            end
+        end
+
+        local ctl_opts = { "Monitored Max Burn", "Combined Burn Rate", "Charge Level", "Generation Rate", "Charge Range" }
+        local mode = RadioButton{parent=m_div,y=3,options=ctl_opts,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.purple,callback=_set_desc,dis_fg_bg=style.btn_disable}
 
         mode.register(f_ps, "process_mode", mode.set_value)
+        desc.register(f_ps, "process_mode", _set_desc)
 
-        TextBox{parent=o_div,y=9,text="Burn Rate Target",fg_bg=label_fg_bg}
-        local b_target = NumberField{parent=o_div,x=1,y=10,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
-        TextBox{parent=o_div,x=17,y=10,text="mB/t",fg_bg=label_fg_bg}
+        --#endregion
 
-        TextBox{parent=o_div,y=12,text="Charge Level Target",fg_bg=label_fg_bg}
-        local c_target = NumberField{parent=o_div,x=1,y=13,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
-        TextBox{parent=o_div,x=17,y=13,text="M"..db.energy_label,fg_bg=label_fg_bg}
+        --#region process control setpoints page
 
-        TextBox{parent=o_div,y=15,text="Generation Target",fg_bg=label_fg_bg}
-        local g_target = NumberField{parent=o_div,x=1,y=16,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
-        TextBox{parent=o_div,x=17,y=16,text="k"..db.energy_label.."/t",fg_bg=label_fg_bg}
+        local s_pane = panes[db.facility.num_units + 4]
+        local s_div = Div{parent=s_pane,x=2,width=main.get_width()-2}
+
+        local sp_page = app.new_page(nil, db.facility.num_units + 4)
+        sp_page.tasks = { update }
+
+        TextBox{parent=s_div,y=1,text="Process Setpoints",alignment=ALIGN.CENTER}
+
+        TextBox{parent=s_div,y=3,text="Burn Rate Target",fg_bg=label_fg_bg}
+        local b_target = NumberField{parent=s_div,y=4,width=15,default=0.01,min=0.01,max_frac_digits=2,max_chars=8,allow_decimal=true,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=s_div,x=17,y=4,text="mB/t",fg_bg=label_fg_bg}
+
+        TextBox{parent=s_div,y=6,text="Charge Level Target",fg_bg=label_fg_bg}
+        local c_target = NumberField{parent=s_div,y=7,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=s_div,x=17,y=7,text="M"..db.energy_label,fg_bg=label_fg_bg}
+
+        TextBox{parent=s_div,y=9,text="Generation Target",fg_bg=label_fg_bg}
+        local g_target = NumberField{parent=s_div,y=10,width=15,default=0,min=0,max_chars=16,align_right=true,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=s_div,x=17,y=10,text="k"..db.energy_label.."/t",fg_bg=label_fg_bg}
+
+        local range_start, range_stop ---@type NumberField, NumberField
+
+        local function _update_start_val(value) range_start.set_value(math.min(range_start.get_value(), value - 1)) end
+        local function _update_stop_val(value) range_stop.set_value(math.max(range_stop.get_value(), value + 1)) end
+
+        TextBox{parent=s_div,y=12,text="Charge Range - Start",fg_bg=label_fg_bg}
+        range_start = NumberField{parent=s_div,y=13,width=15,default=0,min=0,max=99,align_right=true,on_unfocus=_update_stop_val,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=s_div,x=17,y=13,text="%",fg_bg=label_fg_bg}
+
+        TextBox{parent=s_div,y=15,text="Charge Range - Stop",fg_bg=label_fg_bg}
+        range_stop = NumberField{parent=s_div,y=16,width=15,default=0,min=1,max=100,align_right=true,on_unfocus=_update_start_val,fg_bg=field_fg_bg,dis_fg_bg=field_dis_fg_bg}
+        TextBox{parent=s_div,x=17,y=16,text="%",fg_bg=label_fg_bg}
 
         b_target.register(f_ps, "process_burn_target", b_target.set_value)
         c_target.register(f_ps, "process_charge_target", c_target.set_value)
         g_target.register(f_ps, "process_gen_target", g_target.set_value)
+        range_start.register(f_ps, "process_range_start", range_start.set_value)
+        range_stop.register(f_ps, "process_range_stop", range_stop.set_value)
 
         --#endregion
 
@@ -194,9 +242,9 @@ local function new_view(root)
 
         TextBox{parent=c_div,y=1,text="Process Control",alignment=ALIGN.CENTER}
 
-        local u_stat      = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,x=1,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
-        local stat_line_1 = TextBox{parent=u_stat,x=1,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
-        local stat_line_2 = TextBox{parent=u_stat,x=1,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
+        local u_stat      = Rectangle{parent=c_div,border=border(1,colors.gray,true),thin=true,width=21,height=5,y=3,fg_bg=cpair(colors.black,colors.lightGray)}
+        local stat_line_1 = TextBox{parent=u_stat,y=1,text="UNKNOWN",alignment=ALIGN.CENTER}
+        local stat_line_2 = TextBox{parent=u_stat,y=2,text="awaiting data...",height=2,alignment=ALIGN.CENTER,trim_whitespace=true,fg_bg=cpair(colors.gray,colors.lightGray)}
 
         stat_line_1.register(f_ps, "status_line_1", stat_line_1.set_value)
         stat_line_2.register(f_ps, "status_line_2", stat_line_2.set_value)
@@ -205,8 +253,13 @@ local function new_view(root)
             local limits = {}
             for i = 1, #rate_limits do limits[i] = rate_limits[i].get_numeric() end
 
-            process.process_start(mode.get_value(), b_target.get_numeric(), db.energy_convert_to_fe(c_target.get_numeric()),
-                                  db.energy_convert_to_fe(g_target.get_numeric()), limits)
+            -- make sure stop is always above start (start maxes at 99 and stop maxes at 100 so this always works)
+            if range_stop.get_value() <= range_start.get_value() then
+                range_stop.set_value(range_start.get_value() + 1)
+            end
+
+            process.process_start(mode.get_value(), b_target.get_numeric(), range_start.get_numeric(), range_stop.get_numeric(),
+                                  db.energy_convert_to_fe(c_target.get_numeric()), db.energy_convert_to_fe(g_target.get_numeric()), limits)
         end
 
         local start = HazardButton{parent=c_div,x=2,y=9,text="START",accent=colors.lightBlue,callback=_start_auto,timeout=3,fg_bg=hzd_fg_bg,dis_colors=dis_colors}
@@ -237,6 +290,8 @@ local function new_view(root)
                 b_target.disable()
                 c_target.disable()
                 g_target.disable()
+                range_start.disable()
+                range_stop.disable()
 
                 mode.disable()
                 start.disable()
@@ -246,6 +301,8 @@ local function new_view(root)
                 b_target.enable()
                 c_target.enable()
                 g_target.enable()
+                range_start.enable()
+                range_stop.enable()
 
                 mode.enable()
                 if db.facility.auto_ready then start.enable() end
@@ -258,10 +315,10 @@ local function new_view(root)
 
         --#region auto-SCRAM annunciator page
 
-        local a_pane = panes[db.facility.num_units + 3]
+        local a_pane = panes[db.facility.num_units + 2]
         local a_div = Div{parent=a_pane,x=2,width=main.get_width()-2}
 
-        local annunc_page = app.new_page(nil, db.facility.num_units + 3)
+        local annunc_page = app.new_page(nil, db.facility.num_units + 2)
         annunc_page.tasks = { update }
 
         TextBox{parent=a_div,y=1,text="Automatic SCRAM",alignment=ALIGN.CENTER}
@@ -291,7 +348,7 @@ local function new_view(root)
         --#endregion
 
         -- setup multipane
-        local u_pane = MultiPane{parent=page_div,x=1,y=1,panes=panes}
+        local u_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(u_pane)
 
         -- setup sidebar
@@ -300,7 +357,8 @@ local function new_view(root)
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = " \x17 ", color = core.cpair(colors.black, colors.purple), callback = proc_ctrl.nav_to },
             { label = " \x13 ", color = core.cpair(colors.black, colors.red), callback = annunc_page.nav_to },
-            { label = "OPT", color = core.cpair(colors.black, colors.yellow), callback = opt_page.nav_to }
+            { label = " \x07 ", color = core.cpair(colors.black, colors.yellow), callback = mode_page.nav_to },
+            { label = " \x12 ", color = core.cpair(colors.black, colors.lightBlue), callback = sp_page.nav_to }
         }
 
         for i = 1, db.facility.num_units do

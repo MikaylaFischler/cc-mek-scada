@@ -168,14 +168,14 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_c_9  = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_10 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,x=1,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10}}
+    local rs_pane = MultiPane{parent=rs_cfg,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10}}
 
-    local header = TextBox{parent=rs_cfg,x=1,y=2,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
+    local header = TextBox{parent=rs_cfg,y=2,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
     --#region Interface Selection
 
-    TextBox{parent=rs_c_1,x=1,y=1,text="Configure this computer or a redstone relay."}
-    local iface_list = ListBox{parent=rs_c_1,x=1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    TextBox{parent=rs_c_1,y=1,text="Configure this computer or a redstone relay."}
+    local iface_list = ListBox{parent=rs_c_1,y=3,height=10,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     -- update relay interface list
     function tool_ctl.update_relay_list()
@@ -209,7 +209,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         end
 
         local line = Div{parent=iface_list,height=2,fg_bg=cpair(colors.black,colors.white)}
-        TextBox{parent=line,x=1,y=1,text="@ local",fg_bg=cpair(colors.black,colors.white)}
+        TextBox{parent=line,y=1,text="@ local",fg_bg=cpair(colors.black,colors.white)}
         TextBox{parent=line,x=3,y=2,text="This Computer",fg_bg=cpair(colors.gray,colors.white)}
         local count = #redstone_subset(ini_cfg.Redstone, nil)
         TextBox{parent=line,x=33,y=2,width=16,alignment=core.ALIGN.RIGHT,text=count.." connections",fg_bg=cpair(colors.gray,colors.white)}
@@ -220,7 +220,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             local name = relays[i]
 
             line = Div{parent=iface_list,height=2,fg_bg=cpair(colors.black,colors.white)}
-            TextBox{parent=line,x=1,y=1,text="@ "..name,fg_bg=cpair(colors.black,colors.white)}
+            TextBox{parent=line,y=1,text="@ "..name,fg_bg=cpair(colors.black,colors.white)}
             TextBox{parent=line,x=3,y=2,text="Redstone Relay",fg_bg=cpair(colors.gray,colors.white)}
             TextBox{parent=line,x=18,y=2,text=tri(mounts[name],"ONLINE","OFFLINE"),fg_bg=cpair(tri(mounts[name],colors.green,colors.red),colors.white)}
             count = #redstone_subset(ini_cfg.Redstone, name)
@@ -232,14 +232,14 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     tool_ctl.update_relay_list()
 
-    PushButton{parent=rs_c_1,x=1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_1,x=27,y=14,min_width=23,text="I don't see my relay!",callback=function()rs_pane.set_value(10)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
     --#region Configuration List
 
-    TextBox{parent=rs_c_2,x=1,y=1,text=" port          side/color       unit/facility",fg_bg=g_lg_fg_bg}
-    local rs_list = ListBox{parent=rs_c_2,x=1,y=2,height=11,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    TextBox{parent=rs_c_2,y=1,text=" port          side/color       unit/facility",fg_bg=g_lg_fg_bg}
+    local rs_list = ListBox{parent=rs_c_2,y=2,height=11,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function rs_revert()
         tmp_cfg.Redstone = tool_ctl.deep_copy_rs(ini_cfg.Redstone)
@@ -275,7 +275,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         header.set_value(" Redstone Connections")
     end
 
-    PushButton{parent=rs_c_2,x=1,y=14,text="\x1b Back",callback=rs_back,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_2,y=14,text="\x1b Back",callback=rs_back,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     local rs_revert_btn = PushButton{parent=rs_c_2,x=8,y=14,min_width=16,text="Revert Changes",callback=rs_revert,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=rs_c_2,x=35,y=14,min_width=7,text="New +",callback=function()rs_pane.set_value(3)end,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
     local rs_apply_btn = PushButton{parent=rs_c_2,x=43,y=14,min_width=7,text="Apply",callback=rs_apply,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
@@ -283,9 +283,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     --#endregion
     --#region Port Selection
 
-    TextBox{parent=rs_c_3,x=1,y=1,text="Select one of the below ports to use."}
+    TextBox{parent=rs_c_3,y=1,text="Select one of the below ports to use."}
 
-    local rs_ports = ListBox{parent=rs_c_3,x=1,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
+    local rs_ports = ListBox{parent=rs_c_3,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function new_rs(port)
         self.rs_cfg_editing = false
@@ -298,6 +298,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             self.rs_cfg_side_l.set_value("Output Side")
             self.rs_cfg_bundled.enable()
             self.rs_cfg_advanced.disable()
+
             text = "You selected the ALL_WASTE shortcut."
         else
             self.rs_cfg_shortcut.hide(true)
@@ -329,17 +330,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 io_type = "analog output "
             end
 
-            text = "You selected the " .. io_type .. rsio.to_string(port) .. " (for "
+            text = "You selected the " .. io_type .. rsio.to_string(port) .. " (for " .. tri(PORT_DSGN[port] == 1, "a unit).", "the facility).")
+        end
 
-            if PORT_DSGN[port] == 1 then
-                text = text .. "a unit)."
-                self.rs_cfg_unit_l.show()
-                self.rs_cfg_unit.show()
-            else
-                self.rs_cfg_unit_l.hide(true)
-                self.rs_cfg_unit.hide(true)
-                text = text .. "the facility)."
-            end
+        if PORT_DSGN[port] == 1 then
+            self.rs_cfg_unit_l.show()
+            self.rs_cfg_unit.show()
+        else
+            self.rs_cfg_unit_l.hide(true)
+            self.rs_cfg_unit.hide(true)
         end
 
         self.rs_cfg_selection.set_value(text)
@@ -349,7 +348,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     -- add entries to redstone option list
     local all_w_macro = Div{parent=rs_ports,height=1}
-    PushButton{parent=all_w_macro,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    PushButton{parent=all_w_macro,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
     TextBox{parent=all_w_macro,x=16,y=1,width=5,text="[n/a]",fg_bg=cpair(colors.lightGray,colors.white)}
     TextBox{parent=all_w_macro,x=22,y=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
 
@@ -360,22 +359,22 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         local btn_color = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
 
         local entry = Div{parent=rs_ports,height=1}
-        PushButton{parent=entry,x=1,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
+        PushButton{parent=entry,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
         TextBox{parent=entry,x=16,y=1,width=5,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
         TextBox{parent=entry,x=22,y=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
     end
 
-    PushButton{parent=rs_c_3,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
     --#region Port Configuration
 
-    self.rs_cfg_selection = TextBox{parent=rs_c_4,x=1,y=1,height=2,text=""}
+    self.rs_cfg_selection = TextBox{parent=rs_c_4,y=1,height=2,text=""}
 
     PushButton{parent=rs_c_4,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    self.rs_cfg_side_l = TextBox{parent=rs_c_4,x=1,y=4,width=11,text="Output Side"}
-    local side = Radio2D{parent=rs_c_4,x=1,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
+    self.rs_cfg_side_l = TextBox{parent=rs_c_4,y=4,width=11,text="Output Side"}
+    local side = Radio2D{parent=rs_c_4,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
 
     self.rs_cfg_unit_l = TextBox{parent=rs_c_4,x=25,y=7,width=7,text="Unit ID"}
     self.rs_cfg_unit = NumberField{parent=rs_c_4,x=33,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
@@ -384,11 +383,11 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         if bundled then self.rs_cfg_color.enable() else self.rs_cfg_color.disable() end
     end
 
-    self.rs_cfg_shortcut = TextBox{parent=rs_c_4,x=1,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
+    self.rs_cfg_shortcut = TextBox{parent=rs_c_4,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
     self.rs_cfg_shortcut.hide(true)
 
-    self.rs_cfg_bundled = Checkbox{parent=rs_c_4,x=1,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled,disable_fg_bg=g_lg_fg_bg}
-    self.rs_cfg_color = Radio2D{parent=rs_c_4,x=1,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    self.rs_cfg_bundled = Checkbox{parent=rs_c_4,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled,disable_fg_bg=g_lg_fg_bg}
+    self.rs_cfg_color = Radio2D{parent=rs_c_4,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
     self.rs_cfg_color.disable()
 
     local rs_err = TextBox{parent=rs_c_4,x=8,y=14,width=30,text="Unit ID invalid.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -461,35 +460,35 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         else rs_err.show() end
     end
 
-    PushButton{parent=rs_c_4,x=1,y=14,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_4,y=14,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.rs_cfg_advanced = PushButton{parent=rs_c_4,x=30,y=14,min_width=10,text="Advanced",callback=function()rs_pane.set_value(9)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=rs_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
-    TextBox{parent=rs_c_5,x=1,y=1,text="Settings saved!"}
-    PushButton{parent=rs_c_5,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=rs_c_5,y=1,text="Settings saved!"}
+    PushButton{parent=rs_c_5,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_5,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_6,x=1,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=rs_c_6,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=rs_c_6,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
+    PushButton{parent=rs_c_6,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=rs_c_6,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_7,x=1,y=1,height=6,text="You already configured this input for this facility/unit assignment. There can only be one entry for each input per each unit or the facility (for facility inputs).\n\nPlease select a different port."}
-    PushButton{parent=rs_c_7,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=rs_c_7,y=1,height=6,text="You already configured this input for this facility/unit assignment. There can only be one entry for each input per each unit or the facility (for facility inputs).\n\nPlease select a different port."}
+    PushButton{parent=rs_c_7,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_8,x=1,y=1,height=4,text="(Normal) Digital Input: On if there is a redstone signal, off otherwise\nInverted Digital Input: On without a redstone signal, off otherwise"}
-    TextBox{parent=rs_c_8,x=1,y=6,height=4,text="(Normal) Digital Output: Redstone signal to 'turn it on', none to 'turn it off'\nInverted Digital Output: No redstone signal to 'turn it on', redstone signal to 'turn it off'"}
-    TextBox{parent=rs_c_8,x=1,y=11,height=2,text="Analog Input: 0-15 redstone power level input\nAnalog Output: 0-15 scaled redstone power level output"}
-    PushButton{parent=rs_c_8,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=rs_c_8,y=1,height=4,text="(Normal) Digital Input: On if there is a redstone signal, off otherwise\nInverted Digital Input: On without a redstone signal, off otherwise"}
+    TextBox{parent=rs_c_8,y=6,height=4,text="(Normal) Digital Output: Redstone signal to 'turn it on', none to 'turn it off'\nInverted Digital Output: No redstone signal to 'turn it on', redstone signal to 'turn it off'"}
+    TextBox{parent=rs_c_8,y=11,height=2,text="Analog Input: 0-15 redstone power level input\nAnalog Output: 0-15 scaled redstone power level output"}
+    PushButton{parent=rs_c_8,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_9,x=1,y=1,height=5,text="Advanced Options"}
-    self.rs_cfg_inverted = Checkbox{parent=rs_c_9,x=1,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=rs_c_9,y=1,height=5,text="Advanced Options"}
+    self.rs_cfg_inverted = Checkbox{parent=rs_c_9,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),disable_fg_bg=g_lg_fg_bg}
     TextBox{parent=rs_c_9,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
-    PushButton{parent=rs_c_9,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_9,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=rs_c_10,x=1,y=1,height=10,text="Make sure your relay is either touching the RTU gateway or connected via wired modems. There should be a wired modem on a side of the RTU gateway then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
-    PushButton{parent=rs_c_10,x=1,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    TextBox{parent=rs_c_10,y=1,height=10,text="Make sure your relay is either touching the RTU gateway or connected via wired modems. There should be a wired modem on a side of the RTU gateway then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
+    PushButton{parent=rs_c_10,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -571,7 +570,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 if def.color ~= nil then conn = def.side .. "/" .. rsio.color_name(def.color) end
 
                 local entry = Div{parent=rs_list,height=1}
-                TextBox{parent=entry,x=1,y=1,width=1,text=io_dir,fg_bg=cpair(tri(def.invert,colors.orange,io_c),colors.white)}
+                TextBox{parent=entry,y=1,width=1,text=io_dir,fg_bg=cpair(tri(def.invert,colors.orange,io_c),colors.white)}
                 TextBox{parent=entry,x=2,y=1,width=14,text=name}
                 TextBox{parent=entry,x=16,y=1,width=string.len(conn),text=conn,fg_bg=cpair(colors.gray,colors.white)}
                 TextBox{parent=entry,x=33,y=1,width=1,text=unit,fg_bg=cpair(colors.gray,colors.white)}

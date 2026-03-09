@@ -2,7 +2,7 @@
 -- Pocket Connection Entry
 --
 
-local iocontrol     = require("coordinator.iocontrol")
+local ioctl         = require("coordinator.ioctl")
 
 local style         = require("coordinator.ui.style")
 
@@ -26,7 +26,7 @@ local function init(parent, id)
 
     local label_fg = style.fp.label_fg
 
-    local ps = iocontrol.get_db().fp.ps
+    local ps = ioctl.get_db().fp.ps
 
     local term_w, _ = term.getSize()
 
@@ -36,9 +36,9 @@ local function init(parent, id)
 
     local ps_prefix = "pkt_" .. id .. "_"
 
-    TextBox{parent=entry,x=1,y=1,text="",width=8,fg_bg=s_hi_box}
-    local pkt_addr = TextBox{parent=entry,x=1,y=2,text="@ C ??",alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box,nav_active=cpair(colors.gray,colors.black)}
-    TextBox{parent=entry,x=1,y=3,text="",width=8,fg_bg=s_hi_box}
+    TextBox{parent=entry,y=1,text="",width=8,fg_bg=s_hi_box}
+    local pkt_addr = TextBox{parent=entry,y=2,text="@ C ??",alignment=ALIGN.CENTER,width=8,fg_bg=s_hi_box,nav_active=cpair(colors.gray,colors.black)}
+    TextBox{parent=entry,y=3,text="",width=8,fg_bg=s_hi_box}
     pkt_addr.register(ps, ps_prefix .. "addr", pkt_addr.set_value)
 
     TextBox{parent=entry,x=10,y=2,text="FW:",width=3}

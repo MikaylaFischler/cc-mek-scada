@@ -100,7 +100,7 @@ end
 -- create a new RTU unit<br>
 -- if this is for a PPM peripheral, auto fault clearing MUST stay enabled once access begins
 ---@nodiscard
----@param device table|nil peripheral device, if applicable
+---@param device ppm_generic|nil peripheral device, if applicable
 function rtu.init_unit(device)
     local self = {
         discrete_inputs = {},
@@ -341,7 +341,7 @@ function rtu.comms(version, backplane, conn_watchdog)
     -- generate device advertisement table
     ---@nodiscard
     ---@param units rtu_registry_entry[]
-    ---@return table advertisement
+    ---@return rtu_advert_msg advertisement
     local function _generate_advertisement(units)
         local advertisement = {}
 
@@ -409,8 +409,8 @@ function rtu.comms(version, backplane, conn_watchdog)
     ---@param rtu_state rtu_state
     function public.close(rtu_state)
         conn_watchdog.cancel()
-        public.unlink(rtu_state)
         _send(MGMT_TYPE.CLOSE, {})
+        public.unlink(rtu_state)
     end
 
     -- send a MODBUS TCP packet
@@ -425,7 +425,7 @@ function rtu.comms(version, backplane, conn_watchdog)
     end
 
     -- send establish request (includes advertisement)
-    ---@param units table
+    ---@param units rtu_registry_entry[]
     function public.send_establish(nic, units)
         local ini_nic = tx_nic
         tx_nic = nic
@@ -437,7 +437,7 @@ function rtu.comms(version, backplane, conn_watchdog)
     end
 
     -- send capability advertisement
-    ---@param units table
+    ---@param units rtu_registry_entry[]
     function public.send_advertisement(units)
         _send(MGMT_TYPE.RTU_ADVERT, _generate_advertisement(units))
     end

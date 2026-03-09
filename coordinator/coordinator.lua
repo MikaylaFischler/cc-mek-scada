@@ -5,7 +5,7 @@ local types       = require("scada-common.types")
 
 local themes      = require("graphics.themes")
 
-local iocontrol   = require("coordinator.iocontrol")
+local ioctl       = require("coordinator.ioctl")
 local process     = require("coordinator.process")
 
 local apisessions = require("coordinator.session.apisessions")
@@ -362,26 +362,20 @@ function coordinator.comms(version, backplane, sv_watchdog)
         self.sv_addr = comms.BROADCAST
         self.sv_linked = false
         self.sv_r_seq_num = nil
-        iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+        ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
     end
 
     -- close the connection to the server
     function public.close()
         sv_watchdog.cancel()
-        public.unlink()
         _send_sv(PROTOCOL.SCADA_MGMT, MGMT_TYPE.CLOSE, {})
+        public.unlink()
     end
 
     -- send the resume ready state to the supervisor
-    ---@param mode PROCESS process control mode
-    ---@param burn_target number burn rate target
-    ---@param charge_target number charge level target
-    ---@param gen_target number generation rate target
-    ---@param limits number[] unit burn rate limits
-    function public.send_ready(mode, burn_target, charge_target, gen_target, limits)
-        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, {
-            mode, burn_target, charge_target, gen_target, limits
-        })
+    ---@param settings auto_ctl_cfg auto control settings
+    function public.send_ready(settings)
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.PROCESS_READY, { table.unpack(settings) })
     end
 
     -- send a facility command
@@ -392,15 +386,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
     end
 
     -- send the auto process control configuration with a start command
-    ---@param mode PROCESS process control mode
-    ---@param burn_target number burn rate target
-    ---@param charge_target number charge level target
-    ---@param gen_target number generation rate target
-    ---@param limits number[] unit burn rate limits
-    function public.send_auto_start(mode, burn_target, charge_target, gen_target, limits)
-        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, {
-            FAC_COMMAND.START, mode, burn_target, charge_target, gen_target, limits
-        })
+    ---@param settings auto_ctl_cfg auto control settings
+    function public.send_auto_start(settings)
+        _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_CMD, { FAC_COMMAND.START, table.unpack(settings) })
     end
 
     -- send a unit command
@@ -507,7 +495,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 local id = apisessions.establish_session(src_addr, packet.scada_frame.seq_num(), firmware_v)
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
-                                local conf = iocontrol.get_db().facility.conf
+                                local conf = ioctl.get_db().facility.conf
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW, { conf.num_units, conf.cooling })
                             else
                                 log.debug(util.c("API_ESTABLISH: illegal establish packet for device ", dev_type, " on pocket channel"))
@@ -548,8 +536,8 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         if packet.type == CRDN_TYPE.INITIAL_BUILDS then
                             if packet.length == 2 then
                                 -- record builds
-                                local fac_builds = iocontrol.record_facility_builds(packet.data[1])
-                                local unit_builds = iocontrol.record_unit_builds(packet.data[2])
+                                local fac_builds  = ioctl.record_facility_builds(packet.data[1])
+                                local unit_builds = ioctl.record_unit_builds(packet.data[2])
 
                                 if fac_builds and unit_builds then
                                     -- acknowledge receipt of builds
@@ -563,7 +551,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         elseif packet.type == CRDN_TYPE.FAC_BUILDS then
                             if packet.length == 1 then
                                 -- record facility builds
-                                if iocontrol.record_facility_builds(packet.data[1]) then
+                                if ioctl.record_facility_builds(packet.data[1]) then
                                     -- acknowledge receipt of builds
                                     _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.FAC_BUILDS, {})
                                 else
@@ -574,7 +562,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                             end
                         elseif packet.type == CRDN_TYPE.FAC_STATUS then
                             -- update facility status
-                            if not iocontrol.update_facility_status(packet.data) then
+                            if not ioctl.update_facility_status(packet.data) then
                                 log.debug("received invalid FAC_STATUS packet")
                             end
                         elseif packet.type == CRDN_TYPE.FAC_CMD then
@@ -588,7 +576,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 elseif cmd == FAC_COMMAND.STOP then
                                     process.fac_ack(cmd, ack)
                                 elseif cmd == FAC_COMMAND.START then
-                                    if packet.length == 7 then
+                                    if packet.length == 9 then
                                         process.start_ack_handle({ table.unpack(packet.data, 2) })
                                     else
                                         log.debug("SCADA_CRDN process start (with configuration) ack echo packet length mismatch")
@@ -610,7 +598,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         elseif packet.type == CRDN_TYPE.UNIT_BUILDS then
                             -- record builds
                             if packet.length == 1 then
-                                if iocontrol.record_unit_builds(packet.data[1]) then
+                                if ioctl.record_unit_builds(packet.data[1]) then
                                     -- acknowledge receipt of builds
                                     _send_sv(PROTOCOL.SCADA_CRDN, CRDN_TYPE.UNIT_BUILDS, {})
                                 else
@@ -621,7 +609,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                             end
                         elseif packet.type == CRDN_TYPE.UNIT_STATUSES then
                             -- update statuses
-                            if not iocontrol.update_unit_statuses(packet.data) then
+                            if not ioctl.update_unit_statuses(packet.data) then
                                 log.debug("received invalid UNIT_STATUSES packet")
                             end
                         elseif packet.type == CRDN_TYPE.UNIT_CMD then
@@ -631,7 +619,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 local unit_id = packet.data[2]
                                 local ack = packet.data[3] == true
 
-                                local unit = iocontrol.get_db().units[unit_id]
+                                local unit = ioctl.get_db().units[unit_id]
 
                                 if unit ~= nil then
                                     if cmd == UNIT_COMMAND.SCRAM then
@@ -672,7 +660,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                                 -- log.debug("coordinator RTT = " .. trip_time .. "ms")
 
-                                iocontrol.get_db().facility.ps.publish("sv_ping", trip_time)
+                                ioctl.get_db().facility.ps.publish("sv_ping", trip_time)
 
                                 _send_keep_alive_ack(timestamp)
                             else
@@ -681,10 +669,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         elseif packet.type == MGMT_TYPE.CLOSE then
                             -- handle session close
                             sv_watchdog.cancel()
-                            self.sv_addr = comms.BROADCAST
-                            self.sv_linked = false
-                            self.sv_r_seq_num = nil
-                            iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+                            public.unlink()
                             log.info("server connection closed by remote host")
                         else
                             log.debug("received unknown SCADA_MGMT packet type " .. packet.type)
@@ -697,7 +682,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
                                 -- reset to disconnected before validating
-                                iocontrol.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
+                                ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
                                 if type(sv_config) == "table" and #sv_config == 2 then
                                     -- get configuration
@@ -714,13 +699,13 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                         log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
 
                                         -- init io controller
-                                        iocontrol.init(conf, public, config.TempScale, config.EnergyScale)
+                                        ioctl.init(conf, public, config.TempScale, config.EnergyScale)
 
                                         self.sv_addr = src_addr
                                         self.sv_linked = true
                                         self.sv_config_err = false
 
-                                        iocontrol.fp_link_state(types.PANEL_LINK_STATE.LINKED)
+                                        ioctl.fp_link_state(types.PANEL_LINK_STATE.LINKED)
                                     else
                                         self.sv_config_err = true
                                         log.warning("supervisor config's number of units don't match coordinator's config, establish failed")
@@ -738,17 +723,17 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                             if est_ack == ESTABLISH_ACK.DENY then
                                 if self.last_est_ack ~= est_ack then
-                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.DENIED)
+                                    ioctl.fp_link_state(types.PANEL_LINK_STATE.DENIED)
                                     log.info("supervisor connection denied")
                                 end
                             elseif est_ack == ESTABLISH_ACK.COLLISION then
                                 if self.last_est_ack ~= est_ack then
-                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.COLLISION)
+                                    ioctl.fp_link_state(types.PANEL_LINK_STATE.COLLISION)
                                     log.warning("supervisor connection denied due to collision")
                                 end
                             elseif est_ack == ESTABLISH_ACK.BAD_VERSION then
                                 if self.last_est_ack ~= est_ack then
-                                    iocontrol.fp_link_state(types.PANEL_LINK_STATE.BAD_VERSION)
+                                    ioctl.fp_link_state(types.PANEL_LINK_STATE.BAD_VERSION)
                                     log.warning("supervisor comms version mismatch")
                                 end
                             else

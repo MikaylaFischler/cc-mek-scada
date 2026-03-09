@@ -248,18 +248,21 @@ function logic.update_annunciator(self)
     local cfmismatch = false
 
     if num_boilers > 0 then
+        local all_full = true
+
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]
             local idx = boiler.get_device_idx()
             local db = boiler.get_db()
 
-            local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
+            -- gaining heated coolant or losing cooled coolant
+            cfmismatch = cfmismatch or (_get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0) or (_get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0)
 
-            -- gaining heated coolant
-            cfmismatch = cfmismatch or gaining_hc
-            -- losing cooled coolant
-            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0 or (gaining_hc and db.tanks.ccool_fill == 0)
+            -- we only care about being saturated if all the boilers are
+            all_full = all_full and db.tanks.hcool_fill == 1
         end
+
+        cfmismatch = cfmismatch or all_full
     elseif self.plc_i ~= nil then
         local r_db = self.plc_i.get_db()
 

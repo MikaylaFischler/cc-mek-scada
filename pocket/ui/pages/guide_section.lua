@@ -25,10 +25,10 @@ local DOC_TYPE  = docs.DOC_ITEM_TYPE
 local LIST_TYPE = docs.DOC_LIST_TYPE
 
 -- new guide documentation section
----@param data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
+---@param data pkt__sect_construct_data
 ---@param base_page nav_tree_page
 ---@param title string
----@param items table
+---@param items pkt__doc_item[]
 ---@param scroll_height integer
 ---@return nav_tree_page
 return function (data, base_page, title, items, scroll_height)
@@ -46,14 +46,14 @@ return function (data, base_page, title, items, scroll_height)
     TextBox{parent=section_view_div,y=1,text=title,alignment=ALIGN.CENTER}
     PushButton{parent=section_view_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=section_page.nav_to}
 
-    local name_list = ListBox{parent=section_div,x=1,y=3,scroll_height=60,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-    local def_list = ListBox{parent=section_view_div,x=1,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+    local name_list = ListBox{parent=section_div,y=3,scroll_height=60,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+    local def_list = ListBox{parent=section_view_div,y=3,scroll_height=scroll_height,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
 
     local sect_id = 1
     local page_end
 
     for i = 1, #items do
-        local item = items[i] ---@type pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_list
+        local item = items[i]
 
         if item.type == DOC_TYPE.SECTION then
             ---@cast item pocket_doc_sect
@@ -62,7 +62,7 @@ return function (data, base_page, title, items, scroll_height)
             local title_offs = string.len(title_text) + 2
 
             local sect_title = Div{parent=def_list,height=1}
-            TextBox{parent=sect_title,x=1,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
+            TextBox{parent=sect_title,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
             local anchor = TextBox{parent=sect_title,x=title_offs,y=1,text=item.name,anchor=true,fg_bg=cpair(colors.green,colors.black)}
 
             page_end = Div{parent=def_list,height=1,can_focus=true}
@@ -80,7 +80,7 @@ return function (data, base_page, title, items, scroll_height)
             table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
             local name_title = Div{parent=name_list,height=1}
-            TextBox{parent=name_title,x=1,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
+            TextBox{parent=name_title,text=title_text,fg_bg=cpair(colors.lightGray,colors.black)}
             PushButton{parent=name_title,x=title_offs,y=1,text=item.name,alignment=ALIGN.LEFT,fg_bg=cpair(colors.green,colors.black),active_fg_bg=btn_active,callback=view}
 
             sect_id = sect_id + 1
@@ -107,7 +107,7 @@ return function (data, base_page, title, items, scroll_height)
             table.insert(search_db, { string.lower(item.name), item.name, title, view })
 
             local name_entry = Div{parent=name_list,height=#util.strwrap(item.name,name_list.get_width()-3)}
-            TextBox{parent=name_entry,x=1,text="\x10",fg_bg=cpair(colors.gray,colors.black)}
+            TextBox{parent=name_entry,text="\x10",fg_bg=cpair(colors.gray,colors.black)}
             PushButton{parent=name_entry,x=3,y=1,text=item.name,alignment=ALIGN.LEFT,fg_bg=cpair(colors.blue,colors.black),active_fg_bg=btn_active,callback=view}
         elseif item.type == DOC_TYPE.TEXT then
             ---@cast item pocket_doc_text
