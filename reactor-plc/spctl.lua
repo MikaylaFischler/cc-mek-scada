@@ -56,6 +56,8 @@ function spctl.init(smem)
     _spctl.fast_ramp_en = plc.config.FastRamp
 end
 
+--#region Ramp Control
+
 -- initialize ramping, or set right away if acceptable
 ---@param reactor FissionReactor reactor
 ---@param cur_br number requested burn rate
@@ -194,14 +196,17 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 end
 
--- update setpoint controller
 ---@param reactor FissionReactor
----@param elapsed_s integer iteration elapsed time reference
-function spctl.update(reactor, elapsed_s)
+---@param elapsed_s number nominal iteration elapsed time reference
+local function ramp_update(reactor, elapsed_s)
     -- check if we should start ramping
     if setpoints.burn_rate_en and (setpoints.burn_rate ~= _spctl.last_sp) and rps.is_active() then
-        local cur_br = reactor.getBurnRate()
-        _spctl.max_br = reactor.getMaxBurnRate()
+        local cur_br
+
+        parallel.waitForAll(
+            function () cur_br = reactor.getBurnRate() end,
+            function () _spctl.max_br = reactor.getMaxBurnRate() end
+        )
 
         if (type(cur_br) == "number") and (type(_spctl.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
             ramp_init(reactor, cur_br)
@@ -243,6 +248,25 @@ function spctl.update(reactor, elapsed_s)
         setpoints.burn_rate_en = false
         ramp_reset()
     end
+end
+
+---#endregion
+
+-- update setpoint controller
+---@param reactor FissionReactor
+---@param tick integer tick counter
+---@param nom_elapsed_s number nominal iteration elapsed time reference
+function spctl.update(reactor, tick, nom_elapsed_s)
+    --#region Ramp Control
+
+    if tick % 2 == 0 then
+        ramp_update(reactor, nom_elapsed_s)
+    end
+
+    --#endregion
+
+
+    --#endregion
 end
 
 return spctl

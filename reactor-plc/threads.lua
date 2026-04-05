@@ -16,7 +16,7 @@ local threads = {}
 local MAIN_CLOCK    = 0.5 -- 2Hz,   10 ticks
 local RPS_SLEEP     = 250 -- 250ms, 5 ticks
 local COMMS_SLEEP   = 150 -- 150ms, 3 ticks
-local SP_CTRL_SLEEP = 250 -- 250ms, 5 ticks
+local SP_CTRL_SLEEP = 100 -- 100ms, 2 ticks
 
 -- main thread
 ---@nodiscard
@@ -506,7 +506,9 @@ function threads.thread__setpoint_control(smem)
 
         -- do not use the actual elapsed time, it could spike
         -- we do not want to have big jumps as that is what we are trying to avoid in the first place
-        local min_elapsed_s = SP_CTRL_SLEEP / 1000.0
+        local nom_elapsed_s = SP_CTRL_SLEEP / 1000.0
+
+        local tick = 0
 
         -- init controller
         spctl.init(smem)
@@ -514,7 +516,9 @@ function threads.thread__setpoint_control(smem)
         -- thread loop
         while true do
             if not plc_state.no_reactor then
-                spctl.update(plc_dev.reactor, min_elapsed_s)
+                tick = tick + 1
+
+                spctl.update(plc_dev.reactor, tick, nom_elapsed_s)
             end
 
             -- check for termination request
