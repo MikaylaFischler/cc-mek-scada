@@ -81,6 +81,7 @@ local tmp_cfg = {
     UnitID = 0,
     FastRamp = true,
     FastRampConfirmed = false,
+    FuelAutoLimiting = false,
     EmerCoolEnable = false,
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
@@ -111,6 +112,7 @@ local fields = {
     { "UnitID", "Unit ID", 1 },
     { "FastRamp", "Fast Ramp", true },
     { "FastRampConfirmed", "Fast Ramp Confirmed", false },
+    { "FuelAutoLimiting", "Low Fuel Auto Rate Limiting", false },
     { "EmerCoolEnable", "Emergency Coolant", false },
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },

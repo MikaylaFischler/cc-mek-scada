@@ -101,7 +101,14 @@ local function main()
         ---@class plc_setpoints
         setpoints = {
             burn_rate_en = false,
-            burn_rate = 0.0
+            burn_rate = 0.0,
+            fuel_limit_en = config.FuelAutoLimiting ---@todo auto only
+        },
+
+        -- control limits/constraints
+        ---@class plc_limits
+        limits = {
+            fuel_max_burn = math.huge
         },
 
         -- global PLC devices, still initialized by the backplane

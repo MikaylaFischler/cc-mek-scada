@@ -46,12 +46,14 @@ local _spctl = {
 
 local rps       = nil ---@type rps
 local setpoints = nil ---@type plc_setpoints
+local limits    = nil ---@type plc_limits
 
 -- initialize with shared memory data
 ---@param smem plc_shared_memory
 function spctl.init(smem)
     rps       = smem.plc_sys.rps
     setpoints = smem.setpoints
+    limits    = smem.limits
 
     _spctl.fast_ramp_en = plc.config.FastRamp
 end
