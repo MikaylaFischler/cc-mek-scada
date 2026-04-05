@@ -7,6 +7,10 @@ local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
 local FAST_MAX_PERCENT_s = 0.02
 
+local FUEL_LIMIT_INIT    = 0.4  -- start high speed monitoring at 40%
+local FUEL_LIMIT_START   = 0.3  -- start limiting at 30%
+local FUEL_LIMIT_RELEASE = 0.4  -- stop limiting once we reach 40%
+
 local spctl = {}
 
 ---@enum RAMP_STATES
@@ -41,7 +45,12 @@ local _spctl = {
 
     last_change = 0,
     next_state = STATES.STOPPED, ---@type RAMP_STATES
-    last_state = STATES.STOPPED  ---@type RAMP_STATES
+    last_state = STATES.STOPPED, ---@type RAMP_STATES
+
+    fuel_monitoring = false,
+    fuel_limiting = false,
+
+    cur_fuel = 0,
 }
 
 local rps       = nil ---@type rps
@@ -267,6 +276,38 @@ function spctl.update(reactor, tick, nom_elapsed_s)
 
     --#endregion
 
+    --#region Fuel Rate Limiting
+
+    local fuel_fill = false ---@type boolean|number
+
+    if _spctl.fuel_monitoring then
+        parallel.waitForAll(
+            function () _spctl.cur_fuel = (reactor.getFuel() or { amount = 0 }).amount end,
+            function () fuel_fill = reactor.getFuelFilledPercentage() end,
+            function () _spctl.max_br = reactor.getMaxBurnRate() end
+        )
+
+        if _spctl.fuel_limiting then
+        end
+    else
+        if tick % 5 == 0 then
+            fuel_fill = reactor.getFuelFilledPercentage()
+        end
+    end
+
+    if fuel_fill ~= false then
+        if fuel_fill > FUEL_LIMIT_RELEASE then
+            _spctl.fuel_monitoring = false
+            _spctl.fuel_limiting = false
+
+            limits.fuel_max_burn = math.huge
+        elseif fuel_fill < FUEL_LIMIT_START then
+            _spctl.fuel_monitoring = true
+            _spctl.fuel_limiting = true
+        elseif fuel_fill < FUEL_LIMIT_INIT then
+            _spctl.fuel_monitoring = true
+        end
+    end
 
     --#endregion
 end
