@@ -50,7 +50,12 @@ local _spctl = {
     fuel_monitoring = false,
     fuel_limiting = false,
 
-    cur_fuel = 0,
+    last_mon_check = 0,
+    last_fuel_filt = 0.0,
+
+    fuel_filt = util.ema_filter(0.04),
+    rate_filt = util.ema_filter(0.04),
+    tick_filt = util.ema_filter(0.04)
 }
 
 local rps       = nil ---@type rps
@@ -83,7 +88,7 @@ local function ramp_init(reactor, cur_br)
         _spctl.next_state  = STATES.INIT
     else
         log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
-        reactor.setBurnRate(setpoints.burn_rate)
+        reactor.setBurnRate(math.min(setpoints.burn_rate, limits.fuel_max_burn))
     end
 end
 
@@ -189,7 +194,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 
     -- set the burn rate
-    reactor.setBurnRate(new_br)
+    reactor.setBurnRate(math.min(new_br, limits.fuel_max_burn))
 
     if new_br ~= setpoints.burn_rate then
         -- update tracked values and continue
@@ -278,34 +283,73 @@ function spctl.update(reactor, tick, nom_elapsed_s)
 
     --#region Fuel Rate Limiting
 
-    local fuel_fill = false ---@type boolean|number
+    local fuel_fill = nil ---@type nil|number
 
     if _spctl.fuel_monitoring then
+        local fuel, act_rate = 0.0, 0.0
+        local tps, t_start, t_end = 0, util.time_ms(), 0
+
         parallel.waitForAll(
-            function () _spctl.cur_fuel = (reactor.getFuel() or { amount = 0 }).amount end,
+            function () tps = util.get_tps() end,
+            function ()
+                fuel = (reactor.getFuel() or { amount = 0 }).amount
+                t_end = util.time_ms()
+            end,
             function () fuel_fill = reactor.getFuelFilledPercentage() end,
-            function () _spctl.max_br = reactor.getMaxBurnRate() end
+            function () act_rate  = reactor.getActualBurnRate() end
         )
 
-        if _spctl.fuel_limiting then
-        end
+        local elapsed_s = (util.time_s() - _spctl.last_mon_check)
+        _spctl.last_mon_check = util.time_s()
+
+        -- more likely to get a full tick by checking in two ways, so average our checks
+        local tps_avg = (tps + (1000 / (t_end - t_start))) / 2
+
+        -- update EMA filters
+        _spctl.fuel_filt.update(fuel)
+        _spctl.rate_filt.update(act_rate)
+        _spctl.tick_filt.update(elapsed_s * tps_avg)
+
+        -- figure out the change in fuel as mB/t
+        local d_fuel     = _spctl.fuel_filt.get() - _spctl.last_fuel_filt
+        local d_fuel_mBt = d_fuel / _spctl.tick_filt.get()
+        local limit      = math.max(0.01, _spctl.rate_filt.get() + d_fuel_mBt)
+
+        limits.fuel_max_burn = (_spctl.fuel_limiting and limit) or math.huge
+
+        log.debug(util.sprintf("SPCTL: elapsed[%f] tps[%f] tps_avg[%f] divisor[%f] fuel[%f] fuel_f[%f] d_fuel[%f] d_fuel_mBt[%f] act_rate[%f] act_rate_f[%f] limit[%f]",
+            elapsed_s, tps, tps_avg, elapsed_s * tps_avg, fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, act_rate, _spctl.rate_filt.get(), limit))
+
+        _spctl.last_fuel_filt = _spctl.fuel_filt.get()
     else
         if tick % 5 == 0 then
             fuel_fill = reactor.getFuelFilledPercentage()
         end
     end
 
-    if fuel_fill ~= false then
-        if fuel_fill > FUEL_LIMIT_RELEASE then
+    -- change state per fuel fill
+    if fuel_fill then
+        if (fuel_fill > FUEL_LIMIT_RELEASE) and (_spctl.fuel_monitoring or _spctl.fuel_limiting) then
             _spctl.fuel_monitoring = false
             _spctl.fuel_limiting = false
 
             limits.fuel_max_burn = math.huge
-        elseif fuel_fill < FUEL_LIMIT_START then
-            _spctl.fuel_monitoring = true
+
+            log.info("SPCTL: monitoring fuel terminated / limit released")
+        elseif _spctl.fuel_monitoring and (not _spctl.fuel_limiting) and (fuel_fill < FUEL_LIMIT_START) then
             _spctl.fuel_limiting = true
-        elseif fuel_fill < FUEL_LIMIT_INIT then
+
+            log.info("SPCTL: fuel limit engaged")
+        elseif (not _spctl.fuel_monitoring) and (fuel_fill < FUEL_LIMIT_INIT) then
             _spctl.fuel_monitoring = true
+
+            _spctl.last_mon_check = util.time_s()
+
+            _spctl.fuel_filt.reset()
+            _spctl.rate_filt.reset()
+            _spctl.tick_filt.reset()
+
+            log.info("SPCTL: started monitoring fuel statistics, approaching limiting threshold")
         end
     end
 

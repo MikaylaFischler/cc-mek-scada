@@ -810,7 +810,7 @@ function plc.comms(version, tx_nic, smem)
                             ack = AUTO_ACK.RAMP_SET_OK
                         else
                             log.debug(util.c("AUTO: setting burn rate directly to ", burn_rate))
-                            reactor.setBurnRate(burn_rate)
+                            reactor.setBurnRate(math.min(burn_rate, limits.fuel_max_burn))
                             ack = util.trinary(reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
                         end
                     end
