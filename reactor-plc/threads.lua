@@ -426,7 +426,6 @@ function threads.thread__comms_rx(smem)
 
         -- load in from shared memory
         local plc_state   = smem.plc_state
-        local setpoints   = smem.setpoints
 
         local plc_comms   = smem.plc_sys.plc_comms
 
@@ -442,10 +441,8 @@ function threads.thread__comms_rx(smem)
 
                 if msg ~= nil then
                     if msg.qtype == mqueue.TYPE.NETWORK then
-                        -- received a packet
-                        -- handle the packet (setpoints passed to update burn rate setpoint)
-                        --                   (plc_state passed to check if degraded)
-                        plc_comms.handle_packet(msg.message, plc_state, setpoints, println_ts)
+                        -- received a packet, handle the packet
+                        plc_comms.handle_packet(msg.message, println_ts)
                     end
                 end
 

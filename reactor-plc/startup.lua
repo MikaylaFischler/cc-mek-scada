@@ -101,13 +101,13 @@ local function main()
         ---@class plc_setpoints
         setpoints = {
             burn_rate_en = false,
-            burn_rate = 0.0,
-            fuel_limit_en = config.FuelAutoLimiting ---@todo auto only
+            burn_rate = 0.0
         },
 
         -- control limits/constraints
         ---@class plc_limits
         limits = {
+            fuel_limit_en = true, --config.FuelAutoLimiting ---@todo auto only
             fuel_max_burn = math.huge
         },
 
@@ -196,7 +196,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- create network interface then setup comms
-        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), __shared_memory)
         log.debug("startup> comms init")
     else
         _println_no_fp("startup> starting in non-networked mode")

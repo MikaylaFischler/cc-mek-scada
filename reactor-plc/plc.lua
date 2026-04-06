@@ -543,10 +543,16 @@ end
 ---@nodiscard
 ---@param version string PLC version
 ---@param tx_nic nic network interface device
----@param reactor FissionReactor reactor device
----@param rps rps RPS reference
----@param conn_watchdog watchdog watchdog reference
-function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
+---@param smem plc_shared_memory shared memory
+function plc.comms(version, tx_nic, smem)
+    -- load in from shared memory
+    local reactor       = smem.plc_dev.reactor
+    local rps           = smem.plc_sys.rps
+    local conn_watchdog = smem.plc_sys.conn_watchdog
+    local plc_state     = smem.plc_state
+    local setpoints     = smem.setpoints
+    local limits        = smem.limits
+
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
@@ -717,9 +723,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle a burn rate command
     ---@param packet rplc_packet
-    ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
-    local function _handle_burn_rate(packet, setpoints)
+    local function _handle_burn_rate(packet)
         if (packet.length == 2) and (type(packet.data[1]) == "number") then
             local success = false
             local burn_rate = math.floor(packet.data[1] * 10) / 10
@@ -754,9 +759,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle an auto burn rate command
     ---@param packet rplc_packet
-    ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
-    local function _handle_auto_burn_rate(packet, setpoints)
+    local function _handle_auto_burn_rate(packet)
         if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
             local ack = AUTO_ACK.FAIL
             local burn_rate = math.floor(packet.data[1] * 100) / 100
@@ -973,10 +977,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle RPLC and MGMT packets
     ---@param packet rplc_packet|mgmt_packet packet frame
-    ---@param plc_state plc_state PLC state
-    ---@param setpoints plc_setpoints setpoint control table
     ---@param println_ts function console print, when UI isn't running
-    function public.handle_packet(packet, plc_state, setpoints, println_ts)
+    function public.handle_packet(packet, println_ts)
         local protocol = packet.scada_frame.protocol()
         local l_chan   = packet.scada_frame.local_channel()
         local src_addr = packet.scada_frame.src_addr()
@@ -1015,7 +1017,7 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPE.MEK_BURN_RATE then
                         -- set the burn rate
-                        _handle_burn_rate(packet, setpoints)
+                        _handle_burn_rate(packet)
                     elseif packet.type == RPLC_TYPE.RPS_ENABLE then
                         -- enable the reactor
                         self.scrammed = false
@@ -1044,7 +1046,7 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPE.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate
-                        _handle_auto_burn_rate(packet, setpoints)
+                        _handle_auto_burn_rate(packet)
                     else
                         log.debug("received unknown RPLC packet type " .. packet.type)
                     end
