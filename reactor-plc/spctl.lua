@@ -10,6 +10,7 @@ local FAST_MAX_PERCENT_s = 0.02
 local FUEL_LIMIT_INIT    = 0.4  -- start high speed monitoring at 40%
 local FUEL_LIMIT_START   = 0.3  -- start limiting at 30%
 local FUEL_LIMIT_RELEASE = 0.4  -- stop limiting once we reach 40%
+local FUEL_LIMIT_EMA_A   = 0.05 -- EMA filter alpha
 
 local spctl = {}
 
@@ -53,9 +54,9 @@ local _spctl = {
     last_mon_check = 0,
     last_fuel_filt = 0.0,
 
-    fuel_filt = util.ema_filter(0.04),
-    rate_filt = util.ema_filter(0.04),
-    tick_filt = util.ema_filter(0.04)
+    fuel_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
+    rate_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
+    tick_filt = util.ema_filter(FUEL_LIMIT_EMA_A)
 }
 
 local rps       = nil ---@type rps
