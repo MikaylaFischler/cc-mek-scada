@@ -178,7 +178,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         -- don't exceed the setpoint
         new_br = math.min(cur_br + step, setpoints.burn_rate)
 
-        log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
+        -- log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
     elseif state == STATES.FAST_RAMP_DOWN then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
@@ -190,7 +190,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
         -- don't fall below the setpoint
         new_br = math.max(cur_br - step, setpoints.burn_rate)
 
-        log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
+        -- log.debug(util.sprintf("SPCTL: scaler[%f] cur_ccool[%f] step[%f] new_br[%f]", scaler, cur_ccool, step, new_br))
     end
 
     -- set the burn rate

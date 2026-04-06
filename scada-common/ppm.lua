@@ -128,7 +128,7 @@ local function peri_init(iface)
     self.device.__p_disable_afc = disable_afc
 
     ---@class PPMDevice
-    local dev = {}
+    local dev = self.device
 
     dev.__p_clear_fault = clear_fault
     dev.__p_last_fault  = get_last_fault
@@ -137,8 +137,6 @@ local function peri_init(iface)
     dev.__p_is_healthy  = is_healthy
     dev.__p_enable_afc  = enable_afc
     dev.__p_disable_afc = disable_afc
-
-    self.device = dev
 
     -- peripheral call initialization process (re-map)
 

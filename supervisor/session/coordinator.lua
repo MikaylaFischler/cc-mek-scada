@@ -236,7 +236,7 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                 -- acknowledgement to coordinator receiving builds
                 self.acks.builds = true
             elseif pkt.type == CRDN_TYPE.PROCESS_READY then
-                if pkt.length == 5 then
+                if pkt.length == 7 then
                     -- coordinator has sent all initial process data, power-on recovery is now possible
 
                     ---@type start_auto_config

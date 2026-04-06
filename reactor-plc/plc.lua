@@ -343,7 +343,10 @@ function plc.rps_init(reactor, is_formed)
         if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
             return false
-        else return true end
+        else
+            self.reactor_active = false
+            return true
+        end
     end
 
     -- start the reactor now<br>
@@ -356,7 +359,10 @@ function plc.rps_init(reactor, is_formed)
             reactor.activate()
             if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_START_MSG) then
                 log.error("RPS: failed reactor start")
-            else return true end
+            else
+                self.reactor_active = true
+                return true
+            end
         else
             log.debug(util.c("RPS: failed start, RPS tripped: ", self.trip_cause))
         end
