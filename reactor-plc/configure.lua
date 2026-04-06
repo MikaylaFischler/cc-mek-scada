@@ -36,7 +36,8 @@ local changes = {
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
     { "v1.10.0", { "Added support for wired communications modems" } },
-    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } }
+    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } },
+    { "v1.12.1", { "Added option for limiting maximum burn rate when running out of fuel in auto control" } }
 }
 
 ---@class plc_configurator
