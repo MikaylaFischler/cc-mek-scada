@@ -135,4 +135,10 @@ function databus.tx_rps(tripped, status, emer_cool_active)
     databus.ps.publish("emer_cool", emer_cool_active)
 end
 
+-- transmit auto control state
+---@param auto boolean if auto control is active
+function databus.tx_auto_state(auto)
+    databus.ps.publish("auto_control", auto)
+end
+
 return databus

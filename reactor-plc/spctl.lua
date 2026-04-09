@@ -38,15 +38,33 @@ local STATE_NAMES = {
 }
 
 local _spctl = {
+    -- reactor readings and other stats
+    ---@class _spctl_data
+    data = {
+        tps = 0.0,
+        tick_time = 0,
+        max_br = 0.0,
+        burn_rate = 0.0,
+        act_rate = 0.0,
+        fuel = 0.0,
+        fuel_fill = 0.0,
+        ccool_fill = 0.0,
+    },
+
+    -- ramp control
+
     fast_ramp_en = false,
 
-    max_br = 0.0,
     last_sp = 0.0,
     last_ccool = 0.0,
 
     last_change = 0,
     next_state = STATES.STOPPED, ---@type RAMP_STATES
     last_state = STATES.STOPPED, ---@type RAMP_STATES
+
+    -- fuel-based burn rate limiting
+
+    fuel_limit_en = false,
 
     fuel_monitoring = false,
     fuel_limiting = false,
@@ -60,6 +78,7 @@ local _spctl = {
 }
 
 local rps       = nil ---@type rps
+local plc_state = nil ---@type plc_state
 local setpoints = nil ---@type plc_setpoints
 local limits    = nil ---@type plc_limits
 
@@ -67,10 +86,12 @@ local limits    = nil ---@type plc_limits
 ---@param smem plc_shared_memory
 function spctl.init(smem)
     rps       = smem.plc_sys.rps
+    plc_state = smem.plc_state
     setpoints = smem.setpoints
     limits    = smem.limits
 
-    _spctl.fast_ramp_en = plc.config.FastRamp
+    _spctl.fast_ramp_en  = plc.config.FastRamp
+    _spctl.fuel_limit_en = plc.config.FuelAutoLimiting
 end
 
 --#region Ramp Control
@@ -161,7 +182,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     elseif state == STATES.FAST_RAMP_UP then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
-        local step   = scaler * _spctl.max_br
+        local step   = scaler * _spctl.data.max_br
 
         -- slow the step if we are losing coolant
         if cur_ccool < 0.8 then
@@ -183,7 +204,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     elseif state == STATES.FAST_RAMP_DOWN then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
-        local step   = scaler * _spctl.max_br
+        local step   = scaler * _spctl.data.max_br
 
         -- minimum is the slow rate, maintain old behavior
         step = math.max(SLOW_RAMP_mB_s * elapsed_s, step)
@@ -195,8 +216,9 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 
     -- set the burn rate
-    reactor.setBurnRate(math.min(new_br, limits.fuel_max_burn))
+    _spctl.new_br = math.min(new_br, limits.fuel_max_burn)
 
+    -- note: check desired br not the limited one so that we keep going if we can't achieve it yet
     if new_br ~= setpoints.burn_rate then
         -- update tracked values and continue
         _spctl.last_ccool = cur_ccool
@@ -218,14 +240,14 @@ end
 local function ramp_update(reactor, elapsed_s)
     -- check if we should start ramping
     if setpoints.burn_rate_en and (setpoints.burn_rate ~= _spctl.last_sp) and rps.is_active() then
-        local cur_br
-
         parallel.waitForAll(
-            function () cur_br = reactor.getBurnRate() end,
-            function () _spctl.max_br = reactor.getMaxBurnRate() end
+            function () _spctl.data.burn_rate = reactor.getBurnRate() end,
+            function () _spctl.data.max_br    = reactor.getMaxBurnRate() end
         )
 
-        if (type(cur_br) == "number") and (type(_spctl.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
+        local cur_br = _spctl.data.burn_rate
+
+        if (type(cur_br) == "number") and (type(_spctl.data.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
             ramp_init(reactor, cur_br)
         end
     end
@@ -234,27 +256,18 @@ local function ramp_update(reactor, elapsed_s)
     if _spctl.next_state ~= STATES.STOPPED then
         -- adjust burn rate (setpoints.burn_rate)
         if setpoints.burn_rate_en then
-            local cur_br, cur_ccool = 0, 0
-
-            parallel.waitForAll(
-                function () cur_br = reactor.getBurnRate() end,
-                function () cur_ccool = reactor.getCoolantFilledPercentage() end
-            )
+            local cur_br, ccool = _spctl.data.burn_rate, _spctl.data.ccool_fill
 
             if not rps.is_active() then
                 log.info("SPCTL: ramping aborted (reactor inactive)")
                 setpoints.burn_rate_en = false
                 ramp_reset()
-            -- we yielded, check enable again
-            elseif setpoints.burn_rate_en then
-                if (type(cur_br) == "number") and (type(cur_ccool) == "number") then
-                    ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
-                else
-                    log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br=", cur_br, ",cur_ccool=", cur_ccool, ")"))
-                end
             else
-                log.info("SPCTL: ramping cancelled")
-                ramp_reset()
+                if (type(cur_br) == "number") and (type(ccool) == "number") then
+                    ramp_run(reactor, cur_br, ccool, elapsed_s)
+                else
+                    log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br = ", cur_br, ",cur_ccool = ", ccool, ")"))
+                end
             end
         else
             log.info("SPCTL: ramping cancelled")
@@ -274,6 +287,27 @@ end
 ---@param tick integer tick counter
 ---@param nom_elapsed_s number nominal iteration elapsed time reference
 function spctl.update(reactor, tick, nom_elapsed_s)
+    _spctl.new_br = nil
+
+    -- grab all data in one tick rather than potentially twice
+    if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) then
+        local t_start, t_end = util.time_ms(), 0
+
+        parallel.waitForAll(
+            function () _spctl.data.tps        = util.get_tps() end,
+            function () _spctl.data.burn_rate  = reactor.getBurnRate() end,
+            function () _spctl.data.ccool_fill = reactor.getCoolantFilledPercentage() end,
+            function () _spctl.data.fuel_fill  = reactor.getFuelFilledPercentage() end,
+            function () _spctl.data.act_rate   = reactor.getActualBurnRate() end,
+            function ()
+                _spctl.data.fuel = (reactor.getFuel() or { amount = nil }).amount
+                t_end            = util.time_ms()
+            end
+        )
+
+        _spctl.data.tick_time = t_end - t_start
+    end
+
     --#region Ramp Control
 
     if tick % 2 == 0 then
@@ -284,31 +318,21 @@ function spctl.update(reactor, tick, nom_elapsed_s)
 
     --#region Fuel Rate Limiting
 
-    local fuel_fill = nil ---@type nil|number
+    local fuel_fill = nil ---@type number|nil
+    local data      = _spctl.data
 
-    if _spctl.fuel_monitoring then
-        local fuel, act_rate = 0.0, 0.0
-        local tps, t_start, t_end = 0, util.time_ms(), 0
-
-        parallel.waitForAll(
-            function () tps = util.get_tps() end,
-            function ()
-                fuel = (reactor.getFuel() or { amount = 0 }).amount
-                t_end = util.time_ms()
-            end,
-            function () fuel_fill = reactor.getFuelFilledPercentage() end,
-            function () act_rate  = reactor.getActualBurnRate() end
-        )
+    if _spctl.fuel_monitoring and (type(data.fuel) == "number") and (type(data.act_rate) == "number") then
+        fuel_fill = data.fuel_fill
 
         local elapsed_s = (util.time_s() - _spctl.last_mon_check)
         _spctl.last_mon_check = util.time_s()
 
         -- more likely to get a full tick by checking in two ways, so average our checks
-        local tps_avg = (tps + (1000 / (t_end - t_start))) / 2
+        local tps_avg = (data.tps + (1000 / data.tick_time)) / 2
 
         -- update EMA filters
-        _spctl.fuel_filt.update(fuel)
-        _spctl.rate_filt.update(act_rate)
+        _spctl.fuel_filt.update(data.fuel)
+        _spctl.rate_filt.update(data.act_rate)
         _spctl.tick_filt.update(elapsed_s * tps_avg)
 
         -- figure out the change in fuel as mB/t
@@ -319,10 +343,10 @@ function spctl.update(reactor, tick, nom_elapsed_s)
         limits.fuel_max_burn = (_spctl.fuel_limiting and limit) or math.huge
 
         log.debug(util.sprintf("SPCTL: elapsed[%f] tps[%f] tps_avg[%f] divisor[%f] fuel[%f] fuel_f[%f] d_fuel[%f] d_fuel_mBt[%f] act_rate[%f] act_rate_f[%f] limit[%f]",
-            elapsed_s, tps, tps_avg, elapsed_s * tps_avg, fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, act_rate, _spctl.rate_filt.get(), limit))
+            elapsed_s, data.tps, tps_avg, elapsed_s * tps_avg, data.fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, data.act_rate, _spctl.rate_filt.get(), limit))
 
         _spctl.last_fuel_filt = _spctl.fuel_filt.get()
-    else
+    elseif plc_state.auto_ctl and _spctl.fuel_limit_en then
         if tick % 5 == 0 then
             fuel_fill = reactor.getFuelFilledPercentage()
         end
@@ -355,6 +379,17 @@ function spctl.update(reactor, tick, nom_elapsed_s)
     end
 
     --#endregion
+
+    -- apply new rate (or limit periodically if needed)
+    if _spctl.new_br then
+        reactor.setBurnRate(math.min(_spctl.new_br, limits.fuel_max_burn))
+    elseif plc_state.auto_ctl and (_spctl.next_state == STATES.STOPPED) and (tick % 2 == 0) then
+        local cur_br = _spctl.data.burn_rate
+
+        if (cur_br > limits.fuel_max_burn) or (cur_br < setpoints.burn_rate) then
+            reactor.setBurnRate(math.min(setpoints.burn_rate, limits.fuel_max_burn))
+        end
+    end
 end
 
 return spctl

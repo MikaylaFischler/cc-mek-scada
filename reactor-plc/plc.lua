@@ -126,14 +126,16 @@ end
 -- autonomous from main SCADA supervisor/coordinator control
 ---@nodiscard
 ---@param reactor FissionReactor
----@param is_formed boolean
-function plc.rps_init(reactor, is_formed)
+---@param plc_state plc_state
+function plc.rps_init(reactor, plc_state)
+    local ini_is_formed = util.trinary(plc_state.no_reactor, nil, plc_state.reactor_formed)
+
     local self = {
         ---@type boolean[] check states
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_active = false,
         emer_cool_active = nil, ---@type boolean
-        formed = is_formed,     ---@type boolean|nil
+        formed = ini_is_formed, ---@type boolean|nil
         force_disabled = false,
         tripped = false,
         trip_cause = "ok"       ---@type rps_trip_cause
@@ -339,6 +341,9 @@ function plc.rps_init(reactor, is_formed)
     function public.scram()
         log.info("RPS: reactor SCRAM")
 
+        plc_state.auto_ctl = false
+        pcall(databus.tx_auto_state, false)
+
         reactor.scram()
         if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
@@ -481,7 +486,7 @@ function plc.rps_init(reactor, is_formed)
         _set_emer_cool(self.state[CHK.LOW_COOLANT])
 
         -- report RPS status
-        databus.tx_rps(self.tripped, self.state, self.emer_cool_active)
+        pcall(databus.tx_rps, self.tripped, self.state, self.emer_cool_active)
 
         return self.tripped, status, first_trip
     end
@@ -670,9 +675,7 @@ function plc.comms(version, tx_nic, smem)
                         break
                     end
                 end
-            else
-                changed = true
-            end
+            else changed = true end
 
             if changed then
                 self.status_cache = status
@@ -823,6 +826,8 @@ function plc.comms(version, tx_nic, smem)
                 else
                     log.debug(util.c(burn_rate, " rate outside of 0 < x <= ", self.max_burn_rate))
                 end
+            else
+                log.debug("RPLC set automatic burn rate failed to query max burn rate")
             end
 
             _send_ack(packet.type, ack)
@@ -1022,12 +1027,18 @@ function plc.comms(version, tx_nic, smem)
                         _send_struct()
                         log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPE.MEK_BURN_RATE then
-                        -- set the burn rate
+                        -- set the burn rate (manual)
+                        plc_state.auto_ctl = false
                         _handle_burn_rate(packet)
+
+                        databus.tx_auto_state(false)
                     elseif packet.type == RPLC_TYPE.RPS_ENABLE then
-                        -- enable the reactor
-                        self.scrammed = false
+                        -- enable the reactor (manual)
+                        plc_state.auto_ctl = false
+                        self.scrammed      = false
                         _send_ack(packet.type, rps.activate())
+
+                        databus.tx_auto_state(false)
                     elseif packet.type == RPLC_TYPE.RPS_DISABLE then
                         -- disable the reactor, but do not trip
                         self.scrammed = true
@@ -1052,7 +1063,10 @@ function plc.comms(version, tx_nic, smem)
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPE.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate
+                        plc_state.auto_ctl = true
                         _handle_auto_burn_rate(packet)
+
+                        databus.tx_auto_state(true)
                     else
                         log.debug("received unknown RPLC packet type " .. packet.type)
                     end

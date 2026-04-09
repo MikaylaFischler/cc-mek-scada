@@ -93,6 +93,7 @@ local function main()
             degraded = true,
             no_reactor = true,
             reactor_formed = true,
+            auto_ctl = false,
             wd_modem = true,
             wl_modem = true
         },
@@ -107,7 +108,6 @@ local function main()
         -- control limits/constraints
         ---@class plc_limits
         limits = {
-            fuel_limit_en = true, --config.FuelAutoLimiting ---@todo auto only
             fuel_max_burn = math.huge
         },
 
@@ -180,7 +180,7 @@ local function main()
     ----------------------------------------
 
     -- init reactor protection system
-    smem_sys.rps = plc.rps_init(smem_dev.reactor, util.trinary(plc_state.no_reactor, nil, plc_state.reactor_formed))
+    smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state)
     log.debug("startup> rps init")
 
     -- notify user of emergency coolant configuration status

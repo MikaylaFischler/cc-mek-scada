@@ -36,6 +36,8 @@ function style.set_theme(fp, color_mode)
     else
         style.ind_bkg = colors.black
     end
+
+    style.ind_wht = cpair(colors.white, style.ind_bkg)
 end
 
 return style

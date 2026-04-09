@@ -31,13 +31,14 @@ local ALIGN = core.ALIGN
 local cpair = core.cpair
 local border = core.border
 
-local ind_grn = style.ind_grn
-local ind_red = style.ind_red
-
 -- create new front panel view
 ---@param panel DisplayBox main displaybox
 ---@param config plc_config configuraiton
 local function init(panel, config)
+    local ind_grn = style.ind_grn
+    local ind_red = style.ind_red
+    local ind_wht = style.ind_wht
+
     local s_hi_box = style.theme.highlight_box
 
     local term_w, _ = term.getSize()
@@ -53,10 +54,16 @@ local function init(panel, config)
 
     local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
-    system.line_break()
 
     sys_status.register(databus.ps, "status", sys_status.update)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
+
+    if config.Networked then
+        local auto_ctl = LED{parent=system,label="AUTO CONTROL",colors=ind_wht}
+        auto_ctl.register(databus.ps, "auto_control", auto_ctl.update)
+    end
+
+    system.line_break()
 
     local reactor = LEDPair{parent=system,label="REACTOR",off=colors.red,c1=colors.yellow,c2=colors.green}
     reactor.register(databus.ps, "reactor_dev_state", reactor.update)
