@@ -917,22 +917,18 @@ function plc.comms(version, tx_nic, smem)
     ---@param formed boolean reactor formed (from PLC state)
     function public.send_status(no_reactor, formed)
         if self.linked then
-            local mek_data = nil     ---@type table
-            local heating_rate = 0.0 ---@type number
+            local mek_data = nil
+            local heating_rate = 0.0
 
             if (not no_reactor) and rps.is_formed() then
                 if _update_status_cache() then mek_data = self.status_cache end
                 heating_rate = reactor.getHeatingRate()
             end
 
+            ---@type plc_status_msg
             local sys_status = {
-                util.time(),         -- timestamp
-                (not self.scrammed), -- requested control state
-                no_reactor,          -- no reactor peripheral connected
-                formed,              -- reactor formed
-                self.auto_ack_token, -- indicate auto command received prior to this status update
-                heating_rate,        -- heating rate
-                mek_data             -- mekanism status data
+                util.time(), not self.scrammed, no_reactor, formed, self.auto_ack_token, limits.reportable_max_burn,
+                heating_rate, mek_data
             }
 
             _send(RPLC_TYPE.STATUS, sys_status)
