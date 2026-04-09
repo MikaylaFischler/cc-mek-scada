@@ -416,9 +416,13 @@ function spctl.update(reactor, tick, nom_elapsed_s)
     -- fuel rate limiting
     if plc_state.auto_ctl and _spctl.fuel_limit_en then
         update_fuel_rate_limiting(tick, reactor)
-    else
+    elseif _spctl.fuel_monitoring then
         limits.reportable_max_burn = false
-        _spctl.limit_recovery      = false
+        limits.fuel_max_burn       = math.huge
+
+        _spctl.fuel_monitoring = false
+        _spctl.fuel_limiting   = false
+        _spctl.limit_recovery  = false
     end
 
     -- apply new rate (or limit periodically if needed)
