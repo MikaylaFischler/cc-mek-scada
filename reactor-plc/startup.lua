@@ -108,6 +108,7 @@ local function main()
         -- control limits/constraints
         ---@class plc_limits
         limits = {
+            reportable_max_burn = false, ---@type number|false
             fuel_max_burn = math.huge
         },
 
