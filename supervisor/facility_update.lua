@@ -88,24 +88,48 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
             for u = 1, #units do splits[u] = split end
             splits[#units] = splits[#units] + (unallocated % #units)
 
+            local last_br = {}  ---@type integer[]
+            local redist  = false
+            local avail   = {}  ---@type { cap: integer, unit: reactor_unit}[]
+
             -- go through all reactor units in this group
             for id = 1, #units do
                 local u = units[id]
 
-                local ctl = u.get_control_inf()
-                local lim_br100 = u.auto_get_effective_limit()
+                local ctl         = u.get_control_inf()
+                local lim_br100   = u.auto_get_effective_limit()
+                local f_lim_br100 = u.auto_get_fuel_limited()
 
                 if abort_on_fault and (lim_br100 ~= ctl.lim_br100) then
                     -- effective limit differs from set limit, unit is degraded
                     return unallocated, true
                 end
 
-                local last = ctl.br100
+                last_br[u.get_id()] = ctl.br100
 
-                if splits[id] <= lim_br100 then
+                if splits[id] <= f_lim_br100 then
                     ctl.br100 = splits[id]
+
+                    unallocated = math.max(0, unallocated - ctl.br100)
+
+                    if splits[id] < f_lim_br100 then
+                        table.insert(avail, { cap = f_lim_br100 - splits[id], unit = u })
+                        -- log.debug(util.sprintf(">> unit %d has %d spare capacity", u.get_id(), avail[#avail].cap))
+                    end
                 else
-                    ctl.br100 = lim_br100
+                    if splits[id] <= lim_br100 then
+                        -- still assign the most we can so that it can recover from rate limiting
+                        ctl.br100 = splits[id]
+                    else
+                        ctl.br100 = lim_br100
+                    end
+
+                    -- we are sorted by user limit, so it only makes sense to redistribute in this group if fuel limiting activated
+                    redist = redist or (f_lim_br100 ~= lim_br100)
+
+                    -- we know we can't go higher even if assigned, so use f_lim_br100 for the remainder
+                    -- we still might go past this though, but it should correct itself afterwards
+                    unallocated = math.max(0, unallocated - f_lim_br100)
 
                     if id < #units then
                         local remaining = #units - id
@@ -114,10 +138,47 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
                         splits[#units] = splits[#units] + (unallocated % remaining)
                     end
                 end
+            end
 
-                unallocated = math.max(0, unallocated - ctl.br100)
+            -- if we were fuel limited, we need to go through the list again since it wasn't sorted by fuel limited capacity
+            if redist then
+                if #avail == 1 then
+                    local u   = avail[1].unit
+                    local add = math.min(unallocated, avail[1].cap)
 
-                if last ~= ctl.br100 then u.auto_commit_br100(ramp) end
+                    unallocated = math.max(0, unallocated - add)
+
+                    u.get_control_inf().br100 = u.get_control_inf().br100 + add
+                    u.auto_commit_br100(ramp)
+
+                    -- log.debug(util.sprintf(">> added %d burn to unit %d, which had %d spare capacity", add, u.get_id(), avail[1].cap))
+                elseif #avail > 1 then
+                    -- sort by capacity, ascending
+                    table.sort(avail, function (a, b) return a.cap < b.cap end)
+
+                    -- redistribute remainder
+                    splits = {}
+                    split = math.floor(unallocated / #avail)
+                    for x = 1, #avail do splits[x] = split end
+                    splits[#avail] = splits[#avail] + (unallocated % #avail)
+
+                    for id = 1, #avail do
+                        local unit = avail[id].unit ---@type reactor_unit
+                        local used = math.min(splits[id], avail[id].cap)
+
+                        unallocated = math.max(0, unallocated - used)
+
+                        unit.get_control_inf().br100 = unit.get_control_inf().br100 + used
+
+                        -- log.debug(util.sprintf(">> added %d burn to unit %d, which had %d spare capacity", used, unit.get_id(), avail[id].cap))
+                    end
+                end
+            end
+
+            -- commit burn rates
+            for id = 1, #units do
+                local u = units[id]
+                if last_br[u.get_id()] ~= u.get_control_inf().br100 then u.auto_commit_br100(ramp) end
             end
         end
     end
