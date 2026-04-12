@@ -482,7 +482,7 @@ function iorx.record_unit_data(data)
         table.insert(ecam, { color = colors.yellow, text = "MAX BURN LIMITED", items = { white("INSUFFICIENT FUEL"), white("INJECTION RATE"), blue("CHECK FUEL INPUT") } })
     end
 
-    if true or annunc.WasteLineOcclusion then
+    if annunc.WasteLineOcclusion then
         table.insert(ecam, { color = colors.yellow, text = "WASTE LINE OCCLUSION", help = "WasteLineOcclusion", items = { blue("CHECK WASTE OUTPUT") } })
     end
 
