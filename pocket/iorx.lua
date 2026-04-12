@@ -305,6 +305,7 @@ function iorx.record_unit_data(data)
 
     unit.last_rate_change_ms = data[11]
     unit.turbine_flow_stable = data[12]
+    unit.fuel_burn_rate_limited = data[13]
 
     --#endregion
 
@@ -475,6 +476,10 @@ function iorx.record_unit_data(data)
 
     if annunc.FuelInputRateLow then
         table.insert(ecam, { color = colors.yellow, text = "FUEL INPUT RATE LOW", help = "FuelInputRateLow", items = { blue("CHECK FUEL INPUT") } })
+    end
+
+    if unit.fuel_burn_rate_limited then
+        table.insert(ecam, { color = colors.yellow, text = "MAX BURN LIMITED", items = { white("INSUFFICIENT FUEL"), white("INJECTION RATE"), blue("CHECK FUEL INPUT") } })
     end
 
     if true or annunc.WasteLineOcclusion then

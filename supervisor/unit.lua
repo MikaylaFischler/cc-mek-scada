@@ -101,6 +101,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         enable_aux_cool = false,
+        fuel_burn_rate_limited = false,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -1036,7 +1037,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             self.db.control.waste_mode,
             self.waste_product,
             self.last_rate_change_ms,
-            self.turbine_flow_stable
+            self.turbine_flow_stable,
+            self.fuel_burn_rate_limited
         }
     end
 
