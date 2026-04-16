@@ -263,7 +263,7 @@ function util.ema_filter(alpha)
     -- reset the filter state
     function public.reset() state = nil end
 
-    -- update the filter state with a new value 
+    -- update the filter state with a new value
     ---@param value number new value
     function public.update(value)
         if state then
