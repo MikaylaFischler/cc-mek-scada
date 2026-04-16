@@ -11,6 +11,9 @@ local databus = {}
 -- databus PSIL
 databus.ps = psil.create()
 
+-- diagnostics enable flag
+databus.en_diag = false
+
 local _dbus = {
     rps_scram = function () log.debug("DBUS: unset rps_scram() called") end,
     rps_reset = function () log.debug("DBUS: unset rps_reset() called") end,

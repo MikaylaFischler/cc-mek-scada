@@ -2,27 +2,29 @@
 -- Reactor PLC Front Panel GUI
 --
 
-local tcd        = require("scada-common.tcd")
-local types      = require("scada-common.types")
-local util       = require("scada-common.util")
+local tcd           = require("scada-common.tcd")
+local types         = require("scada-common.types")
+local util          = require("scada-common.util")
 
-local databus    = require("reactor-plc.databus")
-local plc        = require("reactor-plc.plc")
+local databus       = require("reactor-plc.databus")
+local plc           = require("reactor-plc.plc")
 
-local style      = require("reactor-plc.panel.style")
+local style         = require("reactor-plc.panel.style")
 
-local core       = require("graphics.core")
-local flasher    = require("graphics.flasher")
+local core          = require("graphics.core")
+local flasher       = require("graphics.flasher")
 
-local Div        = require("graphics.elements.Div")
-local Rectangle  = require("graphics.elements.Rectangle")
-local TextBox    = require("graphics.elements.TextBox")
+local Div           = require("graphics.elements.Div")
+local MultiPane     = require("graphics.elements.MultiPane")
+local Rectangle     = require("graphics.elements.Rectangle")
+local TextBox       = require("graphics.elements.TextBox")
 
-local PushButton = require("graphics.elements.controls.PushButton")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
-local LED        = require("graphics.elements.indicators.LED")
-local LEDPair    = require("graphics.elements.indicators.LEDPair")
-local RGBLED     = require("graphics.elements.indicators.RGBLED")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
+local LEDPair       = require("graphics.elements.indicators.LEDPair")
+local RGBLED        = require("graphics.elements.indicators.RGBLED")
 
 local LINK_STATE = types.PANEL_LINK_STATE
 
@@ -43,14 +45,122 @@ local function init(panel, config)
 
     local term_w, _ = term.getSize()
 
-    local header = TextBox{parent=panel,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
+    local main_page = Div{parent=panel,y=1}
+    local diag_page = Div{parent=panel,y=1}
+
+    local page_pane = MultiPane{parent=panel,y=1,panes={main_page,diag_page}}
+
+    local function show_main()
+        databus.en_diag = false
+        page_pane.set_value(1)
+    end
+
+    local function show_diagnostics()
+        databus.en_diag = true
+        page_pane.set_value(2)
+    end
+
+    --
+    -- DIAGNOSTICS DISPLAY
+    --
+
+    local debug_header = TextBox{parent=diag_page,y=1,text="FISSION REACTOR PLC DIAGNOSTICS - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
+    debug_header.register(databus.ps, "unit_id", function (id) debug_header.set_value(util.c("FISSION REACTOR PLC DIAGNOSTICS - UNIT ", id)) end)
+
+    --
+    -- ramp control
+    --
+
+    local ramp = Div{parent=diag_page,width=19,height=12,x=2,y=3}
+
+    local ra = LED{parent=ramp,label="RAMPING ACTIVE",colors=ind_grn}
+    TextBox{parent=ramp,x=3,text="SETPOINT"}
+    local sp  = DataIndicator{parent=ramp,y=2,x=12,label="",unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
+
+    ramp.line_break()
+
+    local ini = LED{parent=ramp,label="INIT",colors=ind_wht}
+    local sru = LED{parent=ramp,label="SLOW_RAMP_UP",colors=ind_wht}
+    local srd = LED{parent=ramp,label="SLOW_RAMP_DOWN",colors=ind_wht}
+    local sw  = LED{parent=ramp,label="STABLE_WAIT",colors=ind_wht}
+    local cm  = LED{parent=ramp,label="CCOOL_MON",colors=ind_wht}
+    local fru = LED{parent=ramp,label="FAST_RAMP_UP",colors=ind_wht}
+    local frd = LED{parent=ramp,label="FAST_RAMP_DOWN",colors=ind_wht}
+
+    ra.register(databus.ps, "spctl_ramp_active", ra.update)
+    sp.register(databus.ps, "spctl_ramp_sp", sp.update)
+    ini.register(databus.ps, "spctl_ramp_init", ini.update)
+    sru.register(databus.ps, "spctl_ramp_sru", sru.update)
+    srd.register(databus.ps, "spctl_ramp_srd", srd.update)
+    sw.register(databus.ps, "spctl_ramp_sw", sw.update)
+    cm.register(databus.ps, "spctl_ramp_cm", cm.update)
+    fru.register(databus.ps, "spctl_ramp_fru", fru.update)
+    frd.register(databus.ps, "spctl_ramp_frd", frd.update)
+
+    --
+    -- fuel burn limiting
+    --
+
+    local limit = Div{parent=diag_page,width=27,height=18,x=26,y=3}
+
+    local fm = LED{parent=limit,label="FUEL MON ACTIVE",colors=ind_grn}
+    local la = LED{parent=limit,label="LIMITING ACTIVE",colors=ind_grn}
+    local fr = LED{parent=limit,label="LIMIT FORCE RAMP",colors=ind_wht}
+
+    fm.register(databus.ps, "spctl_limit_mon", fm.update)
+    la.register(databus.ps, "spctl_limit_lim", la.update)
+    fr.register(databus.ps, "spctl_limit_fr", fr.update)
+
+    limit.line_break()
+
+    TextBox{parent=limit,text="FUEL_FILT"}
+    local fuel_filt = DataIndicator{parent=limit,y=5,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    TextBox{parent=limit,text="RATE_FILT"}
+    local rate_filt = DataIndicator{parent=limit,y=6,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    TextBox{parent=limit,text="TICK_FILT"}
+    local tick_filt = DataIndicator{parent=limit,y=7,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+
+    fuel_filt.register(databus.ps, "spctl_limit_fuel_filt", fuel_filt.update)
+    rate_filt.register(databus.ps, "spctl_limit_rate_filt", rate_filt.update)
+    tick_filt.register(databus.ps, "spctl_limit_tick_filt", tick_filt.update)
+
+    limit.line_break()
+
+    TextBox{parent=limit,text="LIMIT"}
+    local lim = DataIndicator{parent=limit,y=9,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+
+    lim.register(databus.ps, "spctl_limit_limit", lim.update)
+
+    --
+    -- general values
+    --
+
+    local general = Div{parent=diag_page,width=21,height=3,x=2,y=14}
+
+    TextBox{parent=general,text="TPS"}
+    local tps = DataIndicator{parent=general,y=1,x=11,label="",unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
+    TextBox{parent=general,text="TICK_TIME          ms"}
+    local tt  = DataIndicator{parent=general,y=2,x=11,label="",unit="",format="%8d",value=0,width=8,fg_bg=s_hi_box}
+
+    tps.register(databus.ps, "spctl_data_tps", tps.update)
+    tt.register(databus.ps, "spctl_data_tick", tt.update)
+
+    PushButton{parent=diag_page,x=26,y=14,min_width=6,text="BACK",callback=show_main,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
+
+    TextBox{parent=diag_page,y=17,width=diag_page.get_width(),alignment=ALIGN.CENTER,text="VALUES ONLY UPDATED WHILE THIS PAGE IS ACTIVE\nTHIS IMPACTS PERFORMANCE - GO BACK BEFORE CLOSING",fg_bg=cpair(style.theme.label,colors._INHERIT)}
+
+    --
+    -- STANDARD DISPLAY
+    --
+
+    local header = TextBox{parent=main_page,y=1,text="FISSION REACTOR PLC - UNIT ?",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     header.register(databus.ps, "unit_id", function (id) header.set_value(util.c("FISSION REACTOR PLC - UNIT ", id)) end)
 
     --
     -- system indicators
     --
 
-    local system = Div{parent=panel,width=14,height=18,x=2,y=3}
+    local system = Div{parent=main_page,width=14,height=18,x=2,y=3}
 
     local sys_status = LED{parent=system,label="STATUS",colors=cpair(colors.green,colors.red)}
     local heartbeat = LED{parent=system,label="HEARTBEAT",colors=ind_grn}
@@ -168,13 +278,13 @@ local function init(panel, config)
     -- status & controls & hardware labeling
     --
 
-    local status = Div{parent=panel,width=term_w-32,height=18,x=17,y=3}
+    local status = Div{parent=main_page,width=term_w-32,height=18,x=17,y=3}
 
-    local active = LED{parent=status,x=2,width=12,label="RCT ACTIVE",colors=ind_grn}
+    local active = LED{parent=status,x=2,width=12,label="REACTOR ACTIVE",colors=ind_grn}
 
     -- only show emergency coolant LED if emergency coolant is configured for this device
     if plc.config.EmerCoolEnable then
-        local emer_cool = LED{parent=status,x=2,width=14,label="EMER COOLANT",colors=cpair(colors.yellow,colors.yellow_off)}
+        local emer_cool = LED{parent=status,x=2,width=14,label="EMERG. COOLANT",colors=cpair(colors.yellow,colors.yellow_off)}
         emer_cool.register(databus.ps, "emer_cool", emer_cool.update)
     end
 
@@ -199,6 +309,8 @@ local function init(panel, config)
     TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="SN "..comp_id.."-PLC",fg_bg=s_hi_box}
+
+    PushButton{parent=hw_labels,x=12,y=3,text="DIAG",callback=show_diagnostics,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
 
     -- warning about multiple reactors connected
 
@@ -229,7 +341,7 @@ local function init(panel, config)
     -- rps list
     --
 
-    local rps = Rectangle{parent=panel,width=16,height=16,x=term_w-15,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
+    local rps = Rectangle{parent=main_page,width=16,height=16,x=term_w-15,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=ind_red}
     local rps_auto = LED{parent=rps,label="AUTOMATIC",colors=ind_red}
     local rps_tmo  = LED{parent=rps,label="TIMEOUT",colors=ind_red}

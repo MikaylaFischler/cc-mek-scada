@@ -1,7 +1,8 @@
-local log  = require("scada-common.log")
-local util = require("scada-common.util")
+local log     = require("scada-common.log")
+local util    = require("scada-common.util")
 
-local plc  = require("reactor-plc.plc")
+local databus = require("reactor-plc.databus")
+local plc     = require("reactor-plc.plc")
 
 local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
@@ -387,6 +388,8 @@ end
 function spctl.update(reactor, tick, nom_elapsed_s)
     _spctl.new_br = nil
 
+    local update_5Hz = tick % 2 == 0
+
     -- grab all data in one tick rather than 2+ times
     if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) then
         local t_start, t_end = util.time_ms(), 0
@@ -407,7 +410,7 @@ function spctl.update(reactor, tick, nom_elapsed_s)
     end
 
     -- ramping control
-    if tick % 2 == 0 then
+    if update_5Hz then
         ramp_update(reactor, nom_elapsed_s)
     end
 
@@ -425,7 +428,7 @@ function spctl.update(reactor, tick, nom_elapsed_s)
     -- apply new rate if set, otherwise limit periodically if needed
     if _spctl.new_br then
         reactor.setBurnRate(math.min(_spctl.new_br, limits.fuel_max_burn))
-    elseif plc_state.auto_ctl and _spctl.fuel_limiting and (_spctl.next_state == STATES.STOPPED) and (tick % 2 == 0) then
+    elseif plc_state.auto_ctl and _spctl.fuel_limiting and update_5Hz and (_spctl.next_state == STATES.STOPPED) then
         local cur_br = _spctl.data.burn_rate
 
         if cur_br > limits.fuel_max_burn then
@@ -439,6 +442,31 @@ function spctl.update(reactor, tick, nom_elapsed_s)
                 setpoints.burn_rate_en = true
             end
         end
+    end
+
+    if update_5Hz and databus.en_diag then
+        databus.ps.publish("spctl_ramp_active", setpoints.burn_rate_en)
+        databus.ps.publish("spctl_ramp_sp", setpoints.burn_rate)
+        databus.ps.publish("spctl_ramp_init", _spctl.next_state == STATES.INIT)
+        databus.ps.publish("spctl_ramp_sru", _spctl.next_state == STATES.SLOW_RAMP_UP)
+        databus.ps.publish("spctl_ramp_srd", _spctl.next_state == STATES.SLOW_RAMP_DOWN)
+        databus.ps.publish("spctl_ramp_sw", _spctl.next_state == STATES.STABLE_WAIT)
+        databus.ps.publish("spctl_ramp_cm", _spctl.next_state == STATES.CCOOL_MON)
+        databus.ps.publish("spctl_ramp_fru", _spctl.next_state == STATES.FAST_RAMP_UP)
+        databus.ps.publish("spctl_ramp_frd", _spctl.next_state == STATES.FAST_RAMP_DOWN)
+
+        databus.ps.publish("spctl_limit_mon", _spctl.fuel_monitoring)
+        databus.ps.publish("spctl_limit_lim", _spctl.fuel_limiting)
+        databus.ps.publish("spctl_limit_fr", plc_state.limit_force_ramp)
+
+        databus.ps.publish("spctl_limit_limit", limits.fuel_max_burn)
+
+        databus.ps.publish("spctl_limit_fuel_filt", _spctl.fuel_filt.get())
+        databus.ps.publish("spctl_limit_rate_filt", _spctl.rate_filt.get())
+        databus.ps.publish("spctl_limit_tick_filt", _spctl.tick_filt.get())
+
+        databus.ps.publish("spctl_data_tps", _spctl.data.tps)
+        databus.ps.publish("spctl_data_tick", _spctl.data.tick_time)
     end
 end
 
