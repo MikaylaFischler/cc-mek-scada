@@ -114,7 +114,6 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
 
                     if splits[id] < f_lim_br100 then
                         table.insert(avail, { cap = f_lim_br100 - splits[id], unit = u })
-                        -- log.debug(util.sprintf(">> unit %d has %d spare capacity", u.get_id(), avail[#avail].cap))
                     end
                 else
                     if splits[id] <= lim_br100 then
@@ -150,7 +149,6 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
 
                     u.get_control_inf().br100 = u.get_control_inf().br100 + add
 
-                    -- log.debug(util.sprintf(">> added %d burn to unit %d, which had %d spare capacity", add, u.get_id(), avail[1].cap))
                 elseif #avail > 1 then
                     -- sort by capacity, ascending
                     table.sort(avail, function (a, b) return a.cap < b.cap end)
@@ -168,8 +166,6 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
                         unallocated = math.max(0, unallocated - used)
 
                         unit.get_control_inf().br100 = unit.get_control_inf().br100 + used
-
-                        -- log.debug(util.sprintf(">> added %d burn to unit %d, which had %d spare capacity", used, unit.get_id(), avail[id].cap))
                     end
                 end
             end
