@@ -391,7 +391,7 @@ function spctl.update(reactor, tick, nom_elapsed_s)
     local update_5Hz = tick % 2 == 0
 
     -- grab all data in one tick rather than 2+ times
-    if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) then
+    if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) or (databus.en_diag and update_5Hz) then
         local t_start, t_end = util.time_ms(), 0
 
         parallel.waitForAll(
@@ -444,29 +444,34 @@ function spctl.update(reactor, tick, nom_elapsed_s)
         end
     end
 
+    -- record diagnostics shown on the front panel, only when that page is active
     if update_5Hz and databus.en_diag then
-        databus.ps.publish("spctl_ramp_active", setpoints.burn_rate_en)
-        databus.ps.publish("spctl_ramp_sp", setpoints.burn_rate)
-        databus.ps.publish("spctl_ramp_init", _spctl.next_state == STATES.INIT)
-        databus.ps.publish("spctl_ramp_sru", _spctl.next_state == STATES.SLOW_RAMP_UP)
-        databus.ps.publish("spctl_ramp_srd", _spctl.next_state == STATES.SLOW_RAMP_DOWN)
-        databus.ps.publish("spctl_ramp_sw", _spctl.next_state == STATES.STABLE_WAIT)
-        databus.ps.publish("spctl_ramp_cm", _spctl.next_state == STATES.CCOOL_MON)
-        databus.ps.publish("spctl_ramp_fru", _spctl.next_state == STATES.FAST_RAMP_UP)
-        databus.ps.publish("spctl_ramp_frd", _spctl.next_state == STATES.FAST_RAMP_DOWN)
+        local publish = databus.ps.publish
 
-        databus.ps.publish("spctl_limit_mon", _spctl.fuel_monitoring)
-        databus.ps.publish("spctl_limit_lim", _spctl.fuel_limiting)
-        databus.ps.publish("spctl_limit_fr", plc_state.limit_force_ramp)
+        publish("spctl_ramp_active", setpoints.burn_rate_en)
 
-        databus.ps.publish("spctl_limit_limit", limits.fuel_max_burn)
+        publish("spctl_ramp_sp", setpoints.burn_rate)
 
-        databus.ps.publish("spctl_limit_fuel_filt", _spctl.fuel_filt.get())
-        databus.ps.publish("spctl_limit_rate_filt", _spctl.rate_filt.get())
-        databus.ps.publish("spctl_limit_tick_filt", _spctl.tick_filt.get())
+        publish("spctl_ramp_init", _spctl.next_state == STATES.INIT)
+        publish("spctl_ramp_sru", _spctl.next_state == STATES.SLOW_RAMP_UP)
+        publish("spctl_ramp_srd", _spctl.next_state == STATES.SLOW_RAMP_DOWN)
+        publish("spctl_ramp_sw", _spctl.next_state == STATES.STABLE_WAIT)
+        publish("spctl_ramp_cm", _spctl.next_state == STATES.CCOOL_MON)
+        publish("spctl_ramp_fru", _spctl.next_state == STATES.FAST_RAMP_UP)
+        publish("spctl_ramp_frd", _spctl.next_state == STATES.FAST_RAMP_DOWN)
 
-        databus.ps.publish("spctl_data_tps", _spctl.data.tps)
-        databus.ps.publish("spctl_data_tick", _spctl.data.tick_time)
+        publish("spctl_limit_mon", _spctl.fuel_monitoring)
+        publish("spctl_limit_lim", _spctl.fuel_limiting)
+        publish("spctl_limit_fr", plc_state.limit_force_ramp)
+
+        publish("spctl_limit_limit", limits.fuel_max_burn)
+
+        publish("spctl_limit_fuel_filt", _spctl.fuel_filt.get())
+        publish("spctl_limit_rate_filt", _spctl.rate_filt.get())
+        publish("spctl_limit_tick_filt", _spctl.tick_filt.get())
+
+        publish("spctl_data_tps", _spctl.data.tps)
+        publish("spctl_data_tick", _spctl.data.tick_time)
     end
 end
 
