@@ -773,7 +773,7 @@ function plc.comms(version, tx_nic, smem)
         if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
             local ack = AUTO_ACK.FAIL
             local burn_rate = math.floor(packet.data[1] * 100) / 100
-            local ramp = packet.data[2]
+            local ramp = packet.data[2] or plc_state.limit_force_ramp
             self.auto_ack_token = packet.data[3]
 
             -- if no known max burn rate, check again
@@ -784,6 +784,8 @@ function plc.comms(version, tx_nic, smem)
             -- if we know our max burn rate, update current burn rate setpoint if in range
             if self.max_burn_rate ~= ppm.ACCESS_FAULT then
                 if burn_rate < 0.01 then
+                    setpoints.burn_rate = 0
+
                     if rps.is_active() then
                         -- auto scram to disable
                         log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
@@ -796,6 +798,8 @@ function plc.comms(version, tx_nic, smem)
                         ack = AUTO_ACK.ZERO_DIS_OK
                     end
                 elseif burn_rate <= self.max_burn_rate then
+                    setpoints.burn_rate = burn_rate
+
                     if not rps.is_active() then
                         -- activate the reactor
                         log.debug("AUTO: activating the reactor")
@@ -815,7 +819,6 @@ function plc.comms(version, tx_nic, smem)
                         if ramp then
                             log.debug(util.c("AUTO: setting burn rate ramp to ", burn_rate))
                             setpoints.burn_rate_en = true
-                            setpoints.burn_rate = burn_rate
                             ack = AUTO_ACK.RAMP_SET_OK
                         else
                             log.debug(util.c("AUTO: setting burn rate directly to ", burn_rate))

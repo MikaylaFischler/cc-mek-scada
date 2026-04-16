@@ -55,8 +55,6 @@ local _spctl = {
 
     fast_ramp_en = false,
 
-    limit_recovery = false,
-
     last_sp = 0.0,
     last_ccool = 0.0,
 
@@ -99,9 +97,8 @@ end
 --#region Ramp Control
 
 -- initialize ramping, or set right away if acceptable
----@param reactor FissionReactor reactor
 ---@param cur_br number requested burn rate
-local function ramp_init(reactor, cur_br)
+local function ramp_init(cur_br)
     _spctl.last_sp = setpoints.burn_rate
 
     -- update without ramp if <= 2.5 mB/t change
@@ -110,9 +107,17 @@ local function ramp_init(reactor, cur_br)
 
         _spctl.last_change = os.clock()
         _spctl.next_state  = STATES.INIT
+    elseif _spctl.fuel_limiting then
+        local lim_br = math.min(setpoints.burn_rate, limits.fuel_max_burn)
+        plc_state.limit_force_ramp = false
+
+        log.debug(util.c("SPCTL: setting burn rate directly to ", lim_br, " mB/t (limiting active, setpoint is ", setpoints.burn_rate, ")"))
+        _spctl.new_br = lim_br
     else
+        plc_state.limit_force_ramp = false
+
         log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
-        reactor.setBurnRate(math.min(setpoints.burn_rate, limits.fuel_max_burn))
+        _spctl.new_br = setpoints.burn_rate
     end
 end
 
@@ -125,11 +130,10 @@ local function ramp_reset()
 end
 
 -- run the setpoint ramp controller loop
----@param reactor FissionReactor reactor
 ---@param cur_br number current burn rate
 ---@param cur_ccool number coolant filled percentage (0 to 1)
 ---@param elapsed_s number seconds elapsed in the ramp
-local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
+local function ramp_run(cur_br, cur_ccool, elapsed_s)
     local now        = os.clock()
     local state_time = now - _spctl.last_change
     local state      = _spctl.next_state
@@ -220,10 +224,10 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     -- set the burn rate
     _spctl.new_br = math.min(new_br, limits.fuel_max_burn)
 
-    -- if recovering from fuel limiting, our current limited rate is the new limit
-    -- this results in ramped recovery
-    if _spctl.limit_recovery then
-        limits.reportable_max_burn = _spctl.new_br
+    -- release forced ramping if the target is lower than the actual
+    if plc_state.limit_force_ramp and (new_br < cur_br) then
+        log.info("SPCTL: released ramped fuel burn limiting recovery")
+        plc_state.limit_force_ramp = false
     end
 
     -- note: check desired br not the limited one so that we keep going if we can't achieve it yet
@@ -233,12 +237,10 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     else
         new_state = STATES.STOPPED
 
-        -- release ramp controller management of the reported maximum burn rate
-        if _spctl.limit_recovery then
+        -- release forced ramping
+        if plc_state.limit_force_ramp then
             log.info("SPCTL: completed ramped fuel burn limiting recovery")
-
-            _spctl.limit_recovery = false
-            limits.reportable_max_burn = util.trinary(_spctl.fuel_limiting, limits.fuel_max_burn, false)
+            plc_state.limit_force_ramp = false
         end
     end
 
@@ -264,7 +266,7 @@ local function ramp_update(reactor, elapsed_s)
         local cur_br = _spctl.data.burn_rate
 
         if (type(cur_br) == "number") and (type(_spctl.data.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
-            ramp_init(reactor, cur_br)
+            ramp_init(cur_br)
         end
     end
 
@@ -280,7 +282,7 @@ local function ramp_update(reactor, elapsed_s)
                 ramp_reset()
             else
                 if (type(cur_br) == "number") and (type(ccool) == "number") then
-                    ramp_run(reactor, cur_br, ccool, elapsed_s)
+                    ramp_run(cur_br, ccool, elapsed_s)
                 else
                     log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br = ", cur_br, ",cur_ccool = ", ccool, ")"))
                 end
@@ -326,11 +328,8 @@ local function update_fuel_rate_limiting(tick, reactor)
         local limit      = math.max(0.01, _spctl.rate_filt.get() + d_fuel_mBt)
 
         if _spctl.fuel_limiting then
+            limits.reportable_max_burn = limit
             limits.fuel_max_burn = limit
-
-            if not _spctl.limit_recovery then
-                limits.reportable_max_burn = limit
-            end
         else
             limits.reportable_max_burn = false
             limits.fuel_max_burn = math.huge
@@ -349,10 +348,9 @@ local function update_fuel_rate_limiting(tick, reactor)
     -- change state per fuel fill
     if fuel_fill then
         if (fuel_fill > FUEL_LIMIT_RELEASE) and (_spctl.fuel_monitoring or _spctl.fuel_limiting) then
-            if _spctl.fuel_limiting and not _spctl.limit_recovery then
-                log.info("SPCTL: initiating ramped fuel burn limiting recovery")
-                _spctl.limit_recovery  = true
-                setpoints.burn_rate_en = true
+            if _spctl.fuel_limiting and not plc_state.limit_force_ramp then
+                log.info("SPCTL: forcing auto commands to be ramped for burn limit recovery (limit released)")
+                plc_state.limit_force_ramp = true
             end
 
             _spctl.fuel_monitoring = false
@@ -389,7 +387,7 @@ end
 function spctl.update(reactor, tick, nom_elapsed_s)
     _spctl.new_br = nil
 
-    -- grab all data in one tick rather than potentially twice
+    -- grab all data in one tick rather than 2+ times
     if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) then
         local t_start, t_end = util.time_ms(), 0
 
@@ -422,14 +420,11 @@ function spctl.update(reactor, tick, nom_elapsed_s)
 
         _spctl.fuel_monitoring = false
         _spctl.fuel_limiting   = false
-        _spctl.limit_recovery  = false
     end
 
-    -- apply new rate (or limit periodically if needed)
+    -- apply new rate if set, otherwise limit periodically if needed
     if _spctl.new_br then
         reactor.setBurnRate(math.min(_spctl.new_br, limits.fuel_max_burn))
-
-        if _spctl.limit_recovery then limits.reportable_max_burn = _spctl.new_br end
     elseif plc_state.auto_ctl and _spctl.fuel_limiting and (_spctl.next_state == STATES.STOPPED) and (tick % 2 == 0) then
         local cur_br = _spctl.data.burn_rate
 
@@ -438,9 +433,9 @@ function spctl.update(reactor, tick, nom_elapsed_s)
         elseif cur_br < setpoints.burn_rate then
             -- we need to bring the rate back up but don't want it to jump agressively
             -- use the ramping controller for this instead
-            if not _spctl.limit_recovery then
+            if not (plc_state.limit_force_ramp and setpoints.burn_rate_en) then
                 log.info("SPCTL: initiating ramped fuel burn limiting recovery")
-                _spctl.limit_recovery  = true
+                plc_state.limit_force_ramp = true
                 setpoints.burn_rate_en = true
             end
         end

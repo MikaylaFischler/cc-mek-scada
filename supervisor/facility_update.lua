@@ -149,7 +149,6 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
                     unallocated = math.max(0, unallocated - add)
 
                     u.get_control_inf().br100 = u.get_control_inf().br100 + add
-                    u.auto_commit_br100(ramp)
 
                     -- log.debug(util.sprintf(">> added %d burn to unit %d, which had %d spare capacity", add, u.get_id(), avail[1].cap))
                 elseif #avail > 1 then

@@ -19,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.12.2"
+local R_PLC_VERSION = "v1.12.3"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -94,6 +94,7 @@ local function main()
             no_reactor = true,
             reactor_formed = true,
             auto_ctl = false,
+            limit_force_ramp = false,
             wd_modem = true,
             wl_modem = true
         },
@@ -108,7 +109,9 @@ local function main()
         -- control limits/constraints
         ---@class plc_limits
         limits = {
+            -- uses false rather than math.huge for transmission
             reportable_max_burn = false, ---@type number|false
+            -- maximum burn rate to prevent loss of fuel fill
             fuel_max_burn = math.huge
         },
 

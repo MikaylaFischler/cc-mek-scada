@@ -126,7 +126,7 @@ function logic.update_annunciator(self)
 
         self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
-        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < plc_db.mek_struct.max_burn)
+        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (self.db.control.lim_br100 / 100))
 
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
