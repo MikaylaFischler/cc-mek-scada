@@ -24,8 +24,8 @@ local TextBox       = require("graphics.elements.TextBox")
 
 local TabBar        = require("graphics.elements.controls.TabBar")
 
-local LED           = require("graphics.elements.indicators.LED")
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
 
 local ALIGN = core.ALIGN
 
