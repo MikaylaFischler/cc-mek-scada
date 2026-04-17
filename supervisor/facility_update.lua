@@ -82,15 +82,15 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
         local units = self.prio_defs[i]
 
         if #units > 0 then
-            local split = math.floor(unallocated / #units)
+            local last_br = {}  ---@type integer[]
+            local avail   = {}  ---@type { cap: integer, ctl: unit_control }[]
+            local redist  = false
 
+            -- split unallocated across this priority group
             local splits = {}
+            local split  = math.floor(unallocated / #units)
             for u = 1, #units do splits[u] = split end
             splits[#units] = splits[#units] + (unallocated % #units)
-
-            local last_br = {}  ---@type integer[]
-            local redist  = false
-            local avail   = {}  ---@type { cap: integer, unit: reactor_unit}[]
 
             -- go through all reactor units in this group
             for id = 1, #units do
@@ -113,7 +113,7 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
                     unallocated = math.max(0, unallocated - ctl.br100)
 
                     if splits[id] < f_lim_br100 then
-                        table.insert(avail, { cap = f_lim_br100 - splits[id], unit = u })
+                        table.insert(avail, { cap = f_lim_br100 - splits[id], ctl = ctl })
                     end
                 else
                     if splits[id] <= lim_br100 then
@@ -141,31 +141,29 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
 
             -- if we were fuel limited, we need to go through the list again since it wasn't sorted by fuel limited capacity
             if redist then
+                -- check if only one with available capacity, otherwise we need to go through sorting
                 if #avail == 1 then
-                    local u   = avail[1].unit
+                    local ctl = avail[1].ctl
                     local add = math.min(unallocated, avail[1].cap)
 
+                    ctl.br100   = ctl.br100 + add
                     unallocated = math.max(0, unallocated - add)
-
-                    u.get_control_inf().br100 = u.get_control_inf().br100 + add
-
                 elseif #avail > 1 then
                     -- sort by capacity, ascending
                     table.sort(avail, function (a, b) return a.cap < b.cap end)
 
                     -- redistribute remainder
                     splits = {}
-                    split = math.floor(unallocated / #avail)
+                    split  = math.floor(unallocated / #avail)
                     for x = 1, #avail do splits[x] = split end
                     splits[#avail] = splits[#avail] + (unallocated % #avail)
 
                     for id = 1, #avail do
-                        local unit = avail[id].unit ---@type reactor_unit
+                        local ctl  = avail[id].ctl
                         local used = math.min(splits[id], avail[id].cap)
 
+                        ctl.br100   = ctl.br100 + used
                         unallocated = math.max(0, unallocated - used)
-
-                        unit.get_control_inf().br100 = unit.get_control_inf().br100 + used
                     end
                 end
             end

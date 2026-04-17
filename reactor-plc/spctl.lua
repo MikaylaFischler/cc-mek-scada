@@ -49,7 +49,7 @@ local _spctl = {
         act_rate = 0.0,
         fuel = 0.0,
         fuel_fill = 0.0,
-        ccool_fill = 0.0,
+        ccool_fill = 0.0
     },
 
     -- ramp control
@@ -231,8 +231,7 @@ local function ramp_run(cur_br, cur_ccool, elapsed_s)
         plc_state.limit_force_ramp = false
     end
 
-    -- note: check desired br not the limited one so that we keep going if we can't achieve it yet
-    if new_br ~= setpoints.burn_rate then
+    if _spctl.new_br ~= setpoints.burn_rate then
         -- update tracked values and continue
         _spctl.last_ccool = cur_ccool
     else
@@ -303,6 +302,7 @@ end
 
 --#region Fuel Burn Rate Limiting
 
+-- update the fuel-based burn rate limiting and fuel monitoring
 ---@param tick integer
 ---@param reactor FissionReactor
 local function update_fuel_rate_limiting(tick, reactor)
@@ -340,10 +340,8 @@ local function update_fuel_rate_limiting(tick, reactor)
         --     elapsed_s, data.tps, tps_avg, elapsed_s * tps_avg, data.fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, data.act_rate, _spctl.rate_filt.get(), limit))
 
         _spctl.last_fuel_filt = _spctl.fuel_filt.get()
-    elseif plc_state.auto_ctl and _spctl.fuel_limit_en then
-        if tick % 5 == 0 then
-            fuel_fill = reactor.getFuelFilledPercentage()
-        end
+    elseif plc_state.auto_ctl and _spctl.fuel_limit_en and (tick % 5 == 0) then
+        fuel_fill = reactor.getFuelFilledPercentage()
     end
 
     -- change state per fuel fill
