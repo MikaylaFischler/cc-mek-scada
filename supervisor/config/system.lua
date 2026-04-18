@@ -4,6 +4,7 @@ local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local facility    = require("supervisor.config.facility")
+local mekanism    = require("supervisor.config.mekanism")
 
 local core        = require("graphics.core")
 local themes      = require("graphics.themes")
@@ -552,6 +553,21 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
 
             tool_ctl.en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
 
+            for k, v in pairs(ini_cfg.MekanismConfig) do
+                tool_ctl.custom_configs[k].set_value(v)
+            end
+
+            for i = 1, #mekanism.profiles do
+                if ini_cfg.MekanismProfile == mekanism.profiles[i].name then
+                    tool_ctl.mek_profile.set_value(i)
+                    break
+                end
+
+                if i == #mekanism.profiles then
+                    tool_ctl.mek_profile.set_value(#mekanism.profiles + 1)  -- custom profile
+                end
+            end
+
             tool_ctl.view_cfg.enable()
 
             if self.importing_legacy then
@@ -850,6 +866,15 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
                 end
 
                 if val == "" then val = "no auxiliary coolant" end
+            elseif f[1] == "MekanismConfig" then
+                val = ""
+
+                if type(cfg.MekanismConfig) == "table" then
+                    for k, v in pairs(cfg.MekanismConfig) do
+                        local value = (string.format("%.10f", v)):gsub("%.?0+$", "")
+                        val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 %s = %s", k, value)
+                    end
+                end
             elseif f[1] == "PLC_Listen" or f[1] == "RTU_Listen" or f[1] == "CRD_Listen" then
                 if raw == LISTEN_MODE.WIRELESS then val = "Wireless Only"
                 elseif raw == LISTEN_MODE.WIRED then val = "Wired Only"

@@ -80,6 +80,9 @@ local tool_ctl = {
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
 
+    mek_profile = nil,     ---@type RadioButton
+    custom_configs = {},   ---@type NumberField[]
+
     gen_modem_list = function () end
 }
 
@@ -94,6 +97,8 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    MekanismProfile = mekanism.profiles[1].name,
+    MekanismConfig = mekanism.profiles[1].fields,
     WirelessModem = true,
     WiredModem = false,     ---@type string|false
     PLC_Listen = 1,         ---@type LISTEN_MODE
@@ -116,8 +121,7 @@ local tmp_cfg = {
     LogPath = "",
     LogDebug = false,
     FrontPanelTheme = 1,    ---@type FP_THEME
-    ColorMode = 1,          ---@type COLOR_MODE
-    MekanismConfig = mekanism.profiles[1].fields
+    ColorMode = 1           ---@type COLOR_MODE
 }
 
 ---@class svr_config
@@ -136,6 +140,8 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
+    { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
@@ -158,8 +164,7 @@ local fields = {
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },
     { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
-    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD },
-    { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields }
+    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
 }
 
 -- load data from the settings file
@@ -265,7 +270,7 @@ local function config_view(display)
 
     --#region Mekanism Configuration
 
-    local mek_pane = facility.create(tool_ctl, main_pane, settings, mek_cfg, style)
+    local mek_pane = mekanism.create(tool_ctl, main_pane, settings, mek_cfg, style)
 
     --#endregion
 

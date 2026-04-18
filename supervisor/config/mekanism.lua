@@ -1,5 +1,3 @@
-local util        = require("scada-common.util")
-
 local core        = require("graphics.core")
 
 local Div         = require("graphics.elements.Div")
@@ -11,13 +9,7 @@ local RadioButton = require("graphics.elements.controls.RadioButton")
 
 local NumberField = require("graphics.elements.form.NumberField")
 
-local tri = util.trinary
-
 local cpair = core.cpair
-
-local self = {
-    custom_inputs = {}  ---@type NumberField[]
-}
 
 local mekanism = {}
 
@@ -80,7 +72,6 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
     local _, ini_cfg, tmp_cfg, _, _ = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
 
     local bw_fg_bg      = style.bw_fg_bg
-    local g_lg_fg_bg    = style.g_lg_fg_bg
     local nav_fg_bg     = style.nav_fg_bg
     local btn_act_fg_bg = style.btn_act_fg_bg
 
@@ -91,15 +82,26 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
 
     local mek_pane = MultiPane{parent=mek_cfg,y=4,panes={mek_c_1,mek_c_2}}
 
-    TextBox{parent=mek_cfg,y=2,text=" Mekanism Configuration",fg_bg=cpair(colors.black,colors.magenta)}
+    TextBox{parent=mek_cfg,y=2,text=" Mekanism Configuration",fg_bg=cpair(colors.white,colors.brown)}
 
-    TextBox{parent=mek_c_1,y=1,height=3,text="To ensure calculations and control behavior is accurate, please select your Mekanism configuration. In most cases, you should use the default."}
+    TextBox{parent=mek_c_1,y=1,height=3,text="To ensure calculations and behavior are correct, please select your Mekanism configuration. In most cases, you should use the default."}
     TextBox{parent=mek_c_1,y=5,height=3,text="If your modpack is listed, select it. If you or your pack creator manually changed Mekanism settings, please select Custom."}
 
-    -- TextBox{parent=mek_c_1,x=39,y=11,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
-    local profile = RadioButton{parent=mek_c_1,y=4,default=1,options=profile_names,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.magenta}
+    local initial = #profile_names
+
+    for i = 1, #profile_names do
+        if profile_names[i] == ini_cfg.MekanismProfile then
+            initial = i
+            break
+        end
+    end
+
+    TextBox{parent=mek_c_1,x=33,y=7,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+    local profile = RadioButton{parent=mek_c_1,y=9,default=initial,options=profile_names,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.brown}
 
     local function submit_profile()
+        tmp_cfg.MekanismProfile = profile_names[profile.get_value()] or "Custom"
+
         -- apply if not custom, otherwise go to the custom config page
         if profile.get_value() < #profile_names then
             tmp_cfg.MekanismConfig = mekanism.profiles[profile.get_value()].fields
@@ -108,10 +110,12 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
         else mek_pane.set_value(2) end
     end
 
+    tool_ctl.mek_profile = profile
+
     PushButton{parent=mek_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mek_c_1,x=44,y=14,text="Next \x1a",callback=submit_profile,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=mek_c_2,y=1,height=3,text="Since you selected Custom, check config/Mekanism/generators.toml in your server/world (path/name may vary by Mekanism version) and fill in the following fields."}
+    TextBox{parent=mek_c_2,y=1,height=4,text="For Custom, check config/Mekanism/generators.toml on your server/world and fill in the following fields. This path or config names may vary by Mekanism version (e.g. gas instead of chemical)."}
 
     local last_section = ""
 
@@ -120,17 +124,17 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
             last_section = key[2]
 
             mek_c_2.line_break()
-            TextBox{parent=mek_c_2,height=1,text=key[2]}
+            TextBox{parent=mek_c_2,height=1,text="["..key[2].."]"}
         end
 
-        local field = TextBox{parent=mek_c_2,height=1,text="  "..key[3]}
+        local field = TextBox{parent=mek_c_2,height=1,text="  "..key[3].." ="}
 
-        self.custom_inputs[key[1]] = NumberField{parent=mek_c_2,y=field.get_y(),x=string.len(key[3])+3,width=10,default=ini_cfg.MekanismConfig[key[1]],allow_decimal=true,fg_bg=bw_fg_bg}
+        tool_ctl.custom_configs[key[1]] = NumberField{parent=mek_c_2,y=field.get_y(),x=string.len(key[3])+6,width=10,default=ini_cfg.MekanismConfig[key[1]],allow_decimal=true,fg_bg=bw_fg_bg}
     end
 
     local function submit_custom_profile()
-        for field, _ in ipairs(mekanism.profiles[1].fields) do
-            tmp_cfg.MekanismConfig[field] = self.custom_inputs[field].get_value()
+        for _, key in ipairs(mekanism.ordered_keys) do
+            tmp_cfg.MekanismConfig[key[1]] = tool_ctl.custom_configs[key[1]].get_value()
         end
 
         main_pane.set_value(4)
