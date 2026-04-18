@@ -228,7 +228,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=plc_c_8,x=44,y=14,text="Next \x1a",callback=submit_fuel_limit,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=plc_c_9,y=1,height=3,text="A separate front panel page can be enabled to view diagnostics information. This is useful for debugging, development, or satisfying curiosity."}
-    TextBox{parent=plc_c_9,y=5,height=6,text="A DIAG button will be added to the front panel to access it. Be aware that the diagnostics rapidly refresh with information, which can negatively impact performance. When not in use, use BACK to close it. Using escape to close out the computer does not stop the page from updating.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_9,y=5,height=6,text="A DIAG button will be shown on the front panel to access it. Be aware that the diagnostics rapidly refresh with information, which can negatively impact performance. When not in use, use BACK to close it. Using escape to close out the computer does not stop the page from updating.",fg_bg=g_lg_fg_bg}
 
     local en_diag = Checkbox{parent=plc_c_9,y=12,label="Enable Diagnostics Panel",default=ini_cfg.EnableDiagnostics,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_9,x=28,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
