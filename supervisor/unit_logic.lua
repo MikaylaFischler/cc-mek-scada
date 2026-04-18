@@ -126,6 +126,8 @@ function logic.update_annunciator(self)
 
         self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
+        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (self.db.control.lim_br100 / 100))
+
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
         annunc.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
@@ -135,7 +137,7 @@ function logic.update_annunciator(self)
         annunc.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
         annunc.ReactorTempHigh = plc_db.mek_status.temp >= self.plc_cache.high_temp_lim
         annunc.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
-        annunc.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
+        annunc.FuelInputRateLow = self.fuel_burn_rate_limited or (_get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow)
         annunc.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
         local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
@@ -662,10 +664,10 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if annunc.ReactorHighDeltaT then
+            if self.fuel_burn_rate_limited then
+                self.status_text[2] = "low fuel limiting max burn rate"
+            elseif annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
-            elseif annunc.ReactorTempHigh then
-                self.status_text[2] = "core temp high, system nominal"
             elseif annunc.FuelInputRateLow then
                 self.status_text[2] = "insufficient fuel input rate"
             elseif annunc.WasteLineOcclusion then
@@ -674,6 +676,8 @@ function logic.update_status_text(self)
                 self.status_text[2] = "awaiting coolant flow stability"
             elseif not self.turbine_flow_stable then
                 self.status_text[2] = "awaiting turbine flow stability"
+            elseif annunc.ReactorTempHigh then
+                self.status_text[2] = "core temp high, system nominal"
             else
                 self.status_text[2] = "system nominal"
             end

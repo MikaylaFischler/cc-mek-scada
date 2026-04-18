@@ -1,11 +1,17 @@
-local log  = require("scada-common.log")
-local util = require("scada-common.util")
+local log     = require("scada-common.log")
+local util    = require("scada-common.util")
 
-local plc  = require("reactor-plc.plc")
+local databus = require("reactor-plc.databus")
+local plc     = require("reactor-plc.plc")
 
 local SLOW_RAMP_mB_s     = 5.0
 local FAST_SWITCH_mB_s   = 40.0
 local FAST_MAX_PERCENT_s = 0.02
+
+local FUEL_LIMIT_INIT    = 0.4  -- start high speed monitoring at 40%
+local FUEL_LIMIT_START   = 0.3  -- start limiting at 30%
+local FUEL_LIMIT_RELEASE = 0.4  -- stop limiting once we reach 40%
+local FUEL_LIMIT_EMA_A   = 0.05 -- EMA filter alpha
 
 local spctl = {}
 
@@ -33,33 +39,70 @@ local STATE_NAMES = {
 }
 
 local _spctl = {
+    -- reactor readings and other stats
+    ---@class _spctl_data
+    data = {
+        tps = 0.0,
+        tick_time = 0,
+        max_br = 0.0,
+        burn_rate = 0.0,
+        act_rate = 0.0,
+        fuel = 0.0,
+        fuel_fill = 0.0,
+        ccool_fill = 0.0
+    },
+
+    -- ramp control
+
     fast_ramp_en = false,
 
-    max_br = 0.0,
     last_sp = 0.0,
     last_ccool = 0.0,
 
     last_change = 0,
     next_state = STATES.STOPPED, ---@type RAMP_STATES
-    last_state = STATES.STOPPED  ---@type RAMP_STATES
+    last_state = STATES.STOPPED, ---@type RAMP_STATES
+
+    -- fuel-based burn rate limiting
+
+    fuel_limit_en = false,
+
+    fuel_monitoring = false,
+    fuel_limiting = false,
+
+    last_mon_check = 0,
+    last_fuel_filt = 0.0,
+
+    d_fuel = 0.0,
+    d_fuel_mBt = 0.0,
+
+    fuel_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
+    rate_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
+    tick_filt = util.ema_filter(FUEL_LIMIT_EMA_A)
 }
 
 local rps       = nil ---@type rps
+local plc_state = nil ---@type plc_state
 local setpoints = nil ---@type plc_setpoints
+local limits    = nil ---@type plc_limits
 
 -- initialize with shared memory data
 ---@param smem plc_shared_memory
 function spctl.init(smem)
     rps       = smem.plc_sys.rps
+    plc_state = smem.plc_state
     setpoints = smem.setpoints
+    limits    = smem.limits
 
-    _spctl.fast_ramp_en = plc.config.FastRamp
+    _spctl.fast_ramp_en  = plc.config.FastRamp
+    _spctl.fuel_limit_en = plc.config.FuelAutoLimiting
 end
 
+--#region Ramp Control
+
 -- initialize ramping, or set right away if acceptable
----@param reactor FissionReactor reactor
 ---@param cur_br number requested burn rate
-local function ramp_init(reactor, cur_br)
+local function ramp_init(cur_br)
     _spctl.last_sp = setpoints.burn_rate
 
     -- update without ramp if <= 2.5 mB/t change
@@ -68,9 +111,17 @@ local function ramp_init(reactor, cur_br)
 
         _spctl.last_change = os.clock()
         _spctl.next_state  = STATES.INIT
+    elseif _spctl.fuel_limiting then
+        local lim_br = math.min(setpoints.burn_rate, limits.fuel_max_burn)
+        plc_state.limit_force_ramp = false
+
+        log.debug(util.c("SPCTL: setting burn rate directly to ", lim_br, " mB/t (limiting active, setpoint is ", setpoints.burn_rate, ")"))
+        _spctl.new_br = lim_br
     else
+        plc_state.limit_force_ramp = false
+
         log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
-        reactor.setBurnRate(setpoints.burn_rate)
+        _spctl.new_br = setpoints.burn_rate
     end
 end
 
@@ -83,11 +134,10 @@ local function ramp_reset()
 end
 
 -- run the setpoint ramp controller loop
----@param reactor FissionReactor reactor
 ---@param cur_br number current burn rate
 ---@param cur_ccool number coolant filled percentage (0 to 1)
 ---@param elapsed_s number seconds elapsed in the ramp
-local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
+local function ramp_run(cur_br, cur_ccool, elapsed_s)
     local now        = os.clock()
     local state_time = now - _spctl.last_change
     local state      = _spctl.next_state
@@ -142,7 +192,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     elseif state == STATES.FAST_RAMP_UP then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
-        local step   = scaler * _spctl.max_br
+        local step   = scaler * _spctl.data.max_br
 
         -- slow the step if we are losing coolant
         if cur_ccool < 0.8 then
@@ -164,7 +214,7 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     elseif state == STATES.FAST_RAMP_DOWN then
         -- step by a percent of the max burn rate
         local scaler = math.min(FAST_MAX_PERCENT_s, FAST_MAX_PERCENT_s * (state_time / 5.0)) * elapsed_s
-        local step   = scaler * _spctl.max_br
+        local step   = scaler * _spctl.data.max_br
 
         -- minimum is the slow rate, maintain old behavior
         step = math.max(SLOW_RAMP_mB_s * elapsed_s, step)
@@ -176,13 +226,25 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 
     -- set the burn rate
-    reactor.setBurnRate(new_br)
+    _spctl.new_br = math.min(new_br, limits.fuel_max_burn)
 
-    if new_br ~= setpoints.burn_rate then
+    -- release forced ramping if the target is lower than the actual
+    if plc_state.limit_force_ramp and (new_br < cur_br) then
+        log.info("SPCTL: released ramped fuel burn limiting recovery")
+        plc_state.limit_force_ramp = false
+    end
+
+    if _spctl.new_br ~= setpoints.burn_rate then
         -- update tracked values and continue
         _spctl.last_ccool = cur_ccool
     else
         new_state = STATES.STOPPED
+
+        -- release forced ramping
+        if plc_state.limit_force_ramp then
+            log.info("SPCTL: completed ramped fuel burn limiting recovery")
+            plc_state.limit_force_ramp = false
+        end
     end
 
     -- state change management
@@ -194,17 +256,20 @@ local function ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
     end
 end
 
--- update setpoint controller
 ---@param reactor FissionReactor
----@param elapsed_s integer iteration elapsed time reference
-function spctl.update(reactor, elapsed_s)
+---@param elapsed_s number nominal iteration elapsed time reference
+local function ramp_update(reactor, elapsed_s)
     -- check if we should start ramping
     if setpoints.burn_rate_en and (setpoints.burn_rate ~= _spctl.last_sp) and rps.is_active() then
-        local cur_br = reactor.getBurnRate()
-        _spctl.max_br = reactor.getMaxBurnRate()
+        parallel.waitForAll(
+            function () _spctl.data.burn_rate = reactor.getBurnRate() end,
+            function () _spctl.data.max_br    = reactor.getMaxBurnRate() end
+        )
 
-        if (type(cur_br) == "number") and (type(_spctl.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
-            ramp_init(reactor, cur_br)
+        local cur_br = _spctl.data.burn_rate
+
+        if (type(cur_br) == "number") and (type(_spctl.data.max_br) == "number") and (setpoints.burn_rate ~= cur_br) then
+            ramp_init(cur_br)
         end
     end
 
@@ -212,27 +277,18 @@ function spctl.update(reactor, elapsed_s)
     if _spctl.next_state ~= STATES.STOPPED then
         -- adjust burn rate (setpoints.burn_rate)
         if setpoints.burn_rate_en then
-            local cur_br, cur_ccool = 0, 0
-
-            parallel.waitForAll(
-                function () cur_br = reactor.getBurnRate() end,
-                function () cur_ccool = reactor.getCoolantFilledPercentage() end
-            )
+            local cur_br, ccool = _spctl.data.burn_rate, _spctl.data.ccool_fill
 
             if not rps.is_active() then
                 log.info("SPCTL: ramping aborted (reactor inactive)")
                 setpoints.burn_rate_en = false
                 ramp_reset()
-            -- we yielded, check enable again
-            elseif setpoints.burn_rate_en then
-                if (type(cur_br) == "number") and (type(cur_ccool) == "number") then
-                    ramp_run(reactor, cur_br, cur_ccool, elapsed_s)
-                else
-                    log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br=", cur_br, ",cur_ccool=", cur_ccool, ")"))
-                end
             else
-                log.info("SPCTL: ramping cancelled")
-                ramp_reset()
+                if (type(cur_br) == "number") and (type(ccool) == "number") then
+                    ramp_run(cur_br, ccool, elapsed_s)
+                else
+                    log.error(util.c("SPCTL: skipped running loop due to bad data (cur_br = ", cur_br, ",cur_ccool = ", ccool, ")"))
+                end
             end
         else
             log.info("SPCTL: ramping cancelled")
@@ -242,6 +298,187 @@ function spctl.update(reactor, elapsed_s)
         log.info(util.c("SPCTL: ramping completed (setpoint of ", setpoints.burn_rate, " mB/t)"))
         setpoints.burn_rate_en = false
         ramp_reset()
+    end
+end
+
+--#endregion
+
+--#region Fuel Burn Rate Limiting
+
+-- update the fuel-based burn rate limiting and fuel monitoring
+---@param tick integer
+---@param reactor FissionReactor
+local function update_fuel_rate_limiting(tick, reactor)
+    local fuel_fill = nil ---@type number|nil
+    local data      = _spctl.data
+
+    if _spctl.fuel_monitoring and (type(data.fuel) == "number") and (type(data.act_rate) == "number") then
+        fuel_fill = data.fuel_fill
+
+        local elapsed_s = (util.time_s() - _spctl.last_mon_check)
+        _spctl.last_mon_check = util.time_s()
+
+        -- more likely to get a full tick by checking in two ways, so average our checks
+        local tps_avg = (data.tps + (1000 / data.tick_time)) / 2
+
+        -- update EMA filters
+        _spctl.fuel_filt.update(data.fuel)
+        _spctl.rate_filt.update(data.act_rate)
+        _spctl.tick_filt.update(elapsed_s * tps_avg)
+
+        -- figure out the change in fuel as mB/t
+        _spctl.d_fuel     = _spctl.fuel_filt.get() - _spctl.last_fuel_filt
+        _spctl.d_fuel_mBt = _spctl.d_fuel / _spctl.tick_filt.get()
+
+        local limit       = math.max(0.01, _spctl.rate_filt.get() + _spctl.d_fuel_mBt)
+
+        if _spctl.fuel_limiting then
+            limits.reportable_max_burn = limit
+            limits.fuel_max_burn = limit
+        else
+            limits.reportable_max_burn = false
+            limits.fuel_max_burn = math.huge
+        end
+
+        -- log.debug(util.sprintf("SPCTL: elapsed[%f] tps[%f] tps_avg[%f] divisor[%f] fuel[%f] fuel_f[%f] d_fuel[%f] d_fuel_mBt[%f] act_rate[%f] act_rate_f[%f] limit[%f]",
+        --     elapsed_s, data.tps, tps_avg, elapsed_s * tps_avg, data.fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, data.act_rate, _spctl.rate_filt.get(), limit))
+
+        _spctl.last_fuel_filt = _spctl.fuel_filt.get()
+    elseif plc_state.auto_ctl and _spctl.fuel_limit_en and (tick % 5 == 0) then
+        fuel_fill = reactor.getFuelFilledPercentage()
+    end
+
+    -- change state per fuel fill
+    if fuel_fill then
+        if (fuel_fill > FUEL_LIMIT_RELEASE) and (_spctl.fuel_monitoring or _spctl.fuel_limiting) then
+            if _spctl.fuel_limiting and not plc_state.limit_force_ramp then
+                log.info("SPCTL: forcing auto commands to be ramped for burn limit recovery (limit released)")
+                plc_state.limit_force_ramp = true
+            end
+
+            _spctl.fuel_monitoring = false
+            _spctl.fuel_limiting = false
+
+            limits.reportable_max_burn = false
+            limits.fuel_max_burn = math.huge
+
+            _spctl.d_fuel = 0
+            _spctl.d_fuel_mBt = 0
+
+            log.info("SPCTL: monitoring fuel terminated / limit released")
+        elseif _spctl.fuel_monitoring and (not _spctl.fuel_limiting) and (fuel_fill < FUEL_LIMIT_START) then
+            _spctl.fuel_limiting = true
+
+            log.info("SPCTL: fuel limit engaged")
+        elseif (not _spctl.fuel_monitoring) and (fuel_fill < FUEL_LIMIT_INIT) then
+            _spctl.fuel_monitoring = true
+
+            _spctl.last_mon_check = util.time_s()
+
+            _spctl.fuel_filt.reset()
+            _spctl.rate_filt.reset()
+            _spctl.tick_filt.reset()
+
+            log.info("SPCTL: started monitoring fuel statistics, approaching limiting threshold")
+        end
+    end
+end
+
+--#endregion
+
+-- update setpoint controller
+---@param reactor FissionReactor
+---@param tick integer tick counter
+---@param nom_elapsed_s number nominal iteration elapsed time reference
+function spctl.update(reactor, tick, nom_elapsed_s)
+    _spctl.new_br = nil
+
+    local update_5Hz = tick % 2 == 0
+
+    -- grab all data in one tick rather than 2+ times
+    if _spctl.fuel_monitoring or (_spctl.next_state ~= STATES.STOPPED) or (databus.en_diag and update_5Hz) then
+        local t_start, t_end = util.time_ms(), 0
+
+        parallel.waitForAll(
+            function () _spctl.data.tps        = util.get_tps() end,
+            function () _spctl.data.burn_rate  = reactor.getBurnRate() end,
+            function () _spctl.data.ccool_fill = reactor.getCoolantFilledPercentage() end,
+            function () _spctl.data.fuel_fill  = reactor.getFuelFilledPercentage() end,
+            function () _spctl.data.act_rate   = reactor.getActualBurnRate() end,
+            function ()
+                _spctl.data.fuel = (reactor.getFuel() or { amount = nil }).amount
+                t_end            = util.time_ms()
+            end
+        )
+
+        _spctl.data.tick_time = t_end - t_start
+    end
+
+    -- ramping control
+    if update_5Hz then
+        ramp_update(reactor, nom_elapsed_s)
+    end
+
+    -- fuel rate limiting
+    if plc_state.auto_ctl and _spctl.fuel_limit_en then
+        update_fuel_rate_limiting(tick, reactor)
+    elseif _spctl.fuel_monitoring then
+        limits.reportable_max_burn = false
+        limits.fuel_max_burn       = math.huge
+
+        _spctl.fuel_monitoring = false
+        _spctl.fuel_limiting   = false
+    end
+
+    -- apply new rate if set, otherwise limit periodically if needed
+    if _spctl.new_br then
+        reactor.setBurnRate(math.min(_spctl.new_br, limits.fuel_max_burn))
+    elseif plc_state.auto_ctl and _spctl.fuel_limiting and update_5Hz and (_spctl.next_state == STATES.STOPPED) then
+        local cur_br = _spctl.data.burn_rate
+
+        if cur_br > limits.fuel_max_burn then
+            reactor.setBurnRate(math.min(setpoints.burn_rate, limits.fuel_max_burn))
+        elseif cur_br < setpoints.burn_rate then
+            -- we need to bring the rate back up but don't want it to jump agressively
+            -- use the ramping controller for this instead
+            if not (plc_state.limit_force_ramp and setpoints.burn_rate_en) then
+                log.info("SPCTL: initiating ramped fuel burn limiting recovery")
+                plc_state.limit_force_ramp = true
+                setpoints.burn_rate_en = true
+            end
+        end
+    end
+
+    -- record diagnostics shown on the front panel, only when that page is active
+    if update_5Hz and databus.en_diag then
+        local publish = databus.ps.publish
+
+        publish("spctl_ramp_active", setpoints.burn_rate_en)
+
+        publish("spctl_ramp_sp", setpoints.burn_rate)
+
+        publish("spctl_ramp_init", _spctl.next_state == STATES.INIT)
+        publish("spctl_ramp_sru", _spctl.next_state == STATES.SLOW_RAMP_UP)
+        publish("spctl_ramp_srd", _spctl.next_state == STATES.SLOW_RAMP_DOWN)
+        publish("spctl_ramp_sw", _spctl.next_state == STATES.STABLE_WAIT)
+        publish("spctl_ramp_cm", _spctl.next_state == STATES.CCOOL_MON)
+        publish("spctl_ramp_fru", _spctl.next_state == STATES.FAST_RAMP_UP)
+        publish("spctl_ramp_frd", _spctl.next_state == STATES.FAST_RAMP_DOWN)
+
+        publish("spctl_limit_mon", _spctl.fuel_monitoring)
+        publish("spctl_limit_lim", _spctl.fuel_limiting)
+        publish("spctl_limit_fr", plc_state.limit_force_ramp)
+
+        publish("spctl_limit_dfuel", _spctl.d_fuel)
+        publish("spctl_limit_dfuelmbt", _spctl.d_fuel_mBt)
+        publish("spctl_limit_limit", limits.fuel_max_burn)
+
+        publish("spctl_limit_fuel_filt", _spctl.fuel_filt.get())
+        publish("spctl_limit_rate_filt", _spctl.rate_filt.get())
+        publish("spctl_limit_tick_filt", _spctl.tick_filt.get())
+
+        publish("spctl_data_tps", _spctl.data.tps)
+        publish("spctl_data_tick", _spctl.data.tick_time)
     end
 end
 

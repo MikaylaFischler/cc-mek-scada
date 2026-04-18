@@ -92,8 +92,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local plc_c_5 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_6 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_7 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_8 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_9 = Div{parent=plc_cfg,x=2,y=4,width=49}
 
-    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5,plc_c_6,plc_c_7}}
+    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5,plc_c_6,plc_c_7,plc_c_8,plc_c_9}}
 
     TextBox{parent=plc_cfg,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
@@ -135,14 +137,18 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     PushButton{parent=plc_c_2,y=14,text="\x1b Back",callback=function()plc_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=plc_c_2,x=44,y=14,text="Next \x1a",callback=submit_id,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=plc_c_3,y=1,height=4,text="When networked, the supervisor takes care of emergency coolant via RTUs. However, you can configure independent emergency coolant via the PLC."}
+    TextBox{parent=plc_c_3,y=1,height=4,text="When networked, the Supervisor takes care of emergency coolant via RTUs. However, you can configure independent emergency coolant via the PLC."}
     TextBox{parent=plc_c_3,y=6,height=5,text="This independent control can be used with or without a supervisor. To configure, you would next select the interface of the redstone output connected to one or more mekanism pipes.",fg_bg=g_lg_fg_bg}
 
     local en_em_cool = Checkbox{parent=plc_c_3,y=11,label="Enable PLC Emergency Coolant Control",default=ini_cfg.EmerCoolEnable,box_fg_bg=cpair(colors.orange,colors.black)}
 
+    local function next_from_emcool()
+        if tmp_cfg.Networked then plc_pane.set_value(6) else main_pane.set_value(4) end
+    end
+
     local function submit_en_emcool()
         tmp_cfg.EmerCoolEnable = en_em_cool.get_value()
-        if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else plc_pane.set_value(6) end
+        if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else next_from_emcool() end
     end
 
     PushButton{parent=plc_c_3,y=14,text="\x1b Back",callback=function()plc_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -167,7 +173,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         tmp_cfg.EmerCoolSide = side_options_map[side.get_value()]
         tmp_cfg.EmerCoolColor = tri(bundled.get_value(), color_options_map[color.get_value()], nil)
         tmp_cfg.EmerCoolInvert = invert.get_value()
-        plc_pane.set_value(6)
+        next_from_emcool()
     end
 
     PushButton{parent=plc_c_4,y=14,text="\x1b Back",callback=function()plc_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
@@ -180,15 +186,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local fast_ramp = Checkbox{parent=plc_c_6,y=12,label="Enable Fast Ramping",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_6,x=23,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
-    local function next_from_plc()
-        if tmp_cfg.Networked then main_pane.set_value(3) else main_pane.set_value(4) end
-    end
-
     local function submit_ramp()
         tmp_cfg.FastRamp = fast_ramp.get_value()
 
         if tmp_cfg.FastRampConfirmed or ini_cfg.FastRampConfirmed then
-            next_from_plc()
+            plc_pane.set_value(8)
         else plc_pane.set_value(7) end
     end
 
@@ -204,11 +206,40 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local function submit_ramp_conf()
         tmp_cfg.FastRampConfirmed = fast_ramp_confirm.get_value()
-        next_from_plc()
+        plc_pane.set_value(8)
     end
 
     PushButton{parent=plc_c_7,y=14,text="\x1b Back",callback=function()plc_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=plc_c_7,x=8,y=14,text=" OK ",callback=submit_ramp_conf,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=plc_c_8,y=1,height=2,text="Below you can enable burn rate limiting under low fuel conditions during automatic control."}
+    TextBox{parent=plc_c_8,y=4,height=4,text="When under automatic control and below 30% fuel, the PLC can attempt to limit the maximum burn rate to a sustainable level until fuel is filled beyond 40%.",fg_bg=g_lg_fg_bg}
+
+    local fuel_limit = Checkbox{parent=plc_c_8,y=9,label="Enable Low-Fuel Burn Rate Limiting",default=ini_cfg.FuelAutoLimiting,box_fg_bg=cpair(colors.orange,colors.black)}
+    TextBox{parent=plc_c_8,x=3,y=10,text="Supervisor Auto Control Only",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_8,x=38,y=9,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function submit_fuel_limit()
+        tmp_cfg.FuelAutoLimiting = fuel_limit.get_value()
+        plc_pane.set_value(9)
+    end
+
+    PushButton{parent=plc_c_8,y=14,text="\x1b Back",callback=function()plc_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_8,x=44,y=14,text="Next \x1a",callback=submit_fuel_limit,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=plc_c_9,y=1,height=3,text="A separate front panel page can be enabled to view diagnostics information. This is useful for debugging, development, or satisfying curiosity."}
+    TextBox{parent=plc_c_9,y=5,height=6,text="A DIAG button will be shown on the front panel to access it. Be aware that the diagnostics rapidly refresh with information, which can negatively impact performance. When not in use, use BACK to close it. Using escape to close out the computer does not stop the page from updating.",fg_bg=g_lg_fg_bg}
+
+    local en_diag = Checkbox{parent=plc_c_9,y=12,label="Enable Diagnostics Panel",default=ini_cfg.EnableDiagnostics,box_fg_bg=cpair(colors.orange,colors.black)}
+    TextBox{parent=plc_c_9,x=28,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function submit_diag()
+        tmp_cfg.EnableDiagnostics = en_diag.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=plc_c_9,y=14,text="\x1b Back",callback=function()plc_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_9,x=44,y=14,text="Next \x1a",callback=submit_diag,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -285,12 +316,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         end
     end
 
-    local function back_to_plc()
-        plc_pane.set_value(6)
-        main_pane.set_value(2)
-    end
-
-    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=back_to_plc,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,y=1,text="Please set the network channels below."}
@@ -592,6 +618,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(invert, ini_cfg.EmerCoolInvert)
             try_set(fast_ramp, ini_cfg.FastRamp)
             try_set(fast_ramp_confirm, ini_cfg.FastRampConfirmed)
+            try_set(fuel_limit, ini_cfg.FuelAutoLimiting)
+            try_set(en_diag, ini_cfg.EnableDiagnostics)
             try_set(self.wireless, ini_cfg.WirelessModem)
             try_set(self.wired, ini_cfg.WiredModem ~= false)
             try_set(self.wl_pref, ini_cfg.PreferWireless)
@@ -664,6 +692,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         tmp_cfg.UnitID = config.REACTOR_ID
         tmp_cfg.FastRamp = false
         tmp_cfg.FastRampConfirmed = false
+        tmp_cfg.FuelAutoLimiting = false
+        tmp_cfg.EnableDiagnostics = false
         tmp_cfg.EmerCoolEnable = type(config.EMERGENCY_COOL) == "table"
 
         if tmp_cfg.EmerCoolEnable then

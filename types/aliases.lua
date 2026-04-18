@@ -9,6 +9,17 @@
 ---@alias auto_ctl_cfg [ PROCESS, number, integer, integer, number, number, number[] ]
 ---@alias auto_start_ack [ boolean, PROCESS, number, integer, integer, number, number, number[] ]
 
+-- the PLC status message consists of the following:
+-- - timestamp
+-- - requested control state
+-- - no reactor flag
+-- - formed flag
+-- - auto command acknowledgement token (indicates auto command received prior to this status update)
+-- - reportable fuel-based burn limit, or false if unlimited (allowing up to max_burn)
+-- - reactor heating rate
+-- - reactor data, if changed
+---@alias plc_status_msg [ integer, boolean, boolean, boolean, integer, number|false, number, table|nil ]
+
 ---@alias rtu_advert_msg [ RTU_UNIT_TYPE, integer|false, integer, IO_PORT[][]|nil ][]
 
 --#endregion

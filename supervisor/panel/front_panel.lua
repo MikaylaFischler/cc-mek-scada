@@ -24,8 +24,8 @@ local TextBox       = require("graphics.elements.TextBox")
 
 local TabBar        = require("graphics.elements.controls.TabBar")
 
-local LED           = require("graphics.elements.indicators.LED")
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
 
 local ALIGN = core.ALIGN
 
@@ -127,7 +127,7 @@ local function init(panel, config)
     -- rtu sessions page
 
     local rtu_page = Div{parent=page_div,y=1,hidden=true}
-    local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=rtu_list,height=1} -- padding
 
     -- coordinator session page

@@ -61,9 +61,10 @@ function types.new_reactor_db()
         no_reactor = false,
         formed = false,
         rps_tripped = false,
-        rps_trip_cause = "ok",  ---@type rps_trip_cause
+        rps_trip_cause = "ok", ---@type rps_trip_cause
         max_op_temp_H2O = 1200,
         max_op_temp_Na = 1200,
+        reportable_max_burn = false, ---@type number|false
         ---@class rps_status
         rps_status = {
             high_dmg = false,

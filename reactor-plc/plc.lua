@@ -45,6 +45,8 @@ function plc.load_config()
     config.Networked = settings.get("Networked")
     config.UnitID = settings.get("UnitID")
     config.FastRamp = settings.get("FastRamp")
+    config.FuelAutoLimiting = settings.get("FuelAutoLimiting")
+    config.EnableDiagnostics = settings.get("EnableDiagnostics")
 
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
     config.EmerCoolSide = settings.get("EmerCoolSide")
@@ -78,6 +80,8 @@ function plc.validate_config(cfg)
     cfv.assert_type_bool(cfg.Networked)
     cfv.assert_type_int(cfg.UnitID)
     cfv.assert_type_bool(cfg.FastRamp)
+    cfv.assert_type_bool(cfg.FuelAutoLimiting)
+    cfv.assert_type_bool(cfg.EnableDiagnostics)
     cfv.assert_type_bool(cfg.EmerCoolEnable)
 
     if cfg.Networked then
@@ -124,14 +128,16 @@ end
 -- autonomous from main SCADA supervisor/coordinator control
 ---@nodiscard
 ---@param reactor FissionReactor
----@param is_formed boolean
-function plc.rps_init(reactor, is_formed)
+---@param plc_state plc_state
+function plc.rps_init(reactor, plc_state)
+    local ini_is_formed = util.trinary(plc_state.no_reactor, nil, plc_state.reactor_formed)
+
     local self = {
         ---@type boolean[] check states
         state = { false, false, false, false, false, false, false, false, false, false, false, false },
         reactor_active = false,
         emer_cool_active = nil, ---@type boolean
-        formed = is_formed,     ---@type boolean|nil
+        formed = ini_is_formed, ---@type boolean|nil
         force_disabled = false,
         tripped = false,
         trip_cause = "ok"       ---@type rps_trip_cause
@@ -337,6 +343,9 @@ function plc.rps_init(reactor, is_formed)
     function public.scram()
         log.info("RPS: reactor SCRAM")
 
+        plc_state.auto_ctl = false
+        pcall(databus.tx_auto_state, false)
+
         reactor.scram()
         if reactor.__p_is_faulted() and not string.find(reactor.__p_last_fault(), PCALL_SCRAM_MSG) then
             log.error("RPS: failed reactor SCRAM")
@@ -479,7 +488,7 @@ function plc.rps_init(reactor, is_formed)
         _set_emer_cool(self.state[CHK.LOW_COOLANT])
 
         -- report RPS status
-        databus.tx_rps(self.tripped, self.state, self.emer_cool_active)
+        pcall(databus.tx_rps, self.tripped, self.state, self.emer_cool_active)
 
         return self.tripped, status, first_trip
     end
@@ -547,10 +556,16 @@ end
 ---@nodiscard
 ---@param version string PLC version
 ---@param tx_nic nic network interface device
----@param reactor FissionReactor reactor device
----@param rps rps RPS reference
----@param conn_watchdog watchdog watchdog reference
-function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
+---@param smem plc_shared_memory shared memory
+function plc.comms(version, tx_nic, smem)
+    -- load in from shared memory
+    local reactor       = smem.plc_dev.reactor
+    local rps           = smem.plc_sys.rps
+    local conn_watchdog = smem.plc_sys.conn_watchdog
+    local plc_state     = smem.plc_state
+    local setpoints     = smem.setpoints
+    local limits        = smem.limits
+
     local self = {
         sv_addr = comms.BROADCAST,
         seq_num = util.time_ms() * 10, -- unique per peer, restarting will not re-use seq nums due to message rate
@@ -662,9 +677,7 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         break
                     end
                 end
-            else
-                changed = true
-            end
+            else changed = true end
 
             if changed then
                 self.status_cache = status
@@ -721,9 +734,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle a burn rate command
     ---@param packet rplc_packet
-    ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
-    local function _handle_burn_rate(packet, setpoints)
+    local function _handle_burn_rate(packet)
         if (packet.length == 2) and (type(packet.data[1]) == "number") then
             local success = false
             local burn_rate = math.floor(packet.data[1] * 10) / 10
@@ -758,13 +770,12 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle an auto burn rate command
     ---@param packet rplc_packet
-    ---@param setpoints plc_setpoints
     --- EVENT_CONSUMER: this function consumes events
-    local function _handle_auto_burn_rate(packet, setpoints)
+    local function _handle_auto_burn_rate(packet)
         if (packet.length == 3) and (type(packet.data[1]) == "number") and (type(packet.data[3]) == "number") then
             local ack = AUTO_ACK.FAIL
             local burn_rate = math.floor(packet.data[1] * 100) / 100
-            local ramp = packet.data[2]
+            local ramp = packet.data[2] or plc_state.limit_force_ramp
             self.auto_ack_token = packet.data[3]
 
             -- if no known max burn rate, check again
@@ -775,6 +786,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
             -- if we know our max burn rate, update current burn rate setpoint if in range
             if self.max_burn_rate ~= ppm.ACCESS_FAULT then
                 if burn_rate < 0.01 then
+                    setpoints.burn_rate = 0
+
                     if rps.is_active() then
                         -- auto scram to disable
                         log.debug("AUTO: stopping the reactor to meet 0.0 burn rate")
@@ -787,6 +800,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         ack = AUTO_ACK.ZERO_DIS_OK
                     end
                 elseif burn_rate <= self.max_burn_rate then
+                    setpoints.burn_rate = burn_rate
+
                     if not rps.is_active() then
                         -- activate the reactor
                         log.debug("AUTO: activating the reactor")
@@ -806,17 +821,18 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         if ramp then
                             log.debug(util.c("AUTO: setting burn rate ramp to ", burn_rate))
                             setpoints.burn_rate_en = true
-                            setpoints.burn_rate = burn_rate
                             ack = AUTO_ACK.RAMP_SET_OK
                         else
                             log.debug(util.c("AUTO: setting burn rate directly to ", burn_rate))
-                            reactor.setBurnRate(burn_rate)
+                            reactor.setBurnRate(math.min(burn_rate, limits.fuel_max_burn))
                             ack = util.trinary(reactor.__p_is_faulted(), AUTO_ACK.FAIL, AUTO_ACK.DIRECT_SET_OK)
                         end
                     end
                 else
                     log.debug(util.c(burn_rate, " rate outside of 0 < x <= ", self.max_burn_rate))
                 end
+            else
+                log.debug("RPLC set automatic burn rate failed to query max burn rate")
             end
 
             _send_ack(packet.type, ack)
@@ -906,22 +922,18 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
     ---@param formed boolean reactor formed (from PLC state)
     function public.send_status(no_reactor, formed)
         if self.linked then
-            local mek_data = nil     ---@type table
-            local heating_rate = 0.0 ---@type number
+            local mek_data = nil
+            local heating_rate = 0.0
 
             if (not no_reactor) and rps.is_formed() then
                 if _update_status_cache() then mek_data = self.status_cache end
                 heating_rate = reactor.getHeatingRate()
             end
 
+            ---@type plc_status_msg
             local sys_status = {
-                util.time(),         -- timestamp
-                (not self.scrammed), -- requested control state
-                no_reactor,          -- no reactor peripheral connected
-                formed,              -- reactor formed
-                self.auto_ack_token, -- indicate auto command received prior to this status update
-                heating_rate,        -- heating rate
-                mek_data             -- mekanism status data
+                util.time(), not self.scrammed, no_reactor, formed, self.auto_ack_token, limits.reportable_max_burn,
+                heating_rate, mek_data
             }
 
             _send(RPLC_TYPE.STATUS, sys_status)
@@ -977,10 +989,8 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
 
     -- handle RPLC and MGMT packets
     ---@param packet rplc_packet|mgmt_packet packet frame
-    ---@param plc_state plc_state PLC state
-    ---@param setpoints plc_setpoints setpoint control table
     ---@param println_ts function console print, when UI isn't running
-    function public.handle_packet(packet, plc_state, setpoints, println_ts)
+    function public.handle_packet(packet, println_ts)
         local protocol = packet.scada_frame.protocol()
         local l_chan   = packet.scada_frame.local_channel()
         local src_addr = packet.scada_frame.src_addr()
@@ -1018,12 +1028,18 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         _send_struct()
                         log.debug("sent out structure again, did supervisor miss it?")
                     elseif packet.type == RPLC_TYPE.MEK_BURN_RATE then
-                        -- set the burn rate
-                        _handle_burn_rate(packet, setpoints)
+                        -- set the burn rate (manual)
+                        plc_state.auto_ctl = false
+                        _handle_burn_rate(packet)
+
+                        databus.tx_auto_state(false)
                     elseif packet.type == RPLC_TYPE.RPS_ENABLE then
-                        -- enable the reactor
-                        self.scrammed = false
+                        -- enable the reactor (manual)
+                        plc_state.auto_ctl = false
+                        self.scrammed      = false
                         _send_ack(packet.type, rps.activate())
+
+                        databus.tx_auto_state(false)
                     elseif packet.type == RPLC_TYPE.RPS_DISABLE then
                         -- disable the reactor, but do not trip
                         self.scrammed = true
@@ -1048,7 +1064,10 @@ function plc.comms(version, tx_nic, reactor, rps, conn_watchdog)
                         _send_ack(packet.type, true)
                     elseif packet.type == RPLC_TYPE.AUTO_BURN_RATE then
                         -- automatic control requested a new burn rate
-                        _handle_auto_burn_rate(packet, setpoints)
+                        plc_state.auto_ctl = true
+                        _handle_auto_burn_rate(packet)
+
+                        databus.tx_auto_state(true)
                     else
                         log.debug("received unknown RPLC packet type " .. packet.type)
                     end

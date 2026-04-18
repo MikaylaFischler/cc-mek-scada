@@ -188,6 +188,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
+            fuel_burn_rate_limited = false,
 
             -- auto control group
             a_group = types.AUTO_GROUP.MANUAL,
@@ -1260,7 +1261,7 @@ function ioctl.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 8 then
+                    if #unit_state == 9 then
                         unit.status_lines[1] = unit_state[1]
                         unit.status_lines[2] = unit_state[2]
                         unit.auto_ready = unit_state[3]
@@ -1269,6 +1270,7 @@ function ioctl.update_unit_statuses(statuses)
                         unit.waste_product = unit_state[6]
                         unit.last_rate_change_ms = unit_state[7]
                         unit.turbine_flow_stable = unit_state[8]
+                        unit.fuel_burn_rate_limited = unit_state[9]
 
                         unit.unit_ps.publish("U_StatusLine1", unit.status_lines[1])
                         unit.unit_ps.publish("U_StatusLine2", unit.status_lines[2])

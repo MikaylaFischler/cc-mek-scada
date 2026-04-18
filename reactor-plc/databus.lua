@@ -11,6 +11,9 @@ local databus = {}
 -- databus PSIL
 databus.ps = psil.create()
 
+-- diagnostics enable flag
+databus.en_diag = false
+
 local _dbus = {
     rps_scram = function () log.debug("DBUS: unset rps_scram() called") end,
     rps_reset = function () log.debug("DBUS: unset rps_reset() called") end,
@@ -133,6 +136,12 @@ function databus.tx_rps(tripped, status, emer_cool_active)
     databus.ps.publish("rps_automatic", status[10])
     databus.ps.publish("rps_sysfail", status[11])
     databus.ps.publish("emer_cool", emer_cool_active)
+end
+
+-- transmit auto control state
+---@param auto boolean if auto control is active
+function databus.tx_auto_state(auto)
+    databus.ps.publish("auto_control", auto)
 end
 
 return databus

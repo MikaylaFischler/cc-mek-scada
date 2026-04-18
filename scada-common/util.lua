@@ -199,7 +199,7 @@ function util.sign(x) return util.trinary(x < 0, -1, 1) end
 ---@return integer rounded
 function util.round(x) return math.floor(x + 0.5) end
 
--- get a new moving average object (FIR filter)
+-- create a new moving average object (FIR filter)
 ---@nodiscard
 ---@param length integer history length
 function util.mov_avg(length)
@@ -251,6 +251,34 @@ function util.mov_avg(length)
     return public
 end
 
+-- create a new exponential moving average object (IIR filter)
+---@nodiscard
+---@param alpha number EMA filter alpha value
+function util.ema_filter(alpha)
+    local state = nil ---@type number|nil
+
+    ---@class ema_filter
+    local public = {}
+
+    -- reset the filter state
+    function public.reset() state = nil end
+
+    -- update the filter state with a new value
+    ---@param value number new value
+    function public.update(value)
+        if state then
+            state = state + (alpha * (value - state))
+        else state = value end
+    end
+
+    -- get the moving average
+    ---@nodiscard
+    ---@return number average
+    function public.get() return state or 0.0 end
+
+    return public
+end
+
 --#endregion
 
 --#region TIME
@@ -271,6 +299,17 @@ function util.time_s() return os.epoch("local") / 1000.0 end
 ---@nodiscard
 ---@return integer milliseconds
 function util.time() return util.time_ms() end
+
+-- check the TPS by yielding for one tick and timing how long that takes
+---@nodiscard
+--- EVENT_CONSUMER: this function consumes events
+function util.get_tps()
+    local t_start = util.time_ms()
+    util.nop()
+    local t_end = util.time_ms()
+
+    return 1000 / (t_end - t_start)
+end
 
 --#endregion
 
