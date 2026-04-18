@@ -70,8 +70,8 @@ local function tip(body)
 end
 
 ---@param type DOC_LIST_TYPE
----@param items table
----@param colors table|nil colors for indicators or nil for normal lists
+---@param items string[]
+---@param colors color[]|nil colors for indicators or nil for normal lists
 local function list(type, items, colors)
     ---@class pocket_doc_list
     local list_def = { type = DOC_ITEM_TYPE.LIST, list_type = type, items = items, colors = colors }
@@ -252,7 +252,7 @@ doc("RCSFlowLow", "RCS Flow Low", "Indicates if the reactor coolant system flow 
 doc("CoolantLevelLow", "Coolant Level Low", "On if the reactor coolant level is lower than it should be. Check the coolant system.")
 doc("ReactorTempHigh", "Reactor Temp. High", "On if the reactor temperature is above expected maximum operating temperature. This is not yet damaging, but should be attended to. Check coolant system.")
 doc("ReactorHighDeltaT", "Reactor High Delta T", "On if the reactor temperature is climbing rapidly. This can occur when a reactor is starting up, but it is a concern if it happens while the burn rate is not increasing.")
-doc("FuelInputRateLow", "Fuel Input Rate Low", "On if the fissile fuel levels in the reactor are dropping or very low. Ensure a steady supply of fuel is entering the reactor.")
+doc("FuelInputRateLow", "Fuel Input Rate Low", "On if the fissile fuel levels in the reactor are dropping or very low. Also activated if fuel max burn rate limiting is engaged. Ensure a steady supply of fuel is entering the reactor.")
 doc("WasteLineOcclusion", "Waste Line Occlusion", "Waste levels in the reactor are increasing. Ensure your waste processing system is operating at a sufficient rate for your burn rate.")
 doc("HighStartupRate", "Startup Rate High", "This is a rough calculation of if your burn rate is high enough to cause a loss of coolant on startup. A burn rate above this is likely to cause that, but it could occur at even higher or even lower rates depending on your setup (such as pipes, water supplies, and boiler tanks).")
 

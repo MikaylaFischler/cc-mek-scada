@@ -305,12 +305,15 @@ function iorx.record_unit_data(data)
 
     unit.last_rate_change_ms = data[11]
     unit.turbine_flow_stable = data[12]
+    unit.fuel_burn_rate_limited = data[13]
 
     --#endregion
 
     --#region Status Information Display
 
     local ecam = {} -- aviation reference :)
+
+    local annunc = unit.annunciator
 
     -- local function red(text) return { text = text, color = colors.red } end
     local function white(text) return { text = text, color = colors.white } end
@@ -402,7 +405,6 @@ function iorx.record_unit_data(data)
 
     if tripped(unit.alarms[ALARM.RCSTransient]) then
         local items = {}
-        local annunc = unit.annunciator
 
         -- for k, v in pairs(annunc) do
         --     if type(v) == "boolean" then annunc[k] = true end
@@ -459,7 +461,7 @@ function iorx.record_unit_data(data)
     if tripped(unit.alarms[ALARM.TurbineTrip]) then
         local items = {}
 
-        for k, v in ipairs(unit.annunciator.TurbineTrip) do
+        for k, v in ipairs(annunc.TurbineTrip) do
             if v then table.insert(items, { text = "TURBINE " .. k .. " TRIP", help = "TurbineTrip" }) end
         end
 
@@ -472,14 +474,26 @@ function iorx.record_unit_data(data)
         table.insert(ecam, { color = colors.yellow, text = "REACTOR OFF-LINE", items = items })
     end
 
-    for k, v in ipairs(unit.annunciator.BoilerOnline) do
+    if annunc.FuelInputRateLow then
+        table.insert(ecam, { color = colors.yellow, text = "FUEL INPUT RATE LOW", help = "FuelInputRateLow", items = { blue("CHECK FUEL INPUT") } })
+    end
+
+    if unit.fuel_burn_rate_limited then
+        table.insert(ecam, { color = colors.yellow, text = "MAX BURN LIMITED", items = { white("INSUFFICIENT FUEL"), white("INJECTION RATE"), blue("CHECK FUEL INPUT") } })
+    end
+
+    if annunc.WasteLineOcclusion then
+        table.insert(ecam, { color = colors.yellow, text = "WASTE LINE OCCLUSION", help = "WasteLineOcclusion", items = { blue("CHECK WASTE OUTPUT") } })
+    end
+
+    for k, v in ipairs(annunc.BoilerOnline) do
         if not v then
             local items = { blue("CHECK RTU") }
             table.insert(ecam, { color = colors.yellow, text = "BOILER " .. k .. " OFF-LINE", items = items})
         end
     end
 
-    for k, v in ipairs(unit.annunciator.TurbineOnline) do
+    for k, v in ipairs(annunc.TurbineOnline) do
         if not v then
             local items = { blue("CHECK RTU") }
             table.insert(ecam, { color = colors.yellow, text = "TURBINE " .. k .. " OFF-LINE", items = items})
@@ -489,6 +503,10 @@ function iorx.record_unit_data(data)
     -- if no alarms, put some basic status messages in
     if #ecam == 0 then
         table.insert(ecam, { color = colors.green, text = "REACTOR " .. util.trinary(unit.reactor_data.mek_status.status, "NOMINAL", "IDLE"), items = {}})
+
+        if (not unit.reactor_data.mek_status.status) and annunc.HighStartupRate then
+            table.insert(ecam, { color = colors.yellow, text = "HIGH STARTUP RATE", help = "HighStartupRate", items = {}})
+        end
 
         local plural = util.trinary(unit.num_turbines > 1, "S", "")
         table.insert(ecam, { color = colors.green, text = "TURBINE" .. plural .. util.trinary(unit.turbine_flow_stable, " STABLE", " STABILIZING"), items = {}})

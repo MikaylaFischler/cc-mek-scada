@@ -3,7 +3,6 @@
 --
 
 require("/initenv").init_env()
-local backplane = require("reactor-plc.backplane")
 
 local comms     = require("scada-common.comms")
 local crash     = require("scada-common.crash")
@@ -13,13 +12,14 @@ local network   = require("scada-common.network")
 local ppm       = require("scada-common.ppm")
 local util      = require("scada-common.util")
 
+local backplane = require("reactor-plc.backplane")
 local configure = require("reactor-plc.configure")
 local databus   = require("reactor-plc.databus")
 local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.11.1"
+local R_PLC_VERSION = "v1.12.5"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -93,6 +93,8 @@ local function main()
             degraded = true,
             no_reactor = true,
             reactor_formed = true,
+            auto_ctl = false,
+            limit_force_ramp = false,
             wd_modem = true,
             wl_modem = true
         },
@@ -104,10 +106,19 @@ local function main()
             burn_rate = 0.0
         },
 
+        -- control limits/constraints
+        ---@class plc_limits
+        limits = {
+            -- uses false rather than math.huge for transmission
+            reportable_max_burn = false, ---@type number|false
+            -- maximum burn rate to prevent loss of fuel fill
+            fuel_max_burn = math.huge
+        },
+
         -- global PLC devices, still initialized by the backplane
         ---@class plc_dev
         plc_dev = {
-            reactor = nil       ---@type table
+            reactor = nil       ---@type FissionReactor
         },
 
         -- system objects
@@ -173,7 +184,7 @@ local function main()
     ----------------------------------------
 
     -- init reactor protection system
-    smem_sys.rps = plc.rps_init(smem_dev.reactor, util.trinary(plc_state.no_reactor, nil, plc_state.reactor_formed))
+    smem_sys.rps = plc.rps_init(smem_dev.reactor, plc_state)
     log.debug("startup> rps init")
 
     -- notify user of emergency coolant configuration status
@@ -189,7 +200,7 @@ local function main()
         log.debug("startup> conn watchdog started")
 
         -- create network interface then setup comms
-        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), smem_dev.reactor, smem_sys.rps, smem_sys.conn_watchdog)
+        smem_sys.plc_comms = plc.comms(R_PLC_VERSION, backplane.active_nic(), __shared_memory)
         log.debug("startup> comms init")
     else
         _println_no_fp("startup> starting in non-networked mode")

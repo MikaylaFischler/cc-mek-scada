@@ -95,6 +95,7 @@ function backplane.init(config, __shared_memory)
     for _, s in pairs(speakers) do
         log.info("BKPLN: SPEAKER LINK_UP " .. ppm.get_iface(s))
 
+        ---@cast s Speaker
         local sounder = rtu.init_sounder(s)
         table.insert(_bp.sounders, sounder)
 
@@ -124,7 +125,7 @@ end
 
 -- handle a backplane peripheral attach
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param iface string
 ---@param print_no_fp function
 function backplane.attach(type, device, iface, print_no_fp)
@@ -201,7 +202,7 @@ end
 
 -- handle a backplane peripheral detach
 ---@param type string
----@param device table
+---@param device ppm_generic
 ---@param iface string
 ---@param print_no_fp function
 function backplane.detach(type, device, iface, print_no_fp)

@@ -101,6 +101,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         enable_aux_cool = false,
+        fuel_burn_rate_limited = false,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -642,17 +643,39 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         self.auto_idle = idle
     end
 
-    -- get the actual limit of this unit<br>
-    -- if it is degraded or not ready, the limit will be 0
+    -- get the actual limit of this unit
+    -- - if it is degraded or not ready, the limit will be 0
     ---@nodiscard
     ---@return integer lim_br100
     function public.auto_get_effective_limit()
-        local ctrl = self.db.control
+        local ctrl    = self.db.control
+        local eff_lim = ctrl.lim_br100
+
         if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
             -- log.debug(util.c(log_tag, "effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
             ctrl.br100 = 0
-            return 0
-        else return ctrl.lim_br100 end
+            eff_lim = 0
+        end
+
+        return eff_lim
+    end
+
+    -- get the actual limit of this unit accounting for fuel burn rate limiting
+    -- - if it is degraded or not ready, the limit will be 0
+    -- - if fuel is limiting the maximum burn rate, the smaller of that rate and the control limit will be returned
+    ---@nodiscard
+    ---@return integer lim_br100
+    function public.auto_get_fuel_limited()
+        local eff_lim = public.auto_get_effective_limit()
+
+        if self.plc_i ~= nil then
+            local max = self.plc_i.get_db().reportable_max_burn
+            if max then
+                eff_lim = math.min(eff_lim, math.floor(max * 100))
+            end
+        end
+
+        return eff_lim
     end
 
     -- set the automatic burn rate based on the last set burn rate in 100ths
@@ -1036,7 +1059,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             self.db.control.waste_mode,
             self.waste_product,
             self.last_rate_change_ms,
-            self.turbine_flow_stable
+            self.turbine_flow_stable,
+            self.fuel_burn_rate_limited
         }
     end
 

@@ -370,7 +370,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         -- list connected monitors
         local monitors = ppm.get_monitor_list()
         for iface, device in pairs(monitors) do
-            local dev = device.dev  ---@type Monitor
+            local dev = device.dev  ---@cast dev Monitor
 
             dev.setTextScale(0.5)
             dev.setTextColor(colors.white)

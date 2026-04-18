@@ -126,6 +126,8 @@ function logic.update_annunciator(self)
 
         self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
+        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (self.db.control.lim_br100 / 100))
+
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
         annunc.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
@@ -135,7 +137,7 @@ function logic.update_annunciator(self)
         annunc.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
         annunc.ReactorTempHigh = plc_db.mek_status.temp >= self.plc_cache.high_temp_lim
         annunc.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
-        annunc.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
+        annunc.FuelInputRateLow = self.fuel_burn_rate_limited or (_get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow)
         annunc.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
         local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
@@ -248,18 +250,21 @@ function logic.update_annunciator(self)
     local cfmismatch = false
 
     if num_boilers > 0 then
+        local all_full = true
+
         for i = 1, #self.boilers do
             local boiler = self.boilers[i]
             local idx = boiler.get_device_idx()
             local db = boiler.get_db()
 
-            local gaining_hc = _get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0 or db.tanks.hcool_fill == 1
+            -- gaining heated coolant or losing cooled coolant
+            cfmismatch = cfmismatch or (_get_dt(DT_KEYS.BoilerHCool .. idx) > 10.0) or (_get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0)
 
-            -- gaining heated coolant
-            cfmismatch = cfmismatch or gaining_hc
-            -- losing cooled coolant
-            cfmismatch = cfmismatch or _get_dt(DT_KEYS.BoilerCCool .. idx) < -10.0 or (gaining_hc and db.tanks.ccool_fill == 0)
+            -- we only care about being saturated if all the boilers are
+            all_full = all_full and db.tanks.hcool_fill == 1
         end
+
+        cfmismatch = cfmismatch or all_full
     elseif self.plc_i ~= nil then
         local r_db = self.plc_i.get_db()
 
@@ -659,10 +664,10 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if annunc.ReactorHighDeltaT then
+            if self.fuel_burn_rate_limited then
+                self.status_text[2] = "low fuel limiting max burn rate"
+            elseif annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
-            elseif annunc.ReactorTempHigh then
-                self.status_text[2] = "core temp high, system nominal"
             elseif annunc.FuelInputRateLow then
                 self.status_text[2] = "insufficient fuel input rate"
             elseif annunc.WasteLineOcclusion then
@@ -671,6 +676,8 @@ function logic.update_status_text(self)
                 self.status_text[2] = "awaiting coolant flow stability"
             elseif not self.turbine_flow_stable then
                 self.status_text[2] = "awaiting turbine flow stability"
+            elseif annunc.ReactorTempHigh then
+                self.status_text[2] = "core temp high, system nominal"
             else
                 self.status_text[2] = "system nominal"
             end

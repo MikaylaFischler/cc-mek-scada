@@ -393,7 +393,7 @@ return function(config, __shared_memory)
             type = rtu_type,                         ---@type RTU_UNIT_TYPE unit type
             index = index or false,                  ---@type integer|false device index
             reactor = for_reactor,                   ---@type integer|nil unit/facility assignment
-            device = device,                         ---@type table peripheral reference
+            device = device,                         ---@type ppm_generic|string|0 peripheral reference (for redstone: 0 is local, string is relay name)
             rs_conns = nil,                          ---@type IO_PORT[][]|nil available redstone connections
             is_multiblock = is_multiblock,           ---@type boolean if this is for a multiblock peripheral
             formed = formed,                         ---@type boolean|nil if this peripheral is currently formed

@@ -1,0 +1,226 @@
+-- Peripheral Classes
+
+--#region CC: TWEAKED CLASSES https://tweaked.cc
+
+---@class Redirect
+---@field write fun(text: string) Write text at the current cursor position, moving the cursor to the end of the text.
+---@field scroll fun(y: integer) Move all positions up (or down) by y pixels.
+---@field getCursorPos fun() : x: integer, y: integer Get the position of the cursor.
+---@field setCursorPos fun(x: integer, y: integer) Set the position of the cursor.
+---@field getCursorBlink fun() : boolean Checks if the cursor is currently blinking.
+---@field setCursorBlink fun(blink: boolean) Sets whether the cursor should be visible (and blinking) at the current cursor position.
+---@field getSize fun() : width: integer, height: integer Get the size of the terminal.
+---@field clear fun() Clears the terminal, filling it with the current background color.
+---@field clearLine fun() Clears the line the cursor is currently on, filling it with the current background color.
+---@field getTextColor fun() : color Return the color that new text will be written as.
+---@field setTextColor fun(color: color) Set the colour that new text will be written as.
+---@field getBackgroundColor fun() : color Return the current background color.
+---@field setBackgroundColor fun(color: color) set the current background color.
+---@field isColor fun() Determine if this terminal supports color.
+---@field blit fun(text: string, textColor: string, backgroundColor: string) Writes text to the terminal with the specific foreground and background colors.
+---@diagnostic disable-next-line: duplicate-doc-field
+---@field setPaletteColor fun(index: color, color: integer) Set the palette for a specific color.
+---@diagnostic disable-next-line: duplicate-doc-field
+---@field setPaletteColor fun(index: color, r: number, g: number, b:number) Set the palette for a specific color. R/G/B are 0 to 1.
+---@field getPaletteColor fun(color: color) :  r: number, g: number, b:number Get the current palette for a specific color.
+
+---@class Window:Redirect
+---@field getLine fun(y: integer) : content: string, fg: string, bg: string Get the buffered contents of a line in this window.
+---@field setVisible fun(visible: boolean) Set whether this window is visible. Invisible windows will not be drawn to the screen until they are made visible again.
+---@field isVisible fun() : visible: boolean Get whether this window is visible. Invisible windows will not be drawn to the screen until they are made visible again.
+---@field redraw fun() Draw this window. This does nothing if the window is not visible.
+---@field restoreCursor fun() Set the current terminal's cursor to where this window's cursor is. This does nothing if the window is not visible.
+---@field getPosition fun() : x: integer, y: integer Get the position of the top left corner of this window.
+---@field reposition fun(new_x: integer, new_y: integer, new_width?: integer, new_height?: integer, new_parent?: Redirect) Reposition or resize the given window.
+
+---@class Monitor:Redirect,PPMDevice
+---@field setTextScale fun(scale: number) Set the scale of this monitor.
+---@field getTextScale fun() : number Get the monitor's current text scale.
+
+---@class Modem:PPMDevice
+---@field open fun(channel: integer) Open a channel on a modem.
+---@field isOpen fun(channel: integer) : boolean Check if a channel is open.
+---@field close fun(channel: integer) Close an open channel, meaning it will no longer receive messages.
+---@field closeAll fun() Close all open channels.
+---@field transmit fun(channel: integer, replyChannel: integer, payload: any) Sends a modem message on a certain channel.
+---@field isWireless fun() : boolean Determine if this is a wired or wireless modem.
+---@field getNamesRemote fun() : string[] List all remote peripherals on the wired network.
+---@field isPresentRemote fun(name: string) : boolean Determine if a peripheral is available on this wired network.
+---@field getTypeRemote fun(name: string) : string|nil Get the type of a peripheral is available on this wired network.
+---@field hasTypeRemote fun(name: string, type: string) : boolean|nil Check a peripheral is of a particular .
+---@field getMethodsRemote fun(name: string) : string[] Get all available methods for the remote peripheral with the given name.
+---@field callRemote fun(remoteName: string, method: string, ...) : table Call a method on a peripheral on this wired network.
+---@field getNameLocal fun() : string|nil Returns the network name of the current computer, if the modem is on.
+
+---@class Speaker:PPMDevice
+---@field playNote fun(instrument: string, volume?: number, pitch?: number) : success: boolean Plays a note block note through the speaker.
+---@field playSound fun(name: string, volume?: number, pitch?: number) : success: boolean Plays a Minecraft sound through the speaker.
+---@field playAudio fun(audio: number[], volume?: number) : success: boolean Attempt to stream some audio data to the speaker.
+---@field stop fun() Stop all audio being played by this speaker.
+
+---@class RedstoneRelay:PPMDevice
+---@field setOutput fun(side: string, on: boolean) Turn the redstone signal of a specific side on or off.
+---@field getOutput fun(side: string) : boolean Get the current redstone output of a specific side.
+---@field getInput fun(side: string) : boolean Get the current redstone input of a specific side.
+---@field setAnalogOutput fun(side: string, value: integer) Set the redstone signal strength for a specific side.
+---@field setAnalogueOutput fun(side: string, value: integer) Set the redstone signal strength for a specific side.
+---@field getAnalogOutput fun(side: string) : integer Get the redstone output signal strength for a specific side.
+---@field getAnalogueOutput fun(side: string) : integer Get the redstone output signal strength for a specific side.
+---@field getAnalogInput fun(side: string) : integer Get the redstone input signal strength for a specific side.
+---@field getAnalogueInput fun(side: string) : integer Get the redstone input signal strength for a specific side.
+---@field setBundledOutput fun(side: string, output: integer) Set the bundled cable output for a specific side.
+---@field getBundledOutput fun(side: string) : integer Get the bundled cable output for a specific side.
+---@field getBundledInput fun(side: string)	: integer Get the bundled cable input for a specific side.
+---@field testBundledInput fun(side: string, mask: integer) : boolean Determine if a specific combination of colors are on for the given side.
+
+--#endregion
+
+--#region Mekanism Classes
+
+---@class Multiblock:PPMDevice
+---@field isFormed fun() : boolean Check if this multiblock is formed.
+
+---@class MultiblockFormed:Multiblock
+---@field getLength fun() : integer Length of the multiblock.
+---@field getWidth fun() : integer Width of the multiblock.
+---@field getHeight fun() : integer Height of the multiblock.
+---@field getMinPos fun() : coordinate Get the minimum corner of the multiblock.
+---@field getMaxPos fun() : coordinate Get the maximum corner of the multiblock.
+
+---@class FissionReactor:MultiblockFormed
+---@field activate fun() Enable the reactor.
+---@field scram fun() Disable the reactor.
+---@field setBurnRate fun(rate: number) : number Set the burn rate.
+---@field getBurnRate fun() : number Get the configured burn rate.
+---@field getActualBurnRate fun() : number Get the actual burn rate, which may be fuel limited (mB).
+---@field getMaxBurnRate fun() : integer Get the maximum burn rate according to the number of fuel assemblies.
+---@field getStatus fun() : boolean Get the reactor enable status.
+---@field getTemperature fun() : number Get the reactor core temperature (K).
+---@field getHeatingRate fun() : integer Get the coolant heating rate (mB/t).
+---@field getBoilEfficiency fun() : number Reactor boil efficiency.
+---@field getEnvironmentalLoss fun() : number Get the amount of heat lost to the environment in the last tick (K).
+---@field getDamagePercent fun() : integer Get the reactor damage, 0 - 100%.
+---@field isForceDisabled fun() : boolean If meltdowns are disabled, this returns true if the reactor was disabled instead of melting down.
+---@field getFuelAssemblies fun() : integer Get the number of fuel assemblies.
+---@field getFuelSurfaceArea fun() : integer Get the exposed fuel surface area.
+---@field getHeatCapacity fun() : number Get the heat capacity of the reactor structure.
+---@field getFuel fun() : tank_fluid Get the contents of the fuel tank.
+---@field getFuelNeeded fun() : integer Get the remaining capacity available for fuel (mB).
+---@field getFuelCapacity fun() : integer Get the fuel capacity (mB).
+---@field getFuelFilledPercentage fun() : number Get the fuel fill (0 - 1).
+---@field getWaste fun() : tank_fluid Get the contents of the waste tank.
+---@field getWasteNeeded fun() : integer Get the remaining capacity available for waste (mB).
+---@field getWasteCapacity fun() : integer Get the waste capacity (mB).
+---@field getWasteFilledPercentage fun() : number Get the waste fill (0 - 1).
+---@field getCoolant fun() : tank_fluid Get the contents of the cooled coolant tank.
+---@field getCoolantNeeded fun() : integer Get the remaining capacity available for cooled coolant (mB).
+---@field getCoolantCapacity fun() : integer Get the cooled coolant capacity (mB).
+---@field getCoolantFilledPercentage fun() : number Get the cooled coolant fill (0 - 1).
+---@field getHeatedCoolant fun() : tank_fluid Get the contents of the heated coolant tank.
+---@field getHeatedCoolantNeeded fun() : integer Get the remaining capacity available for heated coolant (mB).
+---@field getHeatedCoolantCapacity fun() : integer Get the heated coolant capacity (mB).
+---@field getHeatedCoolantFilledPercentage fun() : number Get the heated coolant fill (0 - 1).
+
+---@class Boiler:MultiblockFormed
+---@field getSuperheaters fun() : integer Get the number of superheating elements.
+---@field getBoilCapacity fun() : integer Get the maximum boil rate based on the number of superheating elements.
+---@field getBoilRate fun() : integer Get the current boil rate (mB/t).
+---@field getMaxBoilRate fun() : integer Get the current maximum boil rate based on water and coolant supply (mB/t).
+---@field getTemperature fun() : number Get the boiler temperature (K).
+---@field getEnvironmentalLoss fun() : number Get the amount of heat lost to the environment in the last tick (K).
+---@field getCooledCoolant fun(): tank_fluid Get the contents of the cooled coolant tank.
+---@field getCooledCoolantNeeded fun() : integer Get the remaining capacity available for cooled coolant (mB).
+---@field getCooledCoolantCapacity fun() : integer Get the cooled coolant capacity (mB).
+---@field getCooledCoolantFilledPercentage fun() : number Get the cooled coolant fill (0 - 1).
+---@field getHeatedCoolant fun(): tank_fluid Get the contents of the heated coolant tank.
+---@field getHeatedCoolantNeeded fun() : integer Get the remaining capacity available for heated coolant (mB).
+---@field getHeatedCoolantCapacity fun() : integer Get the heated coolant capacity (mB).
+---@field getHeatedCoolantFilledPercentage fun() : number Get the heated coolant fill (0 - 1).
+---@field getWater fun(): tank_fluid Get the contents of the water tank.
+---@field getWaterCapacity fun() : integer Get the capacity of the water tank (mB).
+---@field getWaterNeeded fun() : integer Get the remaining capacity available for water (mB).
+---@field getWaterFilledPercentage fun() : number Get the water fill (0 - 1).
+---@field getSteam fun(): tank_fluid Get the contents of the steam tank.
+---@field getSteamCapacity fun() : integer Get the capacity of the steam tank (mB).
+---@field getSteamNeeded fun() : integer Get the remaining capacity available for steam (mB).
+---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
+
+---@class Turbine:MultiblockFormed
+---@field getBlades fun() : integer Get the number of turbine blades.
+---@field getCoils fun() : integer Get the number of coils.
+---@field getVents fun() : integer Get the number of vents.
+---@field getCondensers fun() : integer Get the number of saturating condensers.
+---@field getDispersers fun() : integer Get the number of pressure dispersers.
+---@field getProductionRate fun() : integer Get the current energy production rate (J/t).
+---@field getMaxProduction fun() : integer Get the maximum possible energy production rate (J/t).
+---@field getFlowRate fun() : integer Get the current steam flow rate (mB/t).
+---@field getMaxFlowRate fun() : integer Get the maximum possible steam flow rate (mB/t).
+---@field getMaxWaterOutput fun() : integer Get the maximum possible water output rate (mB/t).
+---@field getSteam fun(): tank_fluid Get the contents of the steam tank.
+---@field getSteamCapacity fun() : integer Get the capacity of the steam tank (mB).
+---@field getSteamNeeded fun() : integer Get the remaining capacity available for steam (mB).
+---@field getSteamFilledPercentage fun() : number Get the steam fill (0 - 1).
+---@field getLastSteamInputRate fun() : integer Get the steam input rate last tick (mB/t).
+---@field getDumpingMode  fun(): dumping_mode Get the steam dumping mode.
+---@field incrementDumpingMode fun() Increment the steam dumping mode.
+---@field decrementDumpingMode fun() Decrement the steam dumping mode.
+---@field setDumpingMode fun(mode: dumping_mode) Set the steam dumping mode.
+
+---@class InductionMatrix:MultiblockFormed
+---@field getInstalledCells fun() : integer Get the number of installed cells.
+---@field getInstalledProviders fun() : integer Get the number of installed providers.
+---@field getTransferCap fun() : integer Get the input/output transfer capacity (J/t).
+---@field getLastInput fun() : integer Get the last input rate (J/t).
+---@field getLastOutput fun() : integer Get the last output rate (J/t).
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
+
+---@class DynamicTank:MultiblockFormed
+---@field getStored fun() : tank_fluid Get the contents of the tank.
+---@field getTankCapacity fun() : integer Get the tank capacity when used for liquids (mB).
+---@field getChemicalTankCapacity fun() : integer Get the tank capacity when used for chemicals (mB).
+---@field getFilledPercentage fun() : number Get the fill percentage (0 - 1).
+---@field getContainerEditMode fun() : container_mode Get the container mode.
+---@field incrementContainerEditMode fun() Increment the container mode.
+---@field decrementContainerEditMode fun() Decrement the container mode.
+---@field setContainerEditMode fun(mode: container_mode) Set the container mode.
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
+
+---@class SPS:MultiblockFormed
+---@field getCoils fun() : integer Get the number of supercharged coils.
+---@field getProcessRate fun() : number Get the current process rate (mB/t).
+---@field getInput fun() : tank_fluid Get the contents of the input tank.
+---@field getInputCapacity fun() : integer Get the capacity of the input tank (mB).
+---@field getInputNeeded fun() : integer Get the remaining capacity available of the input tank (mB).
+---@field getInputFilledPercentage fun() : number Get the fill percentage of the input tank (0 - 1).
+---@field getOutput fun() : tank_fluid Get the contents of the output tank.
+---@field getOutputCapacity fun() : integer Get the capacity of the output tank (mB).
+---@field getOutputNeeded fun() : integer Get the remaining capacity available of the output tank (mB).
+---@field getOutputFilledPercentage fun() : number Get the fill percentage of the output tank (0 - 1).
+
+---@class SolarNeutronActivator:MultiblockFormed
+---@field canSeeSun fun() : boolean Check if the SNA can see the sun.
+---@field getProductionRate fun() : number Get the current production rate (mB/t).
+---@field getPeakProductionRate fun() : number Get the peak possible production rate in the current location (mB/t).
+---@field getInput fun() : tank_fluid Get the contents of the input tank.
+---@field getInputCapacity fun() : integer Get the capacity of the input tank (mB).
+---@field getInputNeeded fun() : integer Get the remaining capacity available of the input tank (mB).
+---@field getInputFilledPercentage fun() : number Get the fill percentage of the input tank (0 - 1).
+---@field getOutput fun() : tank_fluid Get the contents of the output tank.
+---@field getOutputCapacity fun() : integer Get the capacity of the output tank (mB).
+---@field getOutputNeeded fun() : integer Get the remaining capacity available of the output tank (mB).
+---@field getOutputFilledPercentage fun() : number Get the fill percentage of the output tank (0 - 1).
+---@field getInputItem fun() : item_stack Get the contents of the input slot.
+---@field getOutputItem fun() : item_stack Get the contents of the output slot.
+
+--#endregion
+
+--#region Advanced Peripherals Classes
+
+---@class EnvironmentDetector:PPMDevice
+---@note This is incomplete. It only lists the radiation functions that are used so I don't have to type them all out.
+---@field getRadiation fun() : { radition: string, unit: string } The current radiation level with a unit.
+---@field getRadiationRaw fun() : number The raw radiation in Sv/h.
+
+--#endregion

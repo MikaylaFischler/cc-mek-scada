@@ -747,7 +747,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 ioctl.rx.record_fac_detail_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
-                            if _check_length(packet, 12) and type(packet.data[1]) == "number" and ioctl.get_db().units[packet.data[1]] then
+                            if _check_length(packet, 13) and type(packet.data[1]) == "number" and ioctl.get_db().units[packet.data[1]] then
                                 ioctl.rx.record_unit_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_CTRL then

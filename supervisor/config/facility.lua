@@ -29,8 +29,8 @@ local facility = {}
 
 -- generate the tank list and tank connections tables
 ---@param mode integer facility tank mode
----@param defs table facility tank definitions
----@return table tank_list, table tank_conns
+---@param defs integer[] facility tank definitions
+---@return integer[] tank_list, integer[] tank_conns
 function facility.generate_tank_list_and_conns(mode, defs)
     local tank_mode = mode
     local tank_defs = defs
