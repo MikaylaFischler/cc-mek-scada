@@ -73,6 +73,9 @@ local _spctl = {
     last_mon_check = 0,
     last_fuel_filt = 0.0,
 
+    d_fuel = 0.0,
+    d_fuel_mBt = 0.0,
+
     fuel_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
     rate_filt = util.ema_filter(FUEL_LIMIT_EMA_A),
     tick_filt = util.ema_filter(FUEL_LIMIT_EMA_A)
@@ -324,9 +327,10 @@ local function update_fuel_rate_limiting(tick, reactor)
         _spctl.tick_filt.update(elapsed_s * tps_avg)
 
         -- figure out the change in fuel as mB/t
-        local d_fuel     = _spctl.fuel_filt.get() - _spctl.last_fuel_filt
-        local d_fuel_mBt = d_fuel / _spctl.tick_filt.get()
-        local limit      = math.max(0.01, _spctl.rate_filt.get() + d_fuel_mBt)
+        _spctl.d_fuel     = _spctl.fuel_filt.get() - _spctl.last_fuel_filt
+        _spctl.d_fuel_mBt = _spctl.d_fuel / _spctl.tick_filt.get()
+
+        local limit       = math.max(0.01, _spctl.rate_filt.get() + _spctl.d_fuel_mBt)
 
         if _spctl.fuel_limiting then
             limits.reportable_max_burn = limit
@@ -357,6 +361,9 @@ local function update_fuel_rate_limiting(tick, reactor)
 
             limits.reportable_max_burn = false
             limits.fuel_max_burn = math.huge
+
+            _spctl.d_fuel = 0
+            _spctl.d_fuel_mBt = 0
 
             log.info("SPCTL: monitoring fuel terminated / limit released")
         elseif _spctl.fuel_monitoring and (not _spctl.fuel_limiting) and (fuel_fill < FUEL_LIMIT_START) then
@@ -462,6 +469,8 @@ function spctl.update(reactor, tick, nom_elapsed_s)
         publish("spctl_limit_lim", _spctl.fuel_limiting)
         publish("spctl_limit_fr", plc_state.limit_force_ramp)
 
+        publish("spctl_limit_dfuel", _spctl.d_fuel)
+        publish("spctl_limit_dfuelmbt", _spctl.d_fuel_mBt)
         publish("spctl_limit_limit", limits.fuel_max_burn)
 
         publish("spctl_limit_fuel_filt", _spctl.fuel_filt.get())

@@ -101,7 +101,7 @@ local function init(panel, config)
     -- fuel burn limiting
     --
 
-    local limit = Div{parent=diag_page,width=27,height=18,x=26,y=3}
+    local limit = Div{parent=diag_page,width=27,height=18,x=diag_page.get_width()-25,y=3}
 
     local fm = LED{parent=limit,label="FUEL MON ACTIVE",colors=ind_grn}
     local la = LED{parent=limit,label="LIMITING ACTIVE",colors=ind_grn}
@@ -116,9 +116,9 @@ local function init(panel, config)
     TextBox{parent=limit,text="FUEL_FILT"}
     local fuel_filt = DataIndicator{parent=limit,y=5,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="RATE_FILT"}
-    local rate_filt = DataIndicator{parent=limit,y=6,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    local rate_filt = DataIndicator{parent=limit,y=6,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="TICK_FILT"}
-    local tick_filt = DataIndicator{parent=limit,y=7,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    local tick_filt = DataIndicator{parent=limit,y=7,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
 
     fuel_filt.register(databus.ps, "spctl_limit_fuel_filt", fuel_filt.update)
     rate_filt.register(databus.ps, "spctl_limit_rate_filt", rate_filt.update)
@@ -126,9 +126,15 @@ local function init(panel, config)
 
     limit.line_break()
 
+    TextBox{parent=limit,text="dFUEL"}
+    local df = DataIndicator{parent=limit,y=9,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    TextBox{parent=limit,text="dFUEL_mBt"}
+    local dfm = DataIndicator{parent=limit,y=10,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="LIMIT"}
-    local lim = DataIndicator{parent=limit,y=9,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    local lim = DataIndicator{parent=limit,y=11,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
 
+    lim.register(databus.ps, "spctl_limit_dfuel", df.update)
+    lim.register(databus.ps, "spctl_limit_dfuelmbt", dfm.update)
     lim.register(databus.ps, "spctl_limit_limit", lim.update)
 
     --
@@ -145,9 +151,9 @@ local function init(panel, config)
     tps.register(databus.ps, "spctl_data_tps", tps.update)
     tt.register(databus.ps, "spctl_data_tick", tt.update)
 
-    PushButton{parent=diag_page,x=26,y=14,min_width=6,text="BACK",callback=show_main,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
+    PushButton{parent=diag_page,x=diag_page.get_width()-6,y=15,min_width=6,text="BACK",callback=show_main,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
 
-    TextBox{parent=diag_page,y=17,width=diag_page.get_width(),alignment=ALIGN.CENTER,text="VALUES ONLY UPDATED WHILE THIS PAGE IS ACTIVE\nTHIS IMPACTS PERFORMANCE - GO BACK BEFORE CLOSING",fg_bg=cpair(style.theme.label,colors._INHERIT)}
+    TextBox{parent=diag_page,y=diag_page.get_height()-2,width=diag_page.get_width(),alignment=ALIGN.CENTER,text="VALUES ONLY UPDATED WHILE THIS PAGE IS ACTIVE\nTHIS IMPACTS PERFORMANCE - GO BACK BEFORE CLOSING",fg_bg=cpair(style.theme.label,colors._INHERIT)}
 
     --
     -- STANDARD DISPLAY
@@ -169,7 +175,7 @@ local function init(panel, config)
     heartbeat.register(databus.ps, "heartbeat", heartbeat.update)
 
     if config.Networked then
-        local auto_ctl = LED{parent=system,label="AUTO CONTROL",colors=ind_wht}
+        local auto_ctl = LED{parent=system,label="AUTO CONTROL",colors=ind_grn}
         auto_ctl.register(databus.ps, "auto_control", auto_ctl.update)
     end
 
