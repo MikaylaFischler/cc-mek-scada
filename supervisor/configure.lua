@@ -9,6 +9,7 @@ local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local facility    = require("supervisor.config.facility")
+local mekanism    = require("supervisor.config.mekanism")
 local system      = require("supervisor.config.system")
 
 local core        = require("graphics.core")
@@ -115,7 +116,8 @@ local tmp_cfg = {
     LogPath = "",
     LogDebug = false,
     FrontPanelTheme = 1,    ---@type FP_THEME
-    ColorMode = 1           ---@type COLOR_MODE
+    ColorMode = 1,          ---@type COLOR_MODE
+    MekanismConfig = mekanism.profiles[1].fields
 }
 
 ---@class svr_config
@@ -156,7 +158,8 @@ local fields = {
     { "LogPath", "Log Path", "/log.txt" },
     { "LogDebug", "Log Debug Messages", false },
     { "FrontPanelTheme", "Front Panel Theme", themes.FP_THEME.SANDSTONE },
-    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD }
+    { "ColorMode", "Color Mode", themes.COLOR_MODE.STANDARD },
+    { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields }
 }
 
 -- load data from the settings file
@@ -190,6 +193,7 @@ local function config_view(display)
 
     local main_page = Div{parent=root_pane_div,y=1}
     local fac_cfg = Div{parent=root_pane_div,y=1}
+    local mek_cfg = Div{parent=root_pane_div,y=1}
     local net_cfg = Div{parent=root_pane_div,y=1}
     local log_cfg = Div{parent=root_pane_div,y=1}
     local clr_cfg = Div{parent=root_pane_div,y=1}
@@ -197,7 +201,7 @@ local function config_view(display)
     local changelog = Div{parent=root_pane_div,y=1}
     local import_err = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,mek_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
 
     --#region Main Page
 
@@ -214,7 +218,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
-        main_pane.set_value(6)
+        main_pane.set_value(7)
     end
 
     if fs.exists("/supervisor/config.lua") then
@@ -229,7 +233,7 @@ local function config_view(display)
         tool_ctl.jumped_to_color = true
         tool_ctl.color_next.hide(true)
         tool_ctl.color_apply.show()
-        main_pane.set_value(5)
+        main_pane.set_value(6)
     end
 
     local function startup()
@@ -240,7 +244,7 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     local start_btn = PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     if tool_ctl.ask_config then start_btn.disable() end
 
@@ -259,11 +263,17 @@ local function config_view(display)
 
     --#endregion
 
+    --#region Mekanism Configuration
+
+    local mek_pane = facility.create(tool_ctl, main_pane, settings, mek_cfg, style)
+
+    --#endregion
+
     --#region System Configuration
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary, import_err }
 
-    system.create(tool_ctl, main_pane, settings, divs, fac_pane, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, fac_pane, mek_pane, style, exit)
 
     --#endregion
 

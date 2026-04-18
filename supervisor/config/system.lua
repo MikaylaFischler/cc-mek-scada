@@ -54,9 +54,10 @@ local system = {}
 ---@param cfg_sys [ svr_config, svr_config, svr_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
 ---@param fac_pane MultiPane
+---@param mek_pane MultiPane
 ---@param style { [string]: cpair }
 ---@param exit function
-function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, style, exit)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary, import_err = divs[1], divs[2], divs[3], divs[4], divs[5]
 
@@ -114,7 +115,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         end
     end
 
-    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=net_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=net_c_1,x=44,y=14,text="Next \x1a",callback=submit_interfaces,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=net_c_2,y=1,text="Please assign device connection interfaces if you selected multiple network interfaces."}
@@ -252,7 +253,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             else
                 tmp_cfg.TrustedRange = 0
                 tmp_cfg.AuthKey = ""
-                main_pane.set_value(4)
+                main_pane.set_value(5)
             end
 
             ct_err.hide(true)
@@ -301,7 +302,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
         local v = key.get_value()
         if string.len(v) == 0 or string.len(v) >= 8 then
             tmp_cfg.AuthKey = key.get_value()
-            main_pane.set_value(4)
+            main_pane.set_value(5)
             key_err.hide(true)
         else key_err.show() end
     end
@@ -338,11 +339,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             tmp_cfg.LogDebug = en_dbg.get_value()
             tool_ctl.color_apply.hide(true)
             tool_ctl.color_next.show()
-            main_pane.set_value(5)
+            main_pane.set_value(6)
         else path_err.show() end
     end
 
-    PushButton{parent=log_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=log_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=log_c_1,x=44,y=14,text="Next \x1a",callback=submit_log,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -431,7 +432,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             tool_ctl.viewing_config = false
             self.importing_legacy = false
             tool_ctl.settings_apply.show()
-            main_pane.set_value(6)
+            main_pane.set_value(7)
         end
     end
 
@@ -477,7 +478,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
             self.importing_legacy = false
             tool_ctl.settings_apply.show()
         else
-            main_pane.set_value(5)
+            main_pane.set_value(6)
         end
     end
 
@@ -573,6 +574,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
     local function go_home()
         main_pane.set_value(1)
         fac_pane.set_value(1)
+        mek_pane.set_value(1)
         net_pane.set_value(1)
         clr_pane.set_value(1)
         sum_pane.set_value(1)
@@ -654,7 +656,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
         if config.REACTOR_COOLING == nil or tmp_cfg.UnitCount ~= #config.REACTOR_COOLING then
             import_err_msg.set_value("Cooling configuration table length must match the number of units.")
-            main_pane.set_value(8)
+            main_pane.set_value(9)
             return
         end
 
@@ -663,7 +665,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
             if type(cfg) ~= "table" then
                 import_err_msg.set_value("Cooling configuration for unit " .. i .. " must be a table.")
-                main_pane.set_value(8)
+                main_pane.set_value(9)
                 return
             end
 
@@ -674,14 +676,14 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
         if not (util.is_int(tmp_cfg.FacilityTankMode) and tmp_cfg.FacilityTankMode >= 0 and tmp_cfg.FacilityTankMode <= 8) then
             import_err_msg.set_value("Invalid tank mode present in config. FAC_TANK_MODE must be a number 0 through 8.")
-            main_pane.set_value(8)
+            main_pane.set_value(9)
             return
         end
 
         if config.FAC_TANK_MODE > 0 then
             if config.FAC_TANK_DEFS == nil or tmp_cfg.UnitCount ~= #config.FAC_TANK_DEFS then
                 import_err_msg.set_value("Facility tank definitions table length must match the number of units when using facility tanks.")
-                main_pane.set_value(8)
+                main_pane.set_value(9)
                 return
             end
 
@@ -722,7 +724,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, style, exit
 
         tool_ctl.gen_summary(tmp_cfg)
         sum_pane.set_value(1)
-        main_pane.set_value(6)
+        main_pane.set_value(7)
         self.importing_legacy = true
     end
 
