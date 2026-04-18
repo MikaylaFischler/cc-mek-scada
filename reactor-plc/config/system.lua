@@ -93,8 +93,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     local plc_c_6 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_7 = Div{parent=plc_cfg,x=2,y=4,width=49}
     local plc_c_8 = Div{parent=plc_cfg,x=2,y=4,width=49}
+    local plc_c_9 = Div{parent=plc_cfg,x=2,y=4,width=49}
 
-    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5,plc_c_6,plc_c_7,plc_c_8}}
+    local plc_pane = MultiPane{parent=plc_cfg,y=4,panes={plc_c_1,plc_c_2,plc_c_3,plc_c_4,plc_c_5,plc_c_6,plc_c_7,plc_c_8,plc_c_9}}
 
     TextBox{parent=plc_cfg,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
@@ -220,11 +221,25 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
 
     local function submit_fuel_limit()
         tmp_cfg.FuelAutoLimiting = fuel_limit.get_value()
-        main_pane.set_value(3)
+        plc_pane.set_value(9)
     end
 
     PushButton{parent=plc_c_8,y=14,text="\x1b Back",callback=function()plc_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=plc_c_8,x=44,y=14,text="Next \x1a",callback=submit_fuel_limit,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=plc_c_9,y=1,height=3,text="A separate front panel page can be enabled to view diagnostics information. This is useful for debugging, development, or satisfying curiosity."}
+    TextBox{parent=plc_c_9,y=5,height=6,text="A DIAG button will be added to the front panel to access it. Be aware that the diagnostics rapidly refresh with information, which can negatively impact performance. When not in use, use BACK to close it. Using escape to close out the computer does not stop the page from updating.",fg_bg=g_lg_fg_bg}
+
+    local en_diag = Checkbox{parent=plc_c_9,y=12,label="Enable Diagnostics Panel",default=ini_cfg.EnableDiagnostics,box_fg_bg=cpair(colors.orange,colors.black)}
+    TextBox{parent=plc_c_9,x=28,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function submit_diag()
+        tmp_cfg.EnableDiagnostics = en_diag.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=plc_c_9,y=14,text="\x1b Back",callback=function()plc_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=plc_c_9,x=44,y=14,text="Next \x1a",callback=submit_diag,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -604,6 +619,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
             try_set(fast_ramp, ini_cfg.FastRamp)
             try_set(fast_ramp_confirm, ini_cfg.FastRampConfirmed)
             try_set(fuel_limit, ini_cfg.FuelAutoLimiting)
+            try_set(en_diag, ini_cfg.EnableDiagnostics)
             try_set(self.wireless, ini_cfg.WirelessModem)
             try_set(self.wired, ini_cfg.WiredModem ~= false)
             try_set(self.wl_pref, ini_cfg.PreferWireless)
@@ -677,6 +693,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
         tmp_cfg.FastRamp = false
         tmp_cfg.FastRampConfirmed = false
         tmp_cfg.FuelAutoLimiting = false
+        tmp_cfg.EnableDiagnostics = false
         tmp_cfg.EmerCoolEnable = type(config.EMERGENCY_COOL) == "table"
 
         if tmp_cfg.EmerCoolEnable then

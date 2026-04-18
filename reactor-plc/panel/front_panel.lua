@@ -316,7 +316,9 @@ local function init(panel, config)
     TextBox{parent=hw_labels,text="NT v"..databus.ps.get("comms_version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="SN "..comp_id.."-PLC",fg_bg=s_hi_box}
 
-    PushButton{parent=hw_labels,x=12,y=3,text="DIAG",callback=show_diagnostics,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
+    if config.EnableDiagnostics then
+        PushButton{parent=hw_labels,x=12,y=3,text="DIAG",callback=show_diagnostics,fg_bg=cpair(colors.black,colors.white),active_fg_bg=cpair(colors.black,colors.gray)}
+    end
 
     -- warning about multiple reactors connected
 

@@ -46,6 +46,7 @@ function plc.load_config()
     config.UnitID = settings.get("UnitID")
     config.FastRamp = settings.get("FastRamp")
     config.FuelAutoLimiting = settings.get("FuelAutoLimiting")
+    config.EnableDiagnostics = settings.get("EnableDiagnostics")
 
     config.EmerCoolEnable = settings.get("EmerCoolEnable")
     config.EmerCoolSide = settings.get("EmerCoolSide")
@@ -80,6 +81,7 @@ function plc.validate_config(cfg)
     cfv.assert_type_int(cfg.UnitID)
     cfv.assert_type_bool(cfg.FastRamp)
     cfv.assert_type_bool(cfg.FuelAutoLimiting)
+    cfv.assert_type_bool(cfg.EnableDiagnostics)
     cfv.assert_type_bool(cfg.EmerCoolEnable)
 
     if cfg.Networked then
