@@ -6,6 +6,7 @@ require("/initenv").init_env()
 
 local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
+local constants  = require("scada-common.constants")
 local log        = require("scada-common.log")
 local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
@@ -117,6 +118,12 @@ local function main()
 
     -- report versions
     databus.tx_versions(SUPERVISOR_VERSION, comms.version)
+
+    -- report Mekanism configuration
+    log.debug("MekanismConfig: JOULES_PER_MB = " .. constants.mek.JOULES_PER_MB)
+    log.debug("MekanismConfig: TURBINE_DISPERSER_FLOW = " .. constants.mek.TURBINE_DISPERSER_FLOW)
+    log.debug("MekanismConfig: TURBINE_VENT_FLOW = " .. constants.mek.TURBINE_VENT_FLOW)
+    log.debug("MekanismConfig: TURBINE_GAS_PER_TANK = " .. constants.mek.TURBINE_GAS_PER_TANK)
 
     -- mount connected devices
     ppm.mount_all()

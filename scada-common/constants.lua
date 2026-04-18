@@ -109,6 +109,9 @@ constants.HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 local mek = {}
 
 mek.BASE_BOIL_TEMP         = 373.15  -- mekanism: HeatUtils.BASE_BOIL_TEMP
+
+-- WARNING: the following values are overridden by the Mekanism configuration on the Supervisor
+
 mek.JOULES_PER_MB          = 1000000 -- mekanism: energyPerFissionFuel
 mek.TURBINE_GAS_PER_TANK   = 64000   -- mekanism: turbineGasPerTank
 mek.TURBINE_DISPERSER_FLOW = 1280    -- mekanism: turbineDisperserGasFlow

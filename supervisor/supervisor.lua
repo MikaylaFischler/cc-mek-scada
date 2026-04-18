@@ -1,4 +1,5 @@
 local comms      = require("scada-common.comms")
+local constants  = require("scada-common.constants")
 local log        = require("scada-common.log")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
@@ -52,6 +53,8 @@ function supervisor.load_config()
     config.AuxiliaryCoolant = settings.get("AuxiliaryCoolant")
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
 
+    config.MekanismConfig = settings.get("MekanismConfig")
+
     config.WirelessModem = settings.get("WirelessModem")
     config.WiredModem = settings.get("WiredModem")
 
@@ -96,6 +99,15 @@ function supervisor.load_config()
     cfv.assert_type_table(config.TankFluidTypes)
     cfv.assert_type_table(config.AuxiliaryCoolant)
     cfv.assert_range(config.FacilityTankMode, 0, 8)
+
+    cfv.assert_type_table(config.MekanismConfig)
+
+    if type(config.MekanismConfig) == "table" then
+        cfv.assert_type_num(config.MekanismConfig.energyPerFissionFuel)
+        cfv.assert_type_num(config.MekanismConfig.turbineDisperserChemicalFlow)
+        cfv.assert_type_num(config.MekanismConfig.turbineVentChemicalFlow)
+        cfv.assert_type_num(config.MekanismConfig.turbineChemicalPerTank)
+    end
 
     cfv.assert_type_bool(config.ExtChargeIdling)
 
@@ -145,6 +157,14 @@ function supervisor.load_config()
     cfv.assert_range(config.FrontPanelTheme, 1, 2)
     cfv.assert_type_int(config.ColorMode)
     cfv.assert_range(config.ColorMode, 1, themes.COLOR_MODE.NUM_MODES)
+
+    if cfv.valid() then
+        -- apply Mekanism config overrides
+        constants.mek.JOULES_PER_MB          = config.MekanismConfig.energyPerFissionFuel
+        constants.mek.TURBINE_DISPERSER_FLOW = config.MekanismConfig.turbineDisperserChemicalFlow
+        constants.mek.TURBINE_VENT_FLOW      = config.MekanismConfig.turbineVentChemicalFlow
+        constants.mek.TURBINE_GAS_PER_TANK   = config.MekanismConfig.turbineChemicalPerTank
+    end
 
     return cfv.valid()
 end
