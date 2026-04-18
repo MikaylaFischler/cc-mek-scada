@@ -9,6 +9,7 @@ local types       = require("scada-common.types")
 local util        = require("scada-common.util")
 
 local facility    = require("supervisor.config.facility")
+local mekanism    = require("supervisor.config.mekanism")
 local system      = require("supervisor.config.system")
 
 local core        = require("graphics.core")
@@ -34,7 +35,8 @@ local changes = {
     { "v1.2.12", { "Added front panel UI theme", "Added color accessibility modes" } },
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.6.0", { "Added sodium emergency coolant option" } },
-    { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } }
+    { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } },
+    { "v1.9.5", { "Added Mekanism Generators configuration options" } }
 }
 
 ---@class svr_configurator
@@ -79,6 +81,9 @@ local tool_ctl = {
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
 
+    mek_profile = nil,     ---@type RadioButton
+    custom_configs = {},   ---@type NumberField[]
+
     gen_modem_list = function () end
 }
 
@@ -93,6 +98,8 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    MekanismProfile = mekanism.profiles[1].name,
+    MekanismConfig = mekanism.profiles[1].fields,
     WirelessModem = true,
     WiredModem = false,     ---@type string|false
     PLC_Listen = 1,         ---@type LISTEN_MODE
@@ -134,6 +141,8 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
+    { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },
@@ -190,6 +199,7 @@ local function config_view(display)
 
     local main_page = Div{parent=root_pane_div,y=1}
     local fac_cfg = Div{parent=root_pane_div,y=1}
+    local mek_cfg = Div{parent=root_pane_div,y=1}
     local net_cfg = Div{parent=root_pane_div,y=1}
     local log_cfg = Div{parent=root_pane_div,y=1}
     local clr_cfg = Div{parent=root_pane_div,y=1}
@@ -197,7 +207,7 @@ local function config_view(display)
     local changelog = Div{parent=root_pane_div,y=1}
     local import_err = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,mek_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
 
     --#region Main Page
 
@@ -214,7 +224,7 @@ local function config_view(display)
         tool_ctl.viewing_config = true
         tool_ctl.gen_summary(settings_cfg)
         tool_ctl.settings_apply.hide(true)
-        main_pane.set_value(6)
+        main_pane.set_value(7)
     end
 
     if fs.exists("/supervisor/config.lua") then
@@ -229,7 +239,7 @@ local function config_view(display)
         tool_ctl.jumped_to_color = true
         tool_ctl.color_next.hide(true)
         tool_ctl.color_apply.show()
-        main_pane.set_value(5)
+        main_pane.set_value(6)
     end
 
     local function startup()
@@ -240,7 +250,7 @@ local function config_view(display)
     PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     local start_btn = PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     if tool_ctl.ask_config then start_btn.disable() end
 
@@ -259,11 +269,17 @@ local function config_view(display)
 
     --#endregion
 
+    --#region Mekanism Configuration
+
+    local mek_pane = mekanism.create(tool_ctl, main_pane, settings, mek_cfg, style)
+
+    --#endregion
+
     --#region System Configuration
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary, import_err }
 
-    system.create(tool_ctl, main_pane, settings, divs, fac_pane, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, fac_pane, mek_pane, style, exit)
 
     --#endregion
 
