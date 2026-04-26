@@ -214,7 +214,7 @@ local function init(parent, id)
     local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
     local rps_flt = IndicatorLight{parent=rps_annunc,label="PLC Hardware Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
-    local rps_sfl = IndicatorLight{parent=rps_annunc,label="Reactor System Failure",colors=ind_red,flash=true,period=period.BLINK_500_MS}
+    local rps_sfl = IndicatorLight{parent=rps_annunc,label="Reactor System Fault",colors=ind_red,flash=true,period=period.BLINK_500_MS}
     rps_annunc.line_break()
     local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
