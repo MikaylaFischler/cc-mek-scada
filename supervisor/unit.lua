@@ -114,7 +114,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             low_cool = false,
             ex_waste = false,
             ex_hcool = false,
-            no_fuel = false,
             fault = false,
             timeout = false,
             manual = false,
@@ -133,7 +132,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 low_cool = false,
                 ex_waste = false,
                 ex_hcool = false,
-                no_fuel = false,
                 fault = false,
                 timeout = false,
                 manual = false,
@@ -143,6 +141,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             },
             damage = 0,
             temp = 0,
+            fuel = 0,
             waste = 0,
             high_temp_lim = 1150
         },

@@ -133,8 +133,8 @@ function plc.rps_init(reactor, plc_state)
     local ini_is_formed = util.trinary(plc_state.no_reactor, nil, plc_state.reactor_formed)
 
     local self = {
-        ---@type boolean[] check states
-        state = { false, false, false, false, false, false, false, false, false, false, false, false },
+        -- check states
+        state = { false, false, false, false, false, false, false, false, false, false, false },
         reactor_active = false,
         emer_cool_active = nil, ---@type boolean
         formed = ini_is_formed, ---@type boolean|nil
@@ -149,13 +149,12 @@ function plc.rps_init(reactor, plc_state)
         LOW_COOLANT = 3,
         EX_WASTE = 4,
         EX_HCOOLANT = 5,
-        NO_FUEL = 6,
-        FAULT = 7,
-        TIMEOUT = 8,
-        MANUAL = 9,
-        AUTOMATIC = 10,
-        SYS_FAIL = 11,
-        FORCE_DISABLED = 12
+        FAULT = 6,
+        TIMEOUT = 7,
+        MANUAL = 8,
+        AUTOMATIC = 9,
+        SYS_FAIL = 10,
+        FORCE_DISABLED = 11
     }
 
     -- PRIVATE FUNCTIONS --
@@ -284,14 +283,6 @@ function plc.rps_init(reactor, plc_state)
         end
     end
 
-    -- check if there is no fuel
-    local function _insufficient_fuel()
-        local fuel = reactor.getFuelFilledPercentage()
-        if _check_and_handle_ppm_call(fuel) and not self.state[CHK.NO_FUEL] then
-            self.state[CHK.NO_FUEL] = fuel <= RPS_LIMITS.NO_FUEL_FILL
-        end
-    end
-
     -- PUBLIC FUNCTIONS --
 
     ---@class rps
@@ -413,8 +404,7 @@ function plc.rps_init(reactor, plc_state)
                     _high_temp,
                     _low_coolant,
                     _excess_waste,
-                    _excess_heated_coolant,
-                    _insufficient_fuel
+                    _excess_heated_coolant
                 )
             else
                 -- check to see if its now formed
@@ -449,9 +439,6 @@ function plc.rps_init(reactor, plc_state)
         elseif self.state[CHK.EX_HCOOLANT] then
             log.warning("RPS: heated coolant backup")
             status = RPS_TRIP_CAUSE.EX_HCOOLANT
-        elseif self.state[CHK.NO_FUEL] then
-            log.warning("RPS: no fuel")
-            status = RPS_TRIP_CAUSE.NO_FUEL
         elseif self.state[CHK.FAULT] then
             log.warning("RPS: reactor access fault")
             status = RPS_TRIP_CAUSE.FAULT

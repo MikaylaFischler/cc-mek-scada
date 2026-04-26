@@ -265,7 +265,6 @@ doc("ex_waste", "Excess Waste", "Indicates if the RPS tripped due to very high w
 doc("ex_hcool", "Excess Heated Coolant", "Indicates if the RPS tripped due to very high heated coolant levels. Check that the cooling system is able to keep up with heated coolant flow.")
 doc("high_temp", "Temperature High", "Indicates if the RPS tripped due to reaching damaging temperatures. Await damage levels to lower.")
 doc("low_cool", "Coolant Level Low Low", "Indicates if the RPS tripped due to very low coolant levels that result in the temperature uncontrollably rising. Ensure that the cooling system can provide sufficient cooled coolant flow.")
-doc("no_fuel", "No Fuel", "Indicates if the RPS tripped due to no fuel being available. Check fuel input.")
 doc("fault", "PPM Fault", "Indicates if the RPS tripped due to a peripheral access fault. Something went wrong interfacing with the reactor, try restarting the PLC.")
 doc("timeout", "Connection Timeout", "Indicates if the RPS tripped due to losing connection with the supervisory computer. Check that your PLC and Supervisor remain chunk loaded.")
 doc("sys_fail", "System Failure", "Indicates if the RPS tripped due to the reactor not being formed. Ensure that the multi-block is formed.")

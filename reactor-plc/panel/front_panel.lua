@@ -352,14 +352,14 @@ local function init(panel, config)
     local rps = Rectangle{parent=main_page,width=16,height=16,x=term_w-15,y=3,border=border(1,s_hi_box.bkg),thin=true,fg_bg=s_hi_box}
     local rps_man  = LED{parent=rps,label="MANUAL",colors=ind_red}
     local rps_auto = LED{parent=rps,label="AUTOMATIC",colors=ind_red}
+    rps.line_break()
     local rps_tmo  = LED{parent=rps,label="TIMEOUT",colors=ind_red}
+    rps.line_break()
     local rps_flt  = LED{parent=rps,label="PLC FAULT",colors=ind_red}
     local rps_fail = LED{parent=rps,label="RCT FAULT",colors=ind_red}
     rps.line_break()
     local rps_dmg  = LED{parent=rps,label="HI DAMAGE",colors=ind_red}
     local rps_tmp  = LED{parent=rps,label="HI TEMP",colors=ind_red}
-    rps.line_break()
-    local rps_nof  = LED{parent=rps,label="LO FUEL",colors=ind_red}
     local rps_wst  = LED{parent=rps,label="HI WASTE",colors=ind_red}
     rps.line_break()
     local rps_ccl  = LED{parent=rps,label="LO CCOOLANT",colors=ind_red}
@@ -372,7 +372,6 @@ local function init(panel, config)
     rps_fail.register(databus.ps, "rps_sysfail", rps_fail.update)
     rps_dmg.register(databus.ps, "rps_damage", rps_dmg.update)
     rps_tmp.register(databus.ps, "rps_high_temp", rps_tmp.update)
-    rps_nof.register(databus.ps, "rps_no_fuel", rps_nof.update)
     rps_wst.register(databus.ps, "rps_high_waste", rps_wst.update)
     rps_ccl.register(databus.ps, "rps_low_ccool", rps_ccl.update)
     rps_hcl.register(databus.ps, "rps_high_hcool", rps_hcl.update)
