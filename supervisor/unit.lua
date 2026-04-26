@@ -89,7 +89,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         auto_idle_start = 0,
         auto_was_alarmed = false,
         auto_act_diff_cnt = 0,
-        auto_act_limit = math.huge,
+        auto_act_lim_br100 = math.huge,
         -- state tracking
         deltas = {},    ---@type { last_t: number, last_v: number, dt: number }[]
         last_heartbeat = 0,
@@ -672,7 +672,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         if self.plc_i ~= nil then
             local max = self.plc_i.get_db().reportable_max_burn
             if max then
-                eff_lim = math.min(self.auto_act_limit, math.min(eff_lim, math.floor(max * 100)))
+                eff_lim = math.min(self.auto_act_lim_br100, math.min(eff_lim, math.floor(max * 100)))
             end
         end
 

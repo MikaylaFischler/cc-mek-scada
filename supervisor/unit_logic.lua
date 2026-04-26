@@ -577,13 +577,13 @@ function logic.update_auto_mgmt(self, public)
             if mek_status.status and ((mek_status.burn_rate - mek_status.act_burn_rate) > 0) then
                 -- actual rate dropped below intended, may be fuel limited, but debounce this
                 if self.auto_act_diff_cnt > 3 then
-                    self.auto_act_limit = mek_status.act_burn_rate
+                    self.auto_act_lim_br100 = math.floor(mek_status.act_burn_rate * 100)
                 else
                     self.auto_act_diff_cnt = self.auto_act_diff_cnt + 1
                 end
             else
                 self.auto_act_diff_cnt = 0
-                self.auto_act_limit = math.huge
+                self.auto_act_lim_br100 = math.huge
             end
         end
     else
