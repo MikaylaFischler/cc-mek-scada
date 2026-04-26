@@ -665,7 +665,9 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if self.fuel_burn_rate_limited then
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif self.fuel_burn_rate_limited then
                 self.status_text[2] = "low fuel limiting max burn rate"
             elseif annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
@@ -719,7 +721,10 @@ function logic.update_status_text(self)
             self.status_text[1] = "IDLE"
 
             local temp = plc_db.mek_status.temp
-            if temp < 350 then
+
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif temp < 350 then
                 self.status_text[2] = "core cold"
             elseif temp < 600 then
                 self.status_text[2] = "core warm"
