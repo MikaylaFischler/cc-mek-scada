@@ -543,11 +543,13 @@ function logic.update_alarms(self)
     for key, val in pairs(plc_cache.rps_status) do self.last_rps_trips[key] = val end
 end
 
--- update the internal automatic safety control performed while in auto control mode
+-- update the burn rate mismatch detection and internal automatic safety control performed while in auto control mode
 ---@param self _unit_self
 ---@param public reactor_unit reactor unit public functions
-function logic.update_auto_safety(self, public)
+function logic.update_auto_mgmt(self, public)
     if self.auto_engaged then
+        -- manage auto alarms
+
         local alarmed = false
 
         for _, alarm in pairs(self.alarms) do
@@ -567,6 +569,23 @@ function logic.update_auto_safety(self, public)
         end
 
         self.auto_was_alarmed = alarmed
+
+        -- manage burn rate discrepancies
+
+        if self.plc_s ~= nil then
+            local mek_status = self.plc_i.get_db().mek_status
+            if mek_status.status and ((mek_status.burn_rate - mek_status.act_burn_rate) > 0) then
+                -- actual rate dropped below intended, may be fuel limited, but debounce this
+                if self.auto_act_diff_cnt > 3 then
+                    self.auto_act_lim_br100 = math.floor(mek_status.act_burn_rate * 100)
+                else
+                    self.auto_act_diff_cnt = self.auto_act_diff_cnt + 1
+                end
+            else
+                self.auto_act_diff_cnt = 0
+                self.auto_act_lim_br100 = math.huge
+            end
+        end
     else
         self.auto_was_alarmed = false
     end
@@ -665,7 +684,9 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if self.fuel_burn_rate_limited then
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif self.fuel_burn_rate_limited then
                 self.status_text[2] = "low fuel limiting max burn rate"
             elseif annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
@@ -719,7 +740,10 @@ function logic.update_status_text(self)
             self.status_text[1] = "IDLE"
 
             local temp = plc_db.mek_status.temp
-            if temp < 350 then
+
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif temp < 350 then
                 self.status_text[2] = "core cold"
             elseif temp < 600 then
                 self.status_text[2] = "core warm"

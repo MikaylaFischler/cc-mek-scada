@@ -344,7 +344,7 @@ local function update_fuel_rate_limiting(tick, reactor)
         --     elapsed_s, data.tps, tps_avg, elapsed_s * tps_avg, data.fuel, _spctl.fuel_filt.get(), d_fuel, d_fuel_mBt, data.act_rate, _spctl.rate_filt.get(), limit))
 
         _spctl.last_fuel_filt = _spctl.fuel_filt.get()
-    elseif plc_state.auto_ctl and _spctl.fuel_limit_en and (tick % 5 == 0) then
+    elseif tick % 5 == 0 then
         fuel_fill = reactor.getFuelFilledPercentage()
     end
 

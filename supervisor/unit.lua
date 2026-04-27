@@ -88,7 +88,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         auto_idling = false,
         auto_idle_start = 0,
         auto_was_alarmed = false,
-        ramp_target_br100 = 0,
+        auto_act_diff_cnt = 0,
+        auto_act_lim_br100 = math.huge,
         -- state tracking
         deltas = {},    ---@type { last_t: number, last_v: number, dt: number }[]
         last_heartbeat = 0,
@@ -588,8 +589,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         -- update alarm status
         unit_logic.update_alarms(self)
 
-        -- if in auto mode, SCRAM on certain alarms
-        unit_logic.update_auto_safety(self, public)
+        -- update auto burn rate monitoring and SCRAM on certain alarms
+        unit_logic.update_auto_mgmt(self, public)
 
         -- update status text
         unit_logic.update_status_text(self)
@@ -662,6 +663,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     -- get the actual limit of this unit accounting for fuel burn rate limiting
     -- - if it is degraded or not ready, the limit will be 0
     -- - if fuel is limiting the maximum burn rate, the smaller of that rate and the control limit will be returned
+    -- - if the actual rate is less than the set rate for a few samples, that will be returned if less than the other limits
     ---@nodiscard
     ---@return integer lim_br100
     function public.auto_get_fuel_limited()
@@ -670,8 +672,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         if self.plc_i ~= nil then
             local max = self.plc_i.get_db().reportable_max_burn
             if max then
-                eff_lim = math.min(eff_lim, math.floor(max * 100))
+                eff_lim = math.min(math.floor(max * 100), eff_lim)
             end
+
+            eff_lim = math.min(self.auto_act_lim_br100, eff_lim)
         end
 
         return eff_lim
@@ -711,8 +715,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 end
 
                 self.plc_i.auto_set_burn(rate, ramp)
-
-                if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end
     end
@@ -816,7 +818,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         elseif mode == WASTE_MODE.MANUAL_ANTI_MATTER then
             _set_waste_valves(WASTE.ANTI_MATTER)
         elseif mode > WASTE_MODE.MANUAL_ANTI_MATTER then
-            log.debug(util.c("invalid waste mode setting ", mode))
+            log.debug(util.c(log_tag, "invalid waste mode setting ", mode))
         end
     end
 
