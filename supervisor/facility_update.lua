@@ -440,18 +440,25 @@ function update.auto_control(ExtChargeIdling)
     end
 
     -- update unit ready state
+    self.units_ready = nil
+
     local assign_count = 0
-    self.units_ready = true
     for i = 1, #self.prio_defs do
         for _, u in pairs(self.prio_defs[i]) do
             assign_count = assign_count + 1
-            self.units_ready = self.units_ready and u.get_control_inf().ready
+
+            self.units_ready = (self.units_ready or (self.units_ready == nil)) and u.get_control_inf().ready
         end
     end
 
+    -- nil to false, no units assigned, so auto control is not ready
+    self.units_ready = self.units_ready or false
+
     -- perform mode-specific operations
     if self.mode == PROCESS.INACTIVE then
-        if not self.units_ready then
+        if assign_count == 0 then
+            self.status_text = { "NOT READY", "no units assigned" }
+        elseif not self.units_ready then
             self.status_text = { "NOT READY", "assigned units not ready" }
         else
             -- clear ASCRAM once ready
