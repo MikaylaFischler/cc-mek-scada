@@ -672,8 +672,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         if self.plc_i ~= nil then
             local max = self.plc_i.get_db().reportable_max_burn
             if max then
-                eff_lim = math.min(self.auto_act_lim_br100, math.min(eff_lim, math.floor(max * 100)))
+                eff_lim = math.min(math.floor(max * 100), eff_lim)
             end
+
+            eff_lim = math.min(self.auto_act_lim_br100, eff_lim)
         end
 
         return eff_lim
