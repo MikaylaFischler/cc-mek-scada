@@ -816,7 +816,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         elseif mode == WASTE_MODE.MANUAL_ANTI_MATTER then
             _set_waste_valves(WASTE.ANTI_MATTER)
         elseif mode > WASTE_MODE.MANUAL_ANTI_MATTER then
-            log.debug(util.c("invalid waste mode setting ", mode))
+            log.debug(util.c(log_tag, "invalid waste mode setting ", mode))
         end
     end
 
