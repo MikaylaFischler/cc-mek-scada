@@ -179,6 +179,21 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
     return unallocated, false
 end
 
+-- check if all auto-controlled units sum to meet the specified burn rate
+---@nodiscard
+local function reached_rate(burn_rate)
+    local sum = 0.0
+
+    for i = 1, #self.prio_defs do
+        local units = self.prio_defs[i]
+        for u = 1, #units do
+            sum = sum + units[u].get_burn_rate()
+        end
+    end
+
+    return sum == burn_rate
+end
+
 -- set idle state of all assigned reactors
 ---@param idle boolean idle state
 local function set_idling(idle)
@@ -479,7 +494,7 @@ function update.auto_control(ExtChargeIdling)
             self.status_text = { "BURN RATE MODE", "ramping to target" }
             log.info("FAC: BURN_RATE process mode started")
         elseif self.waiting_on_ramp then
-            if all_units_ramped() then
+            if all_units_ramped() or reached_rate(self.sp.burn_target) then
                 self.waiting_on_ramp = false
 
                 self.status_text = { "BURN RATE MODE", "running" }
@@ -589,7 +604,7 @@ function update.auto_control(ExtChargeIdling)
             self.status_text = { "GENERATION MODE", "starting up" }
             log.info(util.c("FAC: GEN_RATE process mode initial ramp started (initial target is ", output, " mB/t)"))
         elseif self.waiting_on_ramp then
-            if all_units_ramped() then
+            if all_units_ramped() or reached_rate(self.sp.gen_rate_setpoint / self.charge_conversion) then
                 self.waiting_on_ramp = false
                 self.waiting_on_stable = true
 
