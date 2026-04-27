@@ -15,7 +15,6 @@ rps.MAX_DAMAGE_TEMPERATURE  = 1200  -- temp >= 1200K
 rps.MIN_COOLANT_FILL        = 0.10  -- fill < 10%
 rps.MAX_WASTE_FILL          = 0.95  -- fill > 95%
 rps.MAX_HEATED_COLLANT_FILL = 0.95  -- fill > 95%
-rps.NO_FUEL_FILL            = 0.0   -- fill <= 0%
 
 constants.RPS_LIMITS = rps
 

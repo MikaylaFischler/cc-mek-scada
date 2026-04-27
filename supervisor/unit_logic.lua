@@ -93,6 +93,7 @@ function logic.update_annunciator(self)
         self.plc_cache.rps_status = plc_db.rps_status
         self.plc_cache.damage = plc_db.mek_status.damage
         self.plc_cache.temp = plc_db.mek_status.temp
+        self.plc_cache.fuel = plc_db.mek_status.fuel_fill
         self.plc_cache.waste = plc_db.mek_status.waste_fill
 
         -- track damage
@@ -696,8 +697,6 @@ function logic.update_status_text(self)
                 cause = "excess waste"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.EX_HCOOLANT then
                 cause = "excess heated coolant"
-            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.NO_FUEL then
-                cause = "insufficient fuel"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.FAULT then
                 cause = "hardware fault"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.TIMEOUT then
@@ -787,7 +786,7 @@ function logic.handle_redstone(self)
     self.io_ctl.digital_write(IO.R_LOW_COOLANT, rps.low_cool)
     self.io_ctl.digital_write(IO.R_EXCESS_HC, rps.ex_hcool)
     self.io_ctl.digital_write(IO.R_EXCESS_WS, rps.ex_waste)
-    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, rps.no_fuel)
+    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, cache.fuel == 0) -- legacy, RPS trip removed
     self.io_ctl.digital_write(IO.R_PLC_FAULT, rps.fault)
     self.io_ctl.digital_write(IO.R_PLC_TIMEOUT, rps.timeout)
 

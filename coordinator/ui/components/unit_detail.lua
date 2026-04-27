@@ -212,22 +212,21 @@ local function init(parent, id)
     local rps_annunc = Div{parent=rps,width=31,height=10,x=2,y=1}
 
     local rps_trp = IndicatorLight{parent=rps_annunc,label="RPS Trip",colors=ind_red,flash=true,period=period.BLINK_250_MS}
-    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
-    local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=ind_yel}
-    local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=ind_yel}
-    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
-    local rps_nof = IndicatorLight{parent=rps_annunc,label="No Fuel",colors=ind_yel}
-    local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=ind_yel}
-    local rps_flt = IndicatorLight{parent=rps_annunc,label="PPM Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
     local rps_tmo = IndicatorLight{parent=rps_annunc,label="Connection Timeout",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
-    local rps_sfl = IndicatorLight{parent=rps_annunc,label="System Failure",colors=ind_red,flash=true,period=period.BLINK_500_MS}
+    local rps_flt = IndicatorLight{parent=rps_annunc,label="PLC Hardware Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local rps_sfl = IndicatorLight{parent=rps_annunc,label="Reactor System Fault",colors=ind_red,flash=true,period=period.BLINK_500_MS}
+    rps_annunc.line_break()
+    local rps_dmg = IndicatorLight{parent=rps_annunc,label="Damage Level High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local rps_tmp = IndicatorLight{parent=rps_annunc,label="Core Temperature High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
+    local rps_exw = IndicatorLight{parent=rps_annunc,label="Excess Waste",colors=ind_yel}
+    local rps_loc = IndicatorLight{parent=rps_annunc,label="Coolant Level Low Low",colors=ind_yel}
+    local rps_exh = IndicatorLight{parent=rps_annunc,label="Excess Heated Coolant",colors=ind_yel}
 
     rps_trp.register(u_ps, "rps_tripped", rps_trp.update)
     rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
     rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
     rps_exw.register(u_ps, "ex_waste", rps_exw.update)
     rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
-    rps_nof.register(u_ps, "no_fuel", rps_nof.update)
     rps_loc.register(u_ps, "low_cool", rps_loc.update)
     rps_flt.register(u_ps, "fault", rps_flt.update)
     rps_tmo.register(u_ps, "timeout", rps_tmo.update)

@@ -135,13 +135,12 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         rps.low_cool  = rps_status[5]
         rps.ex_waste  = rps_status[6]
         rps.ex_hcool  = rps_status[7]
-        rps.no_fuel   = rps_status[8]
-        rps.fault     = rps_status[9]
-        rps.timeout   = rps_status[10]
-        rps.manual    = rps_status[11]
-        rps.automatic = rps_status[12]
-        rps.sys_fail  = rps_status[13]
-        rps.force_dis = rps_status[14]
+        rps.fault     = rps_status[8]
+        rps.timeout   = rps_status[9]
+        rps.manual    = rps_status[10]
+        rps.automatic = rps_status[11]
+        rps.sys_fail  = rps_status[12]
+        rps.force_dis = rps_status[13]
     end
 
     -- copy in the reactor status
@@ -382,7 +381,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
             elseif pkt.type == RPLC_TYPE.RPS_STATUS then
                 -- RPS status packet received, copy data
-                if pkt.length == 14 then
+                if pkt.length == 13 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK

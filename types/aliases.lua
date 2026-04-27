@@ -90,7 +90,6 @@
 ---| "low_coolant"
 ---| "ex_waste"
 ---| "ex_heated_coolant"
----| "no_fuel"
 ---| "fault"
 ---| "timeout"
 ---| "manual"

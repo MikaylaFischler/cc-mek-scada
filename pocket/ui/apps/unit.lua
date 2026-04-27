@@ -250,7 +250,9 @@ local function new_view(root)
 
             local r_mscrm = IconIndicator{parent=rps_div,y=5,label="Manual SCRAM",states=red_ind_s}
             local r_ascrm = IconIndicator{parent=rps_div,label="Automatic SCRAM",states=red_ind_s}
+            rps_div.line_break()
             local rps_tmo = IconIndicator{parent=rps_div,label="Timeout",states=yel_ind_s}
+            rps_div.line_break()
             local rps_flt = IconIndicator{parent=rps_div,label="PPM Fault",states=yel_ind_s}
             local rps_sfl = IconIndicator{parent=rps_div,label="Not Formed",states=red_ind_s}
 
@@ -263,14 +265,12 @@ local function new_view(root)
             rps_div.line_break()
             local rps_dmg = IconIndicator{parent=rps_div,label="Reactor Damage Hi",states=red_ind_s}
             local rps_tmp = IconIndicator{parent=rps_div,label="Temp. Critical",states=red_ind_s}
-            local rps_nof = IconIndicator{parent=rps_div,label="Fuel Level Lo",states=yel_ind_s}
             local rps_exw = IconIndicator{parent=rps_div,label="Waste Level Hi",states=yel_ind_s}
             local rps_loc = IconIndicator{parent=rps_div,label="Coolant Lo Lo",states=yel_ind_s}
             local rps_exh = IconIndicator{parent=rps_div,label="Heated Coolant Hi",states=yel_ind_s}
 
             rps_dmg.register(u_ps, "high_dmg", rps_dmg.update)
             rps_tmp.register(u_ps, "high_temp", rps_tmp.update)
-            rps_nof.register(u_ps, "no_fuel", rps_nof.update)
             rps_exw.register(u_ps, "ex_waste", rps_exw.update)
             rps_loc.register(u_ps, "low_cool", rps_loc.update)
             rps_exh.register(u_ps, "ex_hcool", rps_exh.update)
