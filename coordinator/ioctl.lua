@@ -34,6 +34,8 @@ local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 local ioctl = {}
 
 local _ioctl = {
+    -- mekanism configuration
+    mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
     -- connection states for status evaluation
     wd_modem = true,
     wl_modem = true,
@@ -285,6 +287,22 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
     -- coordinator's process handle
     io.process = process.create_handle()
+end
+
+-- set relevant mekanism configuration fields (currently the Supervisor's MekanismWasteToPu and MekanismWasteToPo)
+---@param conf table
+---@return boolean valid received excpected tables
+function ioctl.set_mek_config(conf)
+    local valid = type(conf) == "table" and type(conf[1]) == "table" and type(conf[2]) == "table"
+
+    if valid then
+        _ioctl.mek.pu_ratio[1] = conf[1][1]
+        _ioctl.mek.pu_ratio[2] = conf[1][2]
+        _ioctl.mek.po_ratio[1] = conf[2][1]
+        _ioctl.mek.po_ratio[2] = conf[2][2]
+    end
+
+    return valid
 end
 
 --#region Front Panel PSIL
@@ -1316,40 +1334,37 @@ function ioctl.update_unit_statuses(statuses)
 
                 -- determine waste production for this unit, add to statistics
 
-                local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
-                local waste_rate = burn_rate / 10.0
+                local u_spent_rate
+                local u_pu_rate, u_po_rate, u_po_pl_rate, u_po_am_rate = 0, unit.sna_out_rate, 0, 0
 
-                local u_spent_rate = waste_rate
-                local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
-                local u_po_rate = unit.sna_out_rate
-                local u_po_pl_rate = 0
+                unit.unit_ps.publish("sna_in", util.trinary(unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
+
+                if unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                    u_po_am_rate = u_po_rate
+                    po_am_rate   = po_am_rate + u_po_am_rate
+
+                    u_spent_rate = 0
+                elseif unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                    u_po_pl_rate = u_po_rate
+                    po_pl_rate   = po_pl_rate + u_po_rate
+
+                    u_spent_rate = u_po_rate
+                else -- plutonium
+                    u_pu_rate    = (burn_rate * _ioctl.mek.pu_ratio[2]) / _ioctl.mek.pu_ratio[1]
+                    pu_rate      = pu_rate + u_pu_rate
+
+                    u_spent_rate = u_pu_rate
+                end
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
-
-                unit.unit_ps.publish("sna_in", util.trinary(is_pu, 0, burn_rate))
-
-                if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
-                    u_spent_rate = u_po_rate
-                    unit.unit_ps.publish("po_pl_rate", u_po_rate)
-                    unit.unit_ps.publish("po_am_rate", 0)
-                    u_po_pl_rate = u_po_rate
-                    po_pl_rate = po_pl_rate + u_po_rate
-                elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
-                    u_spent_rate = 0
-                    unit.unit_ps.publish("po_pl_rate", 0)
-                    unit.unit_ps.publish("po_am_rate", u_po_rate)
-                    po_am_rate = po_am_rate + u_po_rate
-                else
-                    unit.unit_ps.publish("po_pl_rate", 0)
-                    unit.unit_ps.publish("po_am_rate", 0)
-                end
+                unit.unit_ps.publish("po_pl_rate", u_po_pl_rate)
+                unit.unit_ps.publish("po_am_rate", u_po_am_rate)
 
                 unit.waste_stats = { u_pu_rate, u_po_rate, u_po_pl_rate }
 
                 unit.unit_ps.publish("ws_rate", u_spent_rate)
 
-                pu_rate = pu_rate + u_pu_rate
                 po_rate = po_rate + u_po_rate
                 spent_rate = spent_rate + u_spent_rate
             end

@@ -54,6 +54,8 @@ function supervisor.load_config()
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
 
     config.MekanismConfig = settings.get("MekanismConfig")
+    config.MekanismWasteToPu = settings.get("MekanismWasteToPu")
+    config.MekanismWasteToPo = settings.get("MekanismWasteToPo")
 
     config.WirelessModem = settings.get("WirelessModem")
     config.WiredModem = settings.get("WiredModem")
@@ -107,6 +109,16 @@ function supervisor.load_config()
         cfv.assert_type_num(config.MekanismConfig.turbineDisperserChemicalFlow)
         cfv.assert_type_num(config.MekanismConfig.turbineVentChemicalFlow)
         cfv.assert_type_num(config.MekanismConfig.turbineChemicalPerTank)
+    end
+
+    cfv.assert_type_table(config.MekanismWasteToPu)
+    cfv.assert_type_table(config.MekanismWasteToPo)
+
+    if type(config.MekanismWasteToPu) == "table" and type(config.MekanismWasteToPo) == "table" then
+        cfv.assert_type_int(config.MekanismWasteToPu[1])
+        cfv.assert_type_int(config.MekanismWasteToPu[2])
+        cfv.assert_type_int(config.MekanismWasteToPo[1])
+        cfv.assert_type_int(config.MekanismWasteToPo[2])
     end
 
     cfv.assert_type_bool(config.ExtChargeIdling)
@@ -344,7 +356,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                 log.info(util.c("CRD_ESTABLISH: [@", src_addr, "] CRD (", firmware_v, ") connected with session ID ", s_id, " on ", nic.phy_name()))
 
-                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf() })
+                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf(), { config.MekanismWasteToPu, config.MekanismWasteToPo } })
             else
                 if last_ack ~= ESTABLISH_ACK.COLLISION then
                     log.info("CRD_ESTABLISH: [@" .. src_addr .. "] denied new coordinator due to already being connected to another coordinator")

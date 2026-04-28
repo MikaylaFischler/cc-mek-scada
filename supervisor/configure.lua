@@ -83,6 +83,7 @@ local tool_ctl = {
 
     mek_profile = nil,     ---@type RadioButton
     custom_configs = {},   ---@type NumberField[]
+    waste_ratios = {},     ---@type NumberField[]
 
     gen_modem_list = function () end
 }
@@ -100,6 +101,8 @@ local tmp_cfg = {
     ExtChargeIdling = false,
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
+    MekanismWasteToPu = { 10, 1 },
+    MekanismWasteToPo = { 10, 1 },
     WirelessModem = true,
     WiredModem = false,     ---@type string|false
     PLC_Listen = 1,         ---@type LISTEN_MODE
@@ -143,6 +146,8 @@ local fields = {
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
+    { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },
+    { "MekanismWasteToPo", "Nuclear Waste to Polonium", { 10, 1 } },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PLC_Listen", "PLC Listen Mode", types.LISTEN_MODE.WIRELESS },

@@ -551,22 +551,28 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
                 end
             end
 
-            tool_ctl.en_fac_tanks.set_value(ini_cfg.FacilityTankMode > 0)
+            try_set(tool_ctl.en_fac_tanks, ini_cfg.FacilityTankMode > 0)
 
             for k, v in pairs(ini_cfg.MekanismConfig) do
-                tool_ctl.custom_configs[k].set_value(v)
+                try_set(tool_ctl.custom_configs[k], v)
             end
 
             for i = 1, #mekanism.profiles do
                 if ini_cfg.MekanismProfile == mekanism.profiles[i].name then
-                    tool_ctl.mek_profile.set_value(i)
+                    try_set(tool_ctl.mek_profile, i)
                     break
                 end
 
                 if i == #mekanism.profiles then
-                    tool_ctl.mek_profile.set_value(#mekanism.profiles + 1)  -- custom profile
+                    -- custom profile
+                    try_set(tool_ctl.mek_profile, #mekanism.profiles + 1)
                 end
             end
+
+            try_set(tool_ctl.waste_ratios[1], ini_cfg.MekanismWasteToPu[1])
+            try_set(tool_ctl.waste_ratios[2], ini_cfg.MekanismWasteToPu[2])
+            try_set(tool_ctl.waste_ratios[3], ini_cfg.MekanismWasteToPo[1])
+            try_set(tool_ctl.waste_ratios[4], ini_cfg.MekanismWasteToPo[2])
 
             tool_ctl.view_cfg.enable()
 
@@ -875,6 +881,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
                         val = val .. tri(val == "", "", "\n") .. util.sprintf(" \x07 %s = %s", k, value)
                     end
                 end
+            elseif f[1] == "MekanismWasteToPu" or f[1] == "MekanismWasteToPo" then
+                val = raw[1] .. ":" .. raw[2]
             elseif f[1] == "PLC_Listen" or f[1] == "RTU_Listen" or f[1] == "CRD_Listen" then
                 if raw == LISTEN_MODE.WIRELESS then val = "Wireless Only"
                 elseif raw == LISTEN_MODE.WIRED then val = "Wired Only"
