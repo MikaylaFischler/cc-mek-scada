@@ -676,15 +676,18 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
-                        if packet.length == 2 then
+                        if packet.length == 3 then
                             local est_ack = packet.data[1]
                             local sv_config = packet.data[2]
+                            local mek_config = packet.data[3]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
                                 -- reset to disconnected before validating
                                 ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if type(sv_config) == "table" and #sv_config == 2 then
+                                if not ioctl.set_mek_config(mek_config) then
+                                    log.debug("invalid mekanism configuration table received, establish failed")
+                                elseif type(sv_config) == "table" and #sv_config == 2 then
                                     -- get configuration
 
                                     ---@class facility_conf
