@@ -676,18 +676,15 @@ function coordinator.comms(version, backplane, sv_watchdog)
                         end
                     elseif packet.type == MGMT_TYPE.ESTABLISH then
                         -- connection with supervisor established
-                        if packet.length == 3 then
+                        if packet.length == 2 then
                             local est_ack = packet.data[1]
                             local sv_config = packet.data[2]
-                            local mek_config = packet.data[3]
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
                                 -- reset to disconnected before validating
                                 ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if not ioctl.set_mek_config(mek_config) then
-                                    log.debug("invalid mekanism configuration table received, establish failed")
-                                elseif type(sv_config) == "table" and #sv_config == 2 then
+                                if type(sv_config) == "table" and #sv_config == 3 then
                                     -- get configuration
 
                                     ---@class facility_conf
@@ -696,7 +693,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                         cooling = sv_config[2]    ---@type sv_cooling_conf
                                     }
 
-                                    if conf.num_units == config.UnitCount then
+                                    if not ioctl.set_mek_config(sv_config[3]) then
+                                        log.warning("invalid mekanism configuration table received, establish failed")
+                                    elseif conf.num_units == config.UnitCount then
                                         tx_nic = backplane.nics[packet.scada_frame.interface()]
 
                                         log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))

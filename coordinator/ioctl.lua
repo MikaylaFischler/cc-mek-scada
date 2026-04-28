@@ -1340,17 +1340,20 @@ function ioctl.update_unit_statuses(statuses)
                 unit.unit_ps.publish("sna_in", util.trinary(unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
 
                 if unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
-                    u_spent_rate = 0
                     u_am_rate    = u_po_rate
                     po_am_rate   = po_am_rate + u_am_rate
+
+                    u_spent_rate = 0
                 elseif unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
-                    u_spent_rate = u_po_rate
                     u_po_pl_rate = u_po_rate
                     po_pl_rate   = po_pl_rate + u_po_rate
+
+                    u_spent_rate = u_po_rate
                 else -- plutonium
-                    u_spent_rate = u_pu_rate
                     u_pu_rate    = (burn_rate * _ioctl.mek.pu_ratio[2]) / _ioctl.mek.pu_ratio[1]
                     pu_rate      = pu_rate + u_pu_rate
+
+                    u_spent_rate = u_pu_rate
                 end
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
