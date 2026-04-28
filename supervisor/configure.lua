@@ -83,7 +83,7 @@ local tool_ctl = {
 
     mek_profile = nil,     ---@type RadioButton
     custom_configs = {},   ---@type NumberField[]
-    waste_products = {},   ---@type NumberField[]
+    waste_ratios = {},     ---@type NumberField[]
 
     gen_modem_list = function () end
 }

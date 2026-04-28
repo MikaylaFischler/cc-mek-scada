@@ -569,10 +569,10 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
                 end
             end
 
-            try_set(tool_ctl.waste_products[1], ini_cfg.MekanismWasteToPu[1])
-            try_set(tool_ctl.waste_products[2], ini_cfg.MekanismWasteToPu[2])
-            try_set(tool_ctl.waste_products[3], ini_cfg.MekanismWasteToPo[1])
-            try_set(tool_ctl.waste_products[4], ini_cfg.MekanismWasteToPo[2])
+            try_set(tool_ctl.waste_ratios[1], ini_cfg.MekanismWasteToPu[1])
+            try_set(tool_ctl.waste_ratios[2], ini_cfg.MekanismWasteToPu[2])
+            try_set(tool_ctl.waste_ratios[3], ini_cfg.MekanismWasteToPo[1])
+            try_set(tool_ctl.waste_ratios[4], ini_cfg.MekanismWasteToPo[2])
 
             tool_ctl.view_cfg.enable()
 

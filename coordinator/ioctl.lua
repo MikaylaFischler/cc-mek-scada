@@ -1335,13 +1335,13 @@ function ioctl.update_unit_statuses(statuses)
                 -- determine waste production for this unit, add to statistics
 
                 local u_spent_rate
-                local u_pu_rate, u_po_rate, u_po_pl_rate, u_am_rate = 0, unit.sna_out_rate, 0, 0
+                local u_pu_rate, u_po_rate, u_po_pl_rate, u_po_am_rate = 0, unit.sna_out_rate, 0, 0
 
                 unit.unit_ps.publish("sna_in", util.trinary(unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
 
                 if unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
-                    u_am_rate    = u_po_rate
-                    po_am_rate   = po_am_rate + u_am_rate
+                    u_po_am_rate = u_po_rate
+                    po_am_rate   = po_am_rate + u_po_am_rate
 
                     u_spent_rate = 0
                 elseif unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
@@ -1359,7 +1359,7 @@ function ioctl.update_unit_statuses(statuses)
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
                 unit.unit_ps.publish("po_pl_rate", u_po_pl_rate)
-                unit.unit_ps.publish("po_am_rate", u_am_rate)
+                unit.unit_ps.publish("po_am_rate", u_po_am_rate)
 
                 unit.waste_stats = { u_pu_rate, u_po_rate, u_po_pl_rate }
 

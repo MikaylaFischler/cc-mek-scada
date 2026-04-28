@@ -160,22 +160,22 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
     TextBox{parent=mek_c_3,y=1,height=3,text="Some modpacks also change the nuclear waste to product ratios. These are usually 10:1, where 10mB waste makes 1mB plutonium or polonium."}
 
     TextBox{parent=mek_c_3,y=5,text="Nuclear Waste to Plutonium     :"}
-    tool_ctl.waste_products[1] = NumberField{parent=mek_c_3,y=5,x=28,width=4,default=ini_cfg.MekanismWasteToPu[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
-    tool_ctl.waste_products[2] = NumberField{parent=mek_c_3,y=5,x=33,width=4,default=ini_cfg.MekanismWasteToPu[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
+    tool_ctl.waste_ratios[1] = NumberField{parent=mek_c_3,y=5,x=28,width=4,default=ini_cfg.MekanismWasteToPu[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
+    tool_ctl.waste_ratios[2] = NumberField{parent=mek_c_3,y=5,x=33,width=4,default=ini_cfg.MekanismWasteToPu[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
     TextBox{parent=mek_c_3,x=38,y=5,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=mek_c_3,y=6,text="Nuclear Waste to Polonium      :"}
-    tool_ctl.waste_products[3] = NumberField{parent=mek_c_3,y=6,x=28,width=4,default=ini_cfg.MekanismWasteToPo[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
-    tool_ctl.waste_products[4] = NumberField{parent=mek_c_3,y=6,x=33,width=4,default=ini_cfg.MekanismWasteToPo[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
+    tool_ctl.waste_ratios[3] = NumberField{parent=mek_c_3,y=6,x=28,width=4,default=ini_cfg.MekanismWasteToPo[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
+    tool_ctl.waste_ratios[4] = NumberField{parent=mek_c_3,y=6,x=33,width=4,default=ini_cfg.MekanismWasteToPo[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
     TextBox{parent=mek_c_3,x=38,y=6,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=mek_c_3,y=8,height=2,text="Tip: the easist way to check these are their receipes in JEI.",fg_bg=g_lg_fg_bg}
 
     local function submit_waste_ratios()
-        tmp_cfg.MekanismWasteToPu[1] = tool_ctl.waste_products[1].get_value()
-        tmp_cfg.MekanismWasteToPu[2] = tool_ctl.waste_products[2].get_value()
-        tmp_cfg.MekanismWasteToPo[1] = tool_ctl.waste_products[3].get_value()
-        tmp_cfg.MekanismWasteToPo[2] = tool_ctl.waste_products[4].get_value()
+        tmp_cfg.MekanismWasteToPu[1] = tool_ctl.waste_ratios[1].get_value()
+        tmp_cfg.MekanismWasteToPu[2] = tool_ctl.waste_ratios[2].get_value()
+        tmp_cfg.MekanismWasteToPo[1] = tool_ctl.waste_ratios[3].get_value()
+        tmp_cfg.MekanismWasteToPo[2] = tool_ctl.waste_ratios[4].get_value()
 
         main_pane.set_value(4)
     end
