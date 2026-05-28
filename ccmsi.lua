@@ -1,7 +1,7 @@
 --[[
 CC-MEK-SCADA Installer Utility
 
-Copyright (c) 2023 - 2024 Mikayla Fischler
+Copyright (c) 2023 - 2026 Mikayla Fischler
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -15,16 +15,26 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.21"
+local CCMSI_VERSION = "v1.22"
 
-local install_dir = "/.install-cache"
-local manifest_path = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
-local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
+local INSTALL_DIR = "/.install-cache"
+local MANIFEST_PATH = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
+local REPO_PATH = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
 
----@diagnostic disable-next-line: undefined-global
-local _is_pkt_env = pocket -- luacheck: ignore pocket
+local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
 local function pln(msg) print(tostring(msg)) end
+
+local function tsc(c) term.setTextColor(c) end
+
+local function red() tsc(colors.red) end
+local function orange() tsc(colors.orange) end
+local function yellow() tsc(colors.yellow) end
+local function green() tsc(colors.green) end
+local function cyan() tsc(colors.cyan) end
+local function blue() tsc(colors.blue) end
+local function white() tsc(colors.white) end
+local function lgray() tsc(colors.lightGray) end
 
 -- stripped down & modified copy of log.dmesg
 local function print(msg)
@@ -33,8 +43,8 @@ local function print(msg)
 	local cur_x, cur_y = term.getCursorPos()
 	local out_w, out_h = term.getSize()
 
-	-- jump to next line if needed
 	if cur_x == out_w then
+		-- jump to next line
 		cur_x = 1
 		if cur_y == out_h then
 			term.scroll(1)
@@ -44,7 +54,6 @@ local function print(msg)
 		end
 	end
 
-	-- wrap
 	local lines, remaining, s_start, s_end, ln = {}, true, 1, out_w + 1 - cur_x, 1
 	while remaining do
 		local line = string.sub(msg, s_start, s_end)
@@ -59,7 +68,6 @@ local function print(msg)
 		end
 	end
 
-	-- print
 	for i = 1, #lines do
 		cur_x, cur_y = term.getCursorPos()
 		if i > 1 and cur_x > 1 then
@@ -74,16 +82,7 @@ end
 
 local opts = { ... }
 local mode, app, target
-local install_manifest = manifest_path.."main/install_manifest.json"
-
-local function red() term.setTextColor(colors.red) end
-local function orange() term.setTextColor(colors.orange) end
-local function yellow() term.setTextColor(colors.yellow) end
-local function green() term.setTextColor(colors.green) end
-local function cyan() term.setTextColor(colors.cyan) end
-local function blue() term.setTextColor(colors.blue) end
-local function white() term.setTextColor(colors.white) end
-local function lgray() term.setTextColor(colors.lightGray) end
+local install_manifest = MANIFEST_PATH.."main/install_manifest.json"
 
 -- get command line option in list
 local function get_opt(opt, options)
@@ -91,23 +90,21 @@ local function get_opt(opt, options)
 	return nil
 end
 
--- wait for any key to be pressed
----@diagnostic disable-next-line: undefined-field
+-- wait for any key press
 local function any_key() os.pullEvent("key_up") end
 
 -- ask the user yes or no
 local function ask_y_n(question, default)
 	print(question)
 	if default == true then print(" (Y/n)? ") else print(" (y/N)? ") end
-	local response = read();any_key()
-	if response == "" then return default
-	elseif response == "Y" or response == "y" then return true
-	elseif response == "N" or response == "n" then return false
+	local r = read();any_key()
+	if r == "" then return default
+	elseif r == "Y" or r == "y" then return true
+	elseif r == "N" or r == "n" then return false
 	else return nil end
 end
 
--- print out a white + blue text message
-local function pkg_message(message, package) white();print(message.." ");blue();pln(package);white() end
+local function pkg_msg(m, p) white();print(m.." ");blue();pln(p);white() end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
@@ -115,22 +112,20 @@ local function show_pkg_change(name, v)
 		if v.v_local ~= v.v_remote then
 			print("["..name.."] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();pln(v.v_remote);white()
 		elseif mode == "install" then
-			pkg_message("["..name.."] reinstalling", v.v_local)
+			pkg_msg("["..name.."] reinstalling", v.v_local)
 		end
-	else pkg_message("["..name.."] new install of", v.v_remote) end
+	else pkg_msg("["..name.."] new install of", v.v_remote) end
 	return v.v_local ~= v.v_remote
 end
 
 -- read the local manifest file
 local function read_local_manifest()
-	local local_ok = false
-	local local_manifest = {}
-	local imfile = fs.open("install_manifest.json", "r")
+	local ok, manifest, imfile = false, {}, fs.open("install_manifest.json", "r")
 	if imfile ~= nil then
-		local_ok, local_manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
+		ok, manifest = pcall(function () return textutils.unserializeJSON(imfile.readAll()) end)
 		imfile.close()
 	end
-	return local_ok, local_manifest
+	return ok, manifest
 end
 
 -- get the manifest from GitHub
@@ -173,7 +168,7 @@ end
 local function http_get_file(file, w_path)
 	local dl, err
 	for i = 1, 3 do
-		dl, err = http.get(repo_path..file)
+		dl, err = http.get(REPO_PATH..file)
 		if dl then
 			if i > 1 then green();pln("success!");lgray() end
 			local f = fs.open(w_path..file, "w")
@@ -191,11 +186,8 @@ local function http_get_file(file, w_path)
 			red();pln("HTTP Error: "..err)
 			if i < 3 then
 				lgray();print("> retrying...")
-				---@diagnostic disable-next-line: undefined-field
 				os.sleep(i/3.0)
-			else
-				return 1
-			end
+			else return 1 end
 		end
 	end
 	return 0
@@ -219,7 +211,6 @@ local function gen_tree(manifest, log)
 
 	for i = 1, #list do
 		local split = {}
----@diagnostic disable-next-line: discard-returns
 		string.gsub(list[i], "([^/]+)", function(c) split[#split + 1] = c end)
 		if #split == 1 then table.insert(tree, list[i])
 		else table.insert(tree, _tree_add(tree, split)) end
@@ -279,49 +270,30 @@ end
 
 -- get and validate command line options
 
-if _is_pkt_env then pln("- SCADA Installer "..CCMSI_VERSION.." -")
+if IS_PKT then pln("- SCADA Installer "..CCMSI_VERSION.." -")
 else pln("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
 
 if #opts == 0 or opts[1] == "help" then
 	pln("usage: ccmsi <mode> <app> <branch>")
-	if _is_pkt_env then
-		yellow();pln("<mode>");lgray()
-		pln(" check - check latest")
-		pln(" install - fresh install")
-		pln(" update - update app")
-		pln(" uninstall - remove app")
-		yellow();pln("<app>");lgray()
-		pln(" reactor-plc")
-		pln(" rtu")
-		pln(" supervisor")
-		pln(" coordinator")
-		pln(" pocket")
-		pln(" installer (update only)")
-		yellow();pln("<branch>");lgray();
-		pln(" main (default) | devel");white()
+	if IS_PKT then
+		yellow();pln("<mode>")
+		lgray();pln(" check - check latest\n install - fresh install\n update - update app\n uninstall - remove app")
+		yellow();pln("<app>")
+		lgray();pln(" reactor-plc\n rtu\n supervisor\n coordinator\n pocket\n installer (update only)")
+		yellow();pln("<branch>")
+		lgray();pln(" main (default) | devel");white()
 	else
 		pln("<mode>")
-		lgray()
-		pln(" check       - check latest versions available")
-		yellow()
-		pln("               ccmsi check <branch> for target")
-		lgray()
-		pln(" install     - fresh install")
-		pln(" update      - update files")
-		pln(" uninstall   - delete files INCLUDING config/logs")
-		white();pln("<app>");lgray()
-		pln(" reactor-plc - reactor PLC firmware")
-		pln(" rtu         - RTU firmware")
-		pln(" supervisor  - supervisor server application")
-		pln(" coordinator - coordinator application")
-		pln(" pocket      - pocket application")
-		pln(" installer   - ccmsi installer (update only)")
+		lgray();pln(" check       - check latest versions available")
+		yellow();pln("               ccmsi check <branch> for target")
+		lgray();pln(" install     - fresh install\n update      - update files\n uninstall   - delete files INCLUDING config/logs")
+		white();pln("<app>")
+		lgray();pln(" reactor-plc - reactor PLC firmware\n rtu         - RTU firmware\n supervisor  - supervisor server application\n coordinator - coordinator application\n pocket      - pocket application\n installer   - ccmsi installer (update only)")
 		white();pln("<branch>")
 		lgray();pln(" main (default) | devel");white()
 	end
 	return
 else
-
 	mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
 	if mode == nil then
 		red();pln("Unrecognized mode.");white()
@@ -359,8 +331,8 @@ else
 	end
 
 	-- set paths
-	install_manifest = manifest_path..target.."/install_manifest.json"
-	repo_path = repo_path..target.."/"
+	install_manifest = MANIFEST_PATH..target.."/install_manifest.json"
+	REPO_PATH = REPO_PATH..target.."/"
 end
 
 -- run selected mode
@@ -378,23 +350,23 @@ if mode == "check" then
 
 	-- list all versions
 	for key, value in pairs(manifest.versions) do
-		term.setTextColor(colors.purple)
+		tsc(colors.purple)
 		local tag = string.format("%-14s", "["..key.."]")
-		if not _is_pkt_env then print(tag) end
+		if not IS_PKT then print(tag) end
 		if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
-			if _is_pkt_env then pln(tag) end
+			if IS_PKT then pln(tag) end
 			blue();print(local_manifest.versions[key])
 			if value ~= local_manifest.versions[key] then
 				white();print(" (")
 				cyan();print(value);white();pln(" available)")
 			else green();pln(" (up to date)") end
-		elseif not _is_pkt_env then
+		elseif not IS_PKT then
 			lgray();print("not installed");white();print(" (latest ")
 			cyan();print(value);white();pln(")")
 		end
 	end
 
-	if manifest.versions.installer ~= local_manifest.versions.installer and not _is_pkt_env then
+	if manifest.versions.installer ~= local_manifest.versions.installer and not IS_PKT then
 		yellow();pln("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
 	end
 elseif mode == "install" or mode == "update" then
@@ -438,7 +410,7 @@ elseif mode == "install" or mode == "update" then
 		if not update_installer then yellow();pln("A different version of the installer is available, it is recommended to update to it.");white() end
 		if update_installer or ask_y_n("Would you like to update now", true) then
 			lgray();pln("GET ccmsi.lua")
-			local dl, err = http.get(repo_path.."ccmsi.lua")
+			local dl, err = http.get(REPO_PATH.."ccmsi.lua")
 
 			if dl == nil then
 				red();pln("HTTP Error: "..err)
@@ -579,7 +551,6 @@ elseif mode == "install" or mode == "update" then
 	-- single file update routine: go through all files and replace one by one
 	---@param attempt integer recursive attempt #
 	local function sf_install(attempt)
----@diagnostic disable-next-line: undefined-field
 		if attempt > 1 then os.sleep(2.0) end
 
 		local abort_attempt = false
@@ -587,9 +558,9 @@ elseif mode == "install" or mode == "update" then
 
 		for _, dep in pairs(deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_message("skipping install of unchanged package", dep)
+				pkg_msg("skipping install of unchanged package", dep)
 			else
-				pkg_message("installing package", dep)
+				pkg_msg("installing package", dep)
 				lgray()
 
 				-- beginning on the second try, delete the directory before starting
@@ -628,20 +599,20 @@ elseif mode == "install" or mode == "update" then
 	-- handle update/install
 	if single_file_mode then sf_install(1)
 	else
-		if fs.exists(install_dir) then fs.delete(install_dir);fs.makeDir(install_dir) end
+		if fs.exists(INSTALL_DIR) then fs.delete(INSTALL_DIR);fs.makeDir(INSTALL_DIR) end
 
 		-- download all dependencies
 		for _, dep in pairs(deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_message("skipping download of unchanged package", dep)
+				pkg_msg("skipping download of unchanged package", dep)
 			else
-				pkg_message("downloading package", dep)
+				pkg_msg("downloading package", dep)
 				lgray()
 
 				local files = file_list[dep]
 				for _, file in pairs(files) do
 					pln("GET "..file)
-					local dl_stat = http_get_file(file, install_dir.."/")
+					local dl_stat = http_get_file(file, INSTALL_DIR.."/")
 					success = dl_stat == 0
 					if dl_stat == 1 then
 						red();pln("failed to download "..file)
@@ -663,14 +634,14 @@ elseif mode == "install" or mode == "update" then
 		if success then
 			for _, dep in pairs(deps) do
 				if mode == "update" and unchanged(dep) then
-					pkg_message("skipping install of unchanged package", dep)
+					pkg_msg("skipping install of unchanged package", dep)
 				else
-					pkg_message("installing package", dep)
+					pkg_msg("installing package", dep)
 					lgray()
 
 					local files = file_list[dep]
 					for _, file in pairs(files) do
-						local temp_file = install_dir.."/"..file
+						local temp_file = INSTALL_DIR.."/"..file
 						if fs.exists(file) then fs.delete(file) end
 						fs.move(temp_file, file)
 					end
@@ -678,7 +649,7 @@ elseif mode == "install" or mode == "update" then
 			end
 		end
 
-		fs.delete(install_dir)
+		fs.delete(INSTALL_DIR)
 	end
 
 	if success then
