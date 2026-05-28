@@ -24,7 +24,7 @@ local repo_path = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada
 ---@diagnostic disable-next-line: undefined-global
 local _is_pkt_env = pocket -- luacheck: ignore pocket
 
-local function println(msg) print(tostring(msg)) end
+local function pln(msg) print(tostring(msg)) end
 
 -- stripped down & modified copy of log.dmesg
 local function print(msg)
@@ -107,13 +107,13 @@ local function ask_y_n(question, default)
 end
 
 -- print out a white + blue text message
-local function pkg_message(message, package) white();print(message.." ");blue();println(package);white() end
+local function pkg_message(message, package) white();print(message.." ");blue();pln(package);white() end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
 	if v.v_local ~= nil then
 		if v.v_local ~= v.v_remote then
-			print("["..name.."] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();println(v.v_remote);white()
+			print("["..name.."] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();pln(v.v_remote);white()
 		elseif mode == "install" then
 			pkg_message("["..name.."] reinstalling", v.v_local)
 		end
@@ -137,13 +137,13 @@ end
 local function get_remote_manifest()
 	local response, error = http.get(install_manifest)
 	if response == nil then
-		orange();println("Failed to get installation manifest from GitHub, cannot update or install.")
-		red();println("HTTP error: "..error);white()
+		orange();pln("Failed to get installation manifest from GitHub, cannot update or install.")
+		red();pln("HTTP error: "..error);white()
 		return false, {}
 	end
 
 	local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
-	if not ok then red();println("error parsing remote installation manifest");white() end
+	if not ok then red();pln("error parsing remote installation manifest");white() end
 
 	return ok, manifest
 end
@@ -175,20 +175,20 @@ local function http_get_file(file, w_path)
 	for i = 1, 3 do
 		dl, err = http.get(repo_path..file)
 		if dl then
-			if i > 1 then green();println("success!");lgray() end
+			if i > 1 then green();pln("success!");lgray() end
 			local f = fs.open(w_path..file, "w")
 			if not f then return 2 end
 			local ok, msg = pcall(function() f.write(dl.readAll()) end)
 			f.close()
 			if not ok then
 				if string.find(msg or "", "Out of space") ~= nil then
-					red();println("[out of space]");lgray()
+					red();pln("[out of space]");lgray()
 					return 3
 				else return 2 end
 			end
 			break
 		else
-			red();println("HTTP Error: "..err)
+			red();pln("HTTP Error: "..err)
 			if i < 3 then
 				lgray();print("> retrying...")
 				---@diagnostic disable-next-line: undefined-field
@@ -240,10 +240,10 @@ local function _clean_dir(dir, tree)
 		local path = dir.."/"..val
 		if fs.isDir(path) then
 			_clean_dir(path, tree[val])
-			if #fs.list(path) == 0 then fs.delete(path);println("deleted "..path) end
+			if #fs.list(path) == 0 then fs.delete(path);pln("deleted "..path) end
 		elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@todo remove config.lua on full release
 			fs.delete(path)
-			println("deleted "..path)
+			pln("deleted "..path)
 		end
 	end
 end
@@ -264,13 +264,13 @@ local function clean(manifest)
 	local ls = fs.list("/")
 	for _, val in pairs(ls) do
 		if fs.isDriveRoot(val) then
-			yellow();println("skipped mount '"..val.."'")
+			yellow();pln("skipped mount '"..val.."'")
 		elseif fs.isDir(val) then
 			if tree[val] ~= nil then lgray();_clean_dir("/"..val, tree[val])
 			else white(); if ask_y_n("delete the unused directory '"..val.."'") then lgray();_clean_dir("/"..val) end end
-			if #fs.list(val) == 0 then fs.delete(val);lgray();println("deleted empty directory '"..val.."'") end
+			if #fs.list(val) == 0 then fs.delete(val);lgray();pln("deleted empty directory '"..val.."'") end
 		elseif not _in_array(val, tree) and (string.find(val, ".settings") == nil) then
-			white();if ask_y_n("delete the unused file '"..val.."'") then fs.delete(val);lgray();println("deleted "..val) end
+			white();if ask_y_n("delete the unused file '"..val.."'") then fs.delete(val);lgray();pln("deleted "..val) end
 		end
 	end
 
@@ -279,52 +279,52 @@ end
 
 -- get and validate command line options
 
-if _is_pkt_env then println("- SCADA Installer "..CCMSI_VERSION.." -")
-else println("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
+if _is_pkt_env then pln("- SCADA Installer "..CCMSI_VERSION.." -")
+else pln("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
 
 if #opts == 0 or opts[1] == "help" then
-	println("usage: ccmsi <mode> <app> <branch>")
+	pln("usage: ccmsi <mode> <app> <branch>")
 	if _is_pkt_env then
-		yellow();println("<mode>");lgray()
-		println(" check - check latest")
-		println(" install - fresh install")
-		println(" update - update app")
-		println(" uninstall - remove app")
-		yellow();println("<app>");lgray()
-		println(" reactor-plc")
-		println(" rtu")
-		println(" supervisor")
-		println(" coordinator")
-		println(" pocket")
-		println(" installer (update only)")
-		yellow();println("<branch>");lgray();
-		println(" main (default) | devel");white()
+		yellow();pln("<mode>");lgray()
+		pln(" check - check latest")
+		pln(" install - fresh install")
+		pln(" update - update app")
+		pln(" uninstall - remove app")
+		yellow();pln("<app>");lgray()
+		pln(" reactor-plc")
+		pln(" rtu")
+		pln(" supervisor")
+		pln(" coordinator")
+		pln(" pocket")
+		pln(" installer (update only)")
+		yellow();pln("<branch>");lgray();
+		pln(" main (default) | devel");white()
 	else
-		println("<mode>")
+		pln("<mode>")
 		lgray()
-		println(" check       - check latest versions available")
+		pln(" check       - check latest versions available")
 		yellow()
-		println("               ccmsi check <branch> for target")
+		pln("               ccmsi check <branch> for target")
 		lgray()
-		println(" install     - fresh install")
-		println(" update      - update files")
-		println(" uninstall   - delete files INCLUDING config/logs")
-		white();println("<app>");lgray()
-		println(" reactor-plc - reactor PLC firmware")
-		println(" rtu         - RTU firmware")
-		println(" supervisor  - supervisor server application")
-		println(" coordinator - coordinator application")
-		println(" pocket      - pocket application")
-		println(" installer   - ccmsi installer (update only)")
-		white();println("<branch>")
-		lgray();println(" main (default) | devel");white()
+		pln(" install     - fresh install")
+		pln(" update      - update files")
+		pln(" uninstall   - delete files INCLUDING config/logs")
+		white();pln("<app>");lgray()
+		pln(" reactor-plc - reactor PLC firmware")
+		pln(" rtu         - RTU firmware")
+		pln(" supervisor  - supervisor server application")
+		pln(" coordinator - coordinator application")
+		pln(" pocket      - pocket application")
+		pln(" installer   - ccmsi installer (update only)")
+		white();pln("<branch>")
+		lgray();pln(" main (default) | devel");white()
 	end
 	return
 else
 
 	mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
 	if mode == nil then
-		red();println("Unrecognized mode.");white()
+		red();pln("Unrecognized mode.");white()
 		return
 	end
 
@@ -342,19 +342,19 @@ else
 	end
 
 	if app == nil and mode ~= "check" then
-		red();println("Unrecognized application.");white()
+		red();pln("Unrecognized application.");white()
 		return
 	elseif mode == "check" then
 		next_opt = 2
 	elseif app == "installer" and mode ~= "update" then
-		red();println("Installer app only supports 'update' option.");white()
+		red();pln("Installer app only supports 'update' option.");white()
 		return
 	end
 
 	-- determine target
 	target = opts[next_opt]
 	if (target ~= "main") and (target ~= "devel") then
-		if (target and target ~= "") then yellow();println("Unknown target, defaulting to 'main'");white() end
+		if (target and target ~= "") then yellow();pln("Unknown target, defaulting to 'main'");white() end
 		target = "main"
 	end
 
@@ -370,7 +370,7 @@ if mode == "check" then
 
 	local local_ok, local_manifest = read_local_manifest()
 	if not local_ok then
-		yellow();println("failed to load local installation information");white()
+		yellow();pln("failed to load local installation information");white()
 		local_manifest = { versions = { installer = CCMSI_VERSION } }
 	else
 		local_manifest.versions.installer = CCMSI_VERSION
@@ -382,20 +382,20 @@ if mode == "check" then
 		local tag = string.format("%-14s", "["..key.."]")
 		if not _is_pkt_env then print(tag) end
 		if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
-			if _is_pkt_env then println(tag) end
+			if _is_pkt_env then pln(tag) end
 			blue();print(local_manifest.versions[key])
 			if value ~= local_manifest.versions[key] then
 				white();print(" (")
-				cyan();print(value);white();println(" available)")
-			else green();println(" (up to date)") end
+				cyan();print(value);white();pln(" available)")
+			else green();pln(" (up to date)") end
 		elseif not _is_pkt_env then
 			lgray();print("not installed");white();print(" (latest ")
-			cyan();print(value);white();println(")")
+			cyan();print(value);white();pln(")")
 		end
 	end
 
 	if manifest.versions.installer ~= local_manifest.versions.installer and not _is_pkt_env then
-		yellow();println("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
+		yellow();pln("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
 	end
 elseif mode == "install" or mode == "update" then
 	local ok, r_manifest, l_manifest
@@ -417,7 +417,7 @@ elseif mode == "install" or mode == "update" then
 	ok, l_manifest = read_local_manifest()
 	if mode == "update" and not update_installer then
 		if not ok then
-			red();println("Failed to load local installation information, cannot update.");white()
+			red();pln("Failed to load local installation information, cannot update.");white()
 			return
 		else
 			ver.boot.v_local = l_manifest.versions.bootloader
@@ -428,32 +428,32 @@ elseif mode == "install" or mode == "update" then
 			ver.lockbox.v_local = l_manifest.versions.lockbox
 
 			if l_manifest.versions[app] == nil then
-				red();println("Another application is already installed, please uninstall it before installing a new application.");white()
+				red();pln("Another application is already installed, please uninstall it before installing a new application.");white()
 				return
 			end
 		end
 	end
 
 	if r_manifest.versions.installer ~= CCMSI_VERSION then
-		if not update_installer then yellow();println("A different version of the installer is available, it is recommended to update to it.");white() end
+		if not update_installer then yellow();pln("A different version of the installer is available, it is recommended to update to it.");white() end
 		if update_installer or ask_y_n("Would you like to update now", true) then
-			lgray();println("GET ccmsi.lua")
+			lgray();pln("GET ccmsi.lua")
 			local dl, err = http.get(repo_path.."ccmsi.lua")
 
 			if dl == nil then
-				red();println("HTTP Error: "..err)
-				println("Installer download failed.");white()
+				red();pln("HTTP Error: "..err)
+				pln("Installer download failed.");white()
 			else
 				local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
 				handle.write(dl.readAll())
 				handle.close()
-				green();println("Installer updated successfully.");white()
+				green();pln("Installer updated successfully.");white()
 			end
 
 			return
 		end
 	elseif update_installer then
-		green();println("Installer already up-to-date.");white()
+		green();pln("Installer already up-to-date.");white()
 		return
 	end
 
@@ -466,13 +466,13 @@ elseif mode == "install" or mode == "update" then
 
 	green()
 	if mode == "install" then print("Installing ") else print("Updating ") end
-	println(app.." files...");white()
+	pln(app.." files...");white()
 
 	ver.boot.changed = show_pkg_change("bootldr", ver.boot)
 	ver.common.changed = show_pkg_change("common", ver.common)
 	ver.comms.changed = show_pkg_change("comms", ver.comms)
 	if ver.comms.changed and ver.comms.v_local ~= nil then
-		print("[comms] ");yellow();println("other devices on the network will require an update");white()
+		print("[comms] ");yellow();pln("other devices on the network will require an update");white()
 	end
 	ver.app.changed = show_pkg_change(app, ver.app)
 	ver.graphics.changed = show_pkg_change("graphics", ver.graphics)
@@ -508,7 +508,7 @@ elseif mode == "install" or mode == "update" then
 	end
 
 	if mode == "update" and not any_change then
-		yellow();println("Nothing to do, everything is already up-to-date!");white()
+		yellow();pln("Nothing to do, everything is already up-to-date!");white()
 		return
 	end
 
@@ -539,20 +539,20 @@ elseif mode == "install" or mode == "update" then
 	local function handle_dl_fail(dl_stat, file, attempt, sf_install)
 		red()
 		if dl_stat == 1 then
-			println("failed to download "..file)
+			pln("failed to download "..file)
 		elseif dl_stat > 1 then
-			if dl_stat == 2 then println("filesystem error with "..file) else println("no space for "..file) end
+			if dl_stat == 2 then pln("filesystem error with "..file) else pln("no space for "..file) end
 			if attempt == 1 then
-				orange();println("re-attempting operation...");white()
+				orange();pln("re-attempting operation...");white()
 				sf_install(2)
 			elseif attempt == 2 then
 				yellow()
-				if dl_stat == 2 then println("There was an error writing to a file.") else println("Insufficient space available.") end
+				if dl_stat == 2 then pln("There was an error writing to a file.") else pln("Insufficient space available.") end
 				lgray()
 				if dl_stat == 2 then
-					println("This may be due to insufficent space available or file permission issues. The installer can now attempt to delete files not used by the SCADA system.")
+					pln("This may be due to insufficent space available or file permission issues. The installer can now attempt to delete files not used by the SCADA system.")
 				else
-					println("The installer can now attempt to delete files not used by the SCADA system.")
+					pln("The installer can now attempt to delete files not used by the SCADA system.")
 				end
 				white()
 				if not ask_y_n("Continue", false) then
@@ -563,12 +563,12 @@ elseif mode == "install" or mode == "update" then
 				sf_install(3)
 			elseif attempt == 3 then
 				yellow()
-				if dl_stat == 2 then println("There again was an error writing to a file.") else println("Insufficient space available.") end
+				if dl_stat == 2 then pln("There again was an error writing to a file.") else pln("Insufficient space available.") end
 				lgray()
 				if dl_stat == 2 then
-					println("This may be due to insufficent space available or file permission issues. Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
+					pln("This may be due to insufficent space available or file permission issues. Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
 				else
-					println("Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
+					pln("Please delete any unused files you have on this computer then try again. Do not delete the "..app..".settings file unless you want to re-configure.")
 				end
 				white()
 				success = false
@@ -598,19 +598,19 @@ elseif mode == "install" or mode == "update" then
 					elseif dep == "common" then
 						if fs.exists("/scada-common") then
 							fs.delete("/scada-common")
-							println("deleted /scada-common")
+							pln("deleted /scada-common")
 						end
 					else
 						if fs.exists("/"..dep) then
 							fs.delete("/"..dep)
-							println("deleted /"..dep)
+							pln("deleted /"..dep)
 						end
 					end
 				end
 
 				local files = file_list[dep]
 				for _, file in pairs(files) do
-					println("GET "..file)
+					pln("GET "..file)
 					mitigate_case(file)
 					local dl_stat = http_get_file(file, "/")
 					if dl_stat ~= 0 then
@@ -640,18 +640,18 @@ elseif mode == "install" or mode == "update" then
 
 				local files = file_list[dep]
 				for _, file in pairs(files) do
-					println("GET "..file)
+					pln("GET "..file)
 					local dl_stat = http_get_file(file, install_dir.."/")
 					success = dl_stat == 0
 					if dl_stat == 1 then
-						red();println("failed to download "..file)
+						red();pln("failed to download "..file)
 						break
 					elseif dl_stat == 2 then
-						red();println("filesystem error with "..file)
+						red();pln("filesystem error with "..file)
 						break
 					elseif dl_stat == 3 then
 						-- this shouldn't occur in this mode
-						red();println("no space for "..file)
+						red();pln("no space for "..file)
 						break
 					end
 				end
@@ -685,36 +685,36 @@ elseif mode == "install" or mode == "update" then
 		write_install_manifest(r_manifest, deps)
 		green()
 		if mode == "install" then
-			println("Installation completed successfully.")
-		else println("Update completed successfully.") end
-		white();println("Ready to clean up unused files, press any key to continue...")
+			pln("Installation completed successfully.")
+		else pln("Update completed successfully.") end
+		white();pln("Ready to clean up unused files, press any key to continue...")
 		any_key();clean(r_manifest)
-		white();println("Done.")
+		white();pln("Done.")
 	else
 		red()
 		if single_file_mode then
 			if mode == "install" then
-				println("Installation failed, files may have been skipped.")
-			else println("Update failed, files may have been skipped.") end
+				pln("Installation failed, files may have been skipped.")
+			else pln("Update failed, files may have been skipped.") end
 		else
 			if mode == "install" then
-				println("Installation failed.")
-			else orange();println("Update failed, existing files unmodified.") end
+				pln("Installation failed.")
+			else orange();pln("Update failed, existing files unmodified.") end
 		end
 	end
 elseif mode == "uninstall" then
 	local ok, manifest = read_local_manifest()
 	if not ok then
-		red();println("Error parsing local installation manifest.");white()
+		red();pln("Error parsing local installation manifest.");white()
 		return
 	end
 
 	if manifest.versions[app] == nil then
-		red();println("Error: '"..app.."' is not installed.")
+		red();pln("Error: '"..app.."' is not installed.")
 		return
 	end
 
-	orange();println("Uninstalling all "..app.." files...")
+	orange();pln("Uninstalling all "..app.." files...")
 
 	-- ask for confirmation
 	if not ask_y_n("Continue", false) then return end
@@ -732,7 +732,7 @@ elseif mode == "uninstall" then
 	for _, dep in pairs(deps) do
 		local files = file_list[dep]
 		for _, file in pairs(files) do
-			if fs.exists(file) then fs.delete(file);println("deleted "..file) end
+			if fs.exists(file) then fs.delete(file);pln("deleted "..file) end
 		end
 
 		local folder = files[1]
@@ -743,7 +743,7 @@ elseif mode == "uninstall" then
 
 		if fs.isDir(folder) then
 			fs.delete(folder)
-			println("deleted directory "..folder)
+			pln("deleted directory "..folder)
 		end
 	end
 
@@ -757,23 +757,23 @@ elseif mode == "uninstall" then
 			log_deleted = true
 			if fs.exists(log) then
 				fs.delete(log)
-				println("deleted log file "..log)
+				pln("deleted log file "..log)
 			end
 		end
 	end
 
 	if not log_deleted then
-		red();println("Failed to delete log file (it may not exist).");lgray()
+		red();pln("Failed to delete log file (it may not exist).");lgray()
 	end
 
 	if fs.exists(settings_file) then
-		fs.delete(settings_file);println("deleted "..settings_file)
+		fs.delete(settings_file);pln("deleted "..settings_file)
 	end
 
 	fs.delete("install_manifest.json")
-	println("deleted install_manifest.json")
+	pln("deleted install_manifest.json")
 
-	green();println("Done!")
+	green();pln("Done!")
 end
 
 white()
