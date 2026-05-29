@@ -81,7 +81,6 @@ local function init(panel, config)
 
     local hw_labels = Rectangle{parent=main_page,x=2,y=term_h-7,width=14,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
----@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
     TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}

@@ -15,8 +15,6 @@ local TYPE_TBL = "table"
 
 -- comms settings/attributes
 
----@type integer computer ID
----@diagnostic disable-next-line: undefined-field
 local COMPUTER_ID = os.getComputerID()
 
 ---@type number|nil maximum acceptable transmission distance
