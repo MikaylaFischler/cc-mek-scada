@@ -19,7 +19,6 @@ local function get_opt(opt, options)
 end
 
 -- wait for any key to be pressed
----@diagnostic disable-next-line: undefined-field
 local function any_key() os.pullEvent("key_up") end
 
 -- ask the user yes or no

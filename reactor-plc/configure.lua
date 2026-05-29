@@ -158,7 +158,6 @@ local function config_view(display)
     local btn_act_fg_bg = style.btn_act_fg_bg
     local btn_dis_fg_bg = style.btn_dis_fg_bg
 
----@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
 
     TextBox{parent=display,y=1,text="Reactor PLC Configurator",alignment=CENTER,fg_bg=style.header}

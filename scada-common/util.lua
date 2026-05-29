@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.9.0"
+util.version = "1.9.1"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -286,13 +286,11 @@ end
 -- current time
 ---@nodiscard
 ---@return integer milliseconds
----@diagnostic disable-next-line: undefined-field
 function util.time_ms() return os.epoch("local") end
 
 -- current time
 ---@nodiscard
 ---@return number seconds
----@diagnostic disable-next-line: undefined-field
 function util.time_s() return os.epoch("local") / 1000.0 end
 
 -- current time
@@ -319,7 +317,6 @@ end
 ---@nodiscard
 ---@param target_event? string event to wait for
 ---@return os_event event, any param1, any param2, any param3, any param4, any param5
----@diagnostic disable-next-line: undefined-field
 function util.pull_event(target_event) return os.pullEventRaw(target_event) end
 
 -- OS queue event raw wrapper with types
@@ -330,7 +327,6 @@ function util.pull_event(target_event) return os.pullEventRaw(target_event) end
 ---@param param4 any
 ---@param param5 any
 function util.push_event(event, param1, param2, param3, param4, param5)
----@diagnostic disable-next-line: undefined-field
     return os.queueEvent(event, param1, param2, param3, param4, param5)
 end
 
@@ -338,12 +334,10 @@ end
 ---@nodiscard
 ---@param t number timer duration in seconds
 ---@return integer timer ID
----@diagnostic disable-next-line: undefined-field
 function util.start_timer(t) return os.startTimer(t) end
 
 -- cancel an OS timer
 ---@param timer integer timer ID
----@diagnostic disable-next-line: undefined-field
 function util.cancel_timer(timer) os.cancelTimer(timer) end
 
 --#endregion
@@ -355,7 +349,6 @@ function util.cancel_timer(timer) os.cancelTimer(timer) end
 ---@param t number seconds
 ---@return boolean success, any result, any ...
 --- EVENT_CONSUMER: this function consumes events
----@diagnostic disable-next-line: undefined-field
 function util.psleep(t) return pcall(os.sleep, t) end
 
 -- no-op to provide a brief pause (1 tick) to yield<br>
