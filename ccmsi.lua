@@ -674,13 +674,13 @@ elseif mode == "install" or mode == "update" then
 		end
 	end
 elseif mode == "uninstall" then
-	local ok, manifest = read_local_manifest()
+	ok, l_manifest = read_local_manifest()
 	if not ok then
 		red();pln("Error parsing local installation manifest.");white()
 		return
 	end
 
-	if manifest.versions[app] == nil then
+	if l_manifest.versions[app] == nil then
 		red();pln("Error: '"..app.."' is not installed.")
 		return
 	end
@@ -691,10 +691,10 @@ elseif mode == "uninstall" then
 	if not ask_y_n("Continue", false) then return end
 
 	-- delete unused files first
-	clean(manifest)
+	clean(l_manifest)
 
-	local file_list = manifest.files
-	local deps = manifest.depends[app]
+	local file_list = l_manifest.files
+	local deps = l_manifest.depends[app]
 
 	table.insert(deps, app)
 
