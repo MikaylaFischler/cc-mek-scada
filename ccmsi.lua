@@ -128,16 +128,16 @@ local function read_local_manifest()
 	return ok, manifest
 end
 
--- get the manifest from GitHub
+-- read the manifest from GitHub
 local function read_remote_manifest()
-	local response, error = http.get(manifest_url)
-	if response == nil then
-		orange();pln("Failed to get installation manifest from GitHub, cannot update or install.")
-		red();pln("HTTP error: "..error);white()
+	local resp, err = http.get(manifest_url)
+	if resp == nil then
+		orange();pln("Failed to read installation manifest from GitHub, cannot update or install.")
+		red();pln("HTTP error: "..err);white()
 		return false, {}
 	end
 
-	local ok, manifest = pcall(function () return textutils.unserializeJSON(response.readAll()) end)
+	local ok, manifest = pcall(function () return textutils.unserializeJSON(resp.readAll()) end)
 	if not ok then red();pln("error parsing remote installation manifest");white() end
 
 	return ok, manifest
@@ -208,7 +208,7 @@ local function gen_tree(manifest, log)
 
 	local list, tree = { log }, {}
 
-	-- make a list of each and every file
+	-- make a list of every file
 	for _, files in pairs(manifest.files) do for i = 1, #files do table.insert(list, files[i]) end end
 
 	for i = 1, #list do
@@ -270,13 +270,14 @@ local function clean(manifest)
 	white()
 end
 
--- get and validate command line options
+-- handle command line options
 
 if IS_PKT then pln("- SCADA Installer "..CCMSI_VERSION.." -")
 else pln("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
 
 if #OPTS == 0 or OPTS[1] == "help" then
 	pln("usage: ccmsi <mode> <app> <branch>")
+
 	if IS_PKT then
 		blue();pln("<mode>")
 		lgray();pln(" check - check latest\n install - fresh install\n update - update app\n uninstall - remove app")
@@ -294,6 +295,7 @@ if #OPTS == 0 or OPTS[1] == "help" then
 		blue();print("<branch>");cyan();pln(" omit for 'main'")
 		lgray();pln(" main (default) | devel");white()
 	end
+
 	return
 else
 	mode = get_opt(OPTS[1], { "check", "install", "update", "uninstall" })
@@ -321,7 +323,6 @@ else
 		return
 	end
 
-	-- determine target
 	target = OPTS[next_opt] or "main"
 	if target ~= "main" and target ~= "devel" then
 		red();pln("Invalid branch target.");white()
@@ -332,9 +333,10 @@ else
 	repo_url = REPO_BASE..target.."/"
 end
 
+-- main operation
+
 local ok, r_manifest, l_manifest
 
--- run selected mode
 if mode == "check" then
 	ok, r_manifest = read_remote_manifest()
 	if not ok then return end
