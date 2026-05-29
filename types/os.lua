@@ -2,6 +2,7 @@
 
 -- Function templates for ComputerCraft-specific OS functions.
 
+-- luacheck: ignore
 ---@diagnostic disable: missing-return, unused-local
 
 -- Queues an event after an amount of seconds has passed, and returns the ID.
