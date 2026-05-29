@@ -17,13 +17,15 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local CCMSI_VERSION = "v1.22"
 
-local INSTALL_DIR = "/.install-cache"
-local MANIFEST_PATH = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
-local REPO_PATH = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
-
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
-local function pln(msg) print(tostring(msg)) end
+local INSTALL_DIR = "/.install-cache"
+local MANIFEST_DIR = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
+local REPO_BASE = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
+
+local OPTS = { ... }
+
+local mode, app, target, repo_url, manifest_url
 
 local function tsc(c) term.setTextColor(c) end
 
@@ -35,6 +37,8 @@ local function cyan() tsc(colors.cyan) end
 local function blue() tsc(colors.blue) end
 local function white() tsc(colors.white) end
 local function lgray() tsc(colors.lightGray) end
+
+local function pln(msg) print(tostring(msg)) end
 
 -- stripped down & modified copy of log.dmesg
 local function print(msg)
@@ -79,10 +83,6 @@ local function print(msg)
 		term.write(lines[i])
 	end
 end
-
-local opts = { ... }
-local mode, app, target
-local install_manifest = MANIFEST_PATH.."main/install_manifest.json"
 
 -- get command line option in list
 local function get_opt(opt, options)
@@ -129,8 +129,8 @@ local function read_local_manifest()
 end
 
 -- get the manifest from GitHub
-local function get_remote_manifest()
-	local response, error = http.get(install_manifest)
+local function read_remote_manifest()
+	local response, error = http.get(manifest_url)
 	if response == nil then
 		orange();pln("Failed to get installation manifest from GitHub, cannot update or install.")
 		red();pln("HTTP error: "..error);white()
@@ -146,14 +146,14 @@ end
 -- record the local installation manifest
 local function write_install_manifest(manifest, deps)
 	local versions = {}
-	for key, value in pairs(manifest.versions) do
+	for k, v in pairs(manifest.versions) do
 		local is_dep = false
 		for _, dep in pairs(deps) do
-			if (key == "bootloader" and dep == "system") or key == dep then
+			if (k == "bootloader" and dep == "system") or k == dep then
 				is_dep = true;break
 			end
 		end
-		if key == app or key == "comms" or is_dep then versions[key] = value end
+		if k == app or k == "comms" or is_dep then versions[k] = v end
 	end
 
 	manifest.versions = versions
@@ -168,11 +168,13 @@ end
 local function http_get_file(file, w_path)
 	local dl, err
 	for i = 1, 3 do
-		dl, err = http.get(REPO_PATH..file)
+		dl, err = http.get(repo_url..file)
 		if dl then
 			if i > 1 then green();pln("success!");lgray() end
+
 			local f = fs.open(w_path..file, "w")
 			if not f then return 2 end
+
 			local ok, msg = pcall(function() f.write(dl.readAll()) end)
 			f.close()
 			if not ok then
@@ -273,107 +275,101 @@ end
 if IS_PKT then pln("- SCADA Installer "..CCMSI_VERSION.." -")
 else pln("-- CC Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
 
-if #opts == 0 or opts[1] == "help" then
+if #OPTS == 0 or OPTS[1] == "help" then
 	pln("usage: ccmsi <mode> <app> <branch>")
 	if IS_PKT then
-		yellow();pln("<mode>")
+		blue();pln("<mode>")
 		lgray();pln(" check - check latest\n install - fresh install\n update - update app\n uninstall - remove app")
-		yellow();pln("<app>")
+		blue();pln("<app>")
 		lgray();pln(" reactor-plc\n rtu\n supervisor\n coordinator\n pocket\n installer (update only)")
-		yellow();pln("<branch>")
+		blue();pln("<branch>")
 		lgray();pln(" main (default) | devel");white()
 	else
-		pln("<mode>")
+		blue();pln("<mode>")
 		lgray();pln(" check       - check latest versions available")
-		yellow();pln("               ccmsi check <branch> for target")
+		yellow();pln("               ccmsi check <branch> (skip <app>)")
 		lgray();pln(" install     - fresh install\n update      - update files\n uninstall   - delete files INCLUDING config/logs")
-		white();pln("<app>")
+		blue();print("<app>");cyan();pln(" omit to auto-detect installed app")
 		lgray();pln(" reactor-plc - reactor PLC firmware\n rtu         - RTU firmware\n supervisor  - supervisor server application\n coordinator - coordinator application\n pocket      - pocket application\n installer   - ccmsi installer (update only)")
-		white();pln("<branch>")
+		blue();print("<branch>");cyan();pln(" omit for 'main'")
 		lgray();pln(" main (default) | devel");white()
 	end
 	return
 else
-	mode = get_opt(opts[1], { "check", "install", "update", "uninstall" })
+	mode = get_opt(OPTS[1], { "check", "install", "update", "uninstall" })
 	if mode == nil then
-		red();pln("Unrecognized mode.");white()
+		red();pln("Invalid mode.");white()
 		return
 	end
 
 	local next_opt = 3
 	local apps = { "reactor-plc", "rtu", "supervisor", "coordinator", "pocket", "installer" }
-	app = get_opt(opts[2], apps)
+	app = get_opt(OPTS[2], apps)
 	if app == nil then
 		for _, a in pairs(apps) do
-			if fs.exists(a) and fs.isDir(a) then
-				app = a
-				next_opt = 2
-				break
-			end
+			if fs.isDir(a) then app, next_opt = a, 2 end
 		end
 	end
 
 	if app == nil and mode ~= "check" then
-		red();pln("Unrecognized application.");white()
+		red();pln("Invalid application.");white()
 		return
 	elseif mode == "check" then
 		next_opt = 2
 	elseif app == "installer" and mode ~= "update" then
-		red();pln("Installer app only supports 'update' option.");white()
+		red();pln("Installer only supports 'update'.");white()
 		return
 	end
 
 	-- determine target
-	target = opts[next_opt]
-	if (target ~= "main") and (target ~= "devel") then
-		if (target and target ~= "") then yellow();pln("Unknown target, defaulting to 'main'");white() end
-		target = "main"
+	target = OPTS[next_opt] or "main"
+	if target ~= "main" and target ~= "devel" then
+		red();pln("Invalid branch target.");white()
+		return
 	end
 
-	-- set paths
-	install_manifest = MANIFEST_PATH..target.."/install_manifest.json"
-	REPO_PATH = REPO_PATH..target.."/"
+	manifest_url = MANIFEST_DIR..target.."/install_manifest.json"
+	repo_url = REPO_BASE..target.."/"
 end
+
+local ok, r_manifest, l_manifest
 
 -- run selected mode
 if mode == "check" then
-	local ok, manifest = get_remote_manifest()
+	ok, r_manifest = read_remote_manifest()
 	if not ok then return end
 
-	local local_ok, local_manifest = read_local_manifest()
-	if not local_ok then
+	ok, l_manifest = read_local_manifest()
+	if not ok then
 		yellow();pln("failed to load local installation information");white()
-		local_manifest = { versions = { installer = CCMSI_VERSION } }
+		l_manifest = { versions = { installer = CCMSI_VERSION } }
 	else
-		local_manifest.versions.installer = CCMSI_VERSION
+		l_manifest.versions.installer = CCMSI_VERSION
 	end
 
 	-- list all versions
-	for key, value in pairs(manifest.versions) do
+	for k, v in pairs(r_manifest.versions) do
 		tsc(colors.purple)
-		local tag = string.format("%-14s", "["..key.."]")
+		local tag = string.format("%-14s", "["..k.."]")
 		if not IS_PKT then print(tag) end
-		if key == "installer" or (local_ok and (local_manifest.versions[key] ~= nil)) then
+		if k == "installer" or (ok and (l_manifest.versions[k] ~= nil)) then
 			if IS_PKT then pln(tag) end
-			blue();print(local_manifest.versions[key])
-			if value ~= local_manifest.versions[key] then
-				white();print(" (")
-				cyan();print(value);white();pln(" available)")
+			blue();print(l_manifest.versions[k])
+			if v ~= l_manifest.versions[k] then
+				white();print(" (");cyan();print(v);white();pln(" available)")
 			else green();pln(" (up to date)") end
 		elseif not IS_PKT then
-			lgray();print("not installed");white();print(" (latest ")
-			cyan();print(value);white();pln(")")
+			lgray();print("not installed");white();print(" (latest ");cyan();print(v);white();pln(")")
 		end
 	end
 
-	if manifest.versions.installer ~= local_manifest.versions.installer and not IS_PKT then
+	if r_manifest.versions.installer ~= l_manifest.versions.installer and not IS_PKT then
 		yellow();pln("\nA different version of the installer is available, it is recommended to update (use 'ccmsi update installer').");white()
 	end
 elseif mode == "install" or mode == "update" then
-	local ok, r_manifest, l_manifest
-
 	local update_installer = app == "installer"
-	ok, r_manifest = get_remote_manifest()
+
+	ok, r_manifest = read_remote_manifest()
 	if not ok then return end
 
 	local ver = {
@@ -385,7 +381,7 @@ elseif mode == "install" or mode == "update" then
 		lockbox = { v_local = nil, v_remote = nil, changed = false }
 	}
 
-	-- try to find local versions
+	-- try to load local versions
 	ok, l_manifest = read_local_manifest()
 	if mode == "update" and not update_installer then
 		if not ok then
@@ -406,22 +402,24 @@ elseif mode == "install" or mode == "update" then
 		end
 	end
 
+	-- installer update handling
 	if r_manifest.versions.installer ~= CCMSI_VERSION then
 		if not update_installer then yellow();pln("A different version of the installer is available, it is recommended to update to it.");white() end
 		if update_installer or ask_y_n("Would you like to update now", true) then
 			lgray();pln("GET ccmsi.lua")
-			local dl, err = http.get(REPO_PATH.."ccmsi.lua")
+			local dl, err = http.get(repo_url.."ccmsi.lua")
 
 			if dl == nil then
 				red();pln("HTTP Error: "..err)
-				pln("Installer download failed.");white()
+				pln("Installer download failed.")
 			else
-				local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file, regardless of name or location
+				local handle = fs.open(debug.getinfo(1, "S").source:sub(2), "w") -- this file
 				handle.write(dl.readAll())
 				handle.close()
-				green();pln("Installer updated successfully.");white()
+				green();pln("Installer updated successfully.")
 			end
 
+			white()
 			return
 		end
 	elseif update_installer then
