@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.9.1"
+util.version = "1.9.2"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -256,6 +256,7 @@ end
 ---@param alpha number EMA filter alpha value
 function util.ema_filter(alpha)
     local state = nil ---@type number|nil
+    local last_t = 0 ---@type number|nil
 
     ---@class ema_filter
     local public = {}
@@ -264,11 +265,16 @@ function util.ema_filter(alpha)
     function public.reset() state = nil end
 
     -- update the filter state with a new value
-    ---@param value number new value
-    function public.update(value)
+    ---@param x number new value
+    ---@param t number? optional last update time to prevent duplicated entries
+    function public.update(x, t)
+        if type(t) == "number" and last_t == t then return end
+
         if state then
-            state = state + (alpha * (value - state))
-        else state = value end
+            state = state + (alpha * (x - state))
+        else state = x end
+
+        last_t = t
     end
 
     -- get the moving average
