@@ -30,10 +30,6 @@ local ALARM_LIMS     = const.ALARM_LIMITS
 
 local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
--- 7.14 kJ per blade for 1 mB of fissile fuel<br>
--- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
-local POWER_PER_BLADE = util.joules_to_fe_rf(7140)
-
 local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
 local CHARGE_Kp = 0.15
@@ -382,7 +378,7 @@ function update.auto_control(ExtChargeIdling)
                 self.ascram_reason = AUTO_SCRAM.NONE
             end
 
-            local blade_count = nil
+            local gen_multiplier = nil
             self.max_burn_combined = 0.0
 
             for i = 1, #self.prio_defs do
@@ -393,12 +389,13 @@ function update.auto_control(ExtChargeIdling)
                 )
 
                 for _, u in pairs(self.prio_defs[i]) do
-                    local u_blade_count = u.get_control_inf().blade_count
+                    local u_mult = u.get_control_inf().generator_mult
 
-                    if blade_count == nil then
-                        blade_count = u_blade_count
-                    elseif (u_blade_count ~= blade_count) and (self.mode == PROCESS.GEN_RATE) then
-                        log.warning("FAC: cannot start GEN_RATE process with inconsistent unit blade counts")
+                    if gen_multiplier == nil then
+                        gen_multiplier = u_mult
+                    elseif ((gen_multiplier ~= u_mult) or u.get_control_inf().generator_mismatch) and ((self.mode == PROCESS.CHARGE) or (self.mode == PROCESS.GEN_RATE)) then
+                        log.warning("FAC: cannot start CHARGE or GEN_RATE process with inconsistent turbine blade counts")
+                        log.info("all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
                         next_mode = PROCESS.INACTIVE
                         self.start_fail = START_STATUS.BLADE_MISMATCH
                     end
@@ -411,13 +408,13 @@ function update.auto_control(ExtChargeIdling)
 
             log.debug(util.c("FAC: computed a max combined burn rate of ", self.max_burn_combined, "mB/t"))
 
-            if blade_count == nil then
+            if gen_multiplier == nil then
                 -- no units
                 log.warning("FAC: cannot start process control with 0 units assigned")
                 next_mode = PROCESS.INACTIVE
                 self.start_fail = START_STATUS.NO_UNITS
             else
-                self.charge_conversion = blade_count * POWER_PER_BLADE
+                self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do

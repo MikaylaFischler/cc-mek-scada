@@ -115,7 +115,7 @@ function facility.new(config)
             gen_fault = false
         },
         -- closed loop control
-        charge_conversion = 1.0,
+        charge_conversion = 80000.0, -- mB to FE conversion factor
         time_start = 0.0,
         initial_ramp = true,
         waiting_on_ramp = false,    -- waiting on auto ramping
