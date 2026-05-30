@@ -299,8 +299,8 @@ function update.pre_auto()
 
             if self.im_stat_init then
                 self.avg_charge.record(energy, charge_update)
-                self.avg_inflow.record(input, rate_update)
-                self.avg_outflow.record(output, rate_update)
+                self.avg_inflow.update(input, rate_update)
+                self.avg_outflow.update(output, rate_update)
 
                 if charge_update ~= self.imtx_last_charge_t then
                     local delta = (energy - self.imtx_last_charge) / (charge_update - self.imtx_last_charge_t)
@@ -313,15 +313,15 @@ function update.pre_auto()
                         self.imtx_last_capacity = db.build.max_energy
                         self.avg_net.reset()
                     else
-                        self.avg_net.record(delta, charge_update)
+                        self.avg_net.update(delta, charge_update)
                     end
                 end
             else
                 self.im_stat_init = true
 
                 self.avg_charge.reset(energy)
-                self.avg_inflow.reset(input)
-                self.avg_outflow.reset(output)
+                self.avg_inflow.reset()
+                self.avg_outflow.reset()
                 self.avg_net.reset()
 
                 self.imtx_last_capacity = db.build.max_energy
@@ -337,6 +337,17 @@ function update.pre_auto()
         self.im_stat_init = false
     end
 
+    local turbine_gen = 0
+
+    for i = 1, #self.prio_defs do
+        local units = self.prio_defs[i]
+        for u = 1, #units do
+            turbine_gen = turbine_gen + units[u].get_generation_rate()
+        end
+    end
+
+    self.avg_gen.update(util.joules_to_fe_rf(turbine_gen))
+
     self.all_sys_ok = true
     for i = 1, #self.units do
         self.all_sys_ok = self.all_sys_ok and not self.units[i].get_control_inf().degraded
@@ -350,8 +361,8 @@ function update.auto_control(ExtChargeIdling)
     local START_STATUS = self.types.START_STATUS
 
     local avg_charge  = self.avg_charge.compute()
-    local avg_inflow  = self.avg_inflow.compute()
-    local avg_outflow = self.avg_outflow.compute()
+    local avg_inflow  = self.avg_inflow.get()
+    local avg_outflow = self.avg_outflow.get()
 
     local now = os.clock()
 
@@ -597,8 +608,11 @@ function update.auto_control(ExtChargeIdling)
     elseif self.mode == PROCESS.GEN_RATE then
         -- target a rate of generation
         if state_changed then
-            -- estimate an initial output
-            local output = self.sp.gen_rate_setpoint / self.charge_conversion
+            -- estimate an initial output (feed-forward)
+            local ext_in = math.max(0, avg_inflow - self.avg_gen.get())
+            local output = (self.sp.gen_rate_setpoint - ext_in) / self.charge_conversion
+
+            self.feedforward = output
 
             local unallocated = allocate_burn_rate(output, true)
 
@@ -630,6 +644,19 @@ function update.auto_control(ExtChargeIdling)
                 log.info("FAC: GEN_RATE process mode initial hold completed, starting PID control")
             end
         elseif self.last_update < rate_update then
+            local ext_in = math.max(0, avg_inflow - self.avg_gen.get())
+
+            -- velocity (rate) (derivative of charge level => rate) feed forward
+            local FF = (self.sp.gen_rate_setpoint - ext_in) / self.charge_conversion
+
+            if math.abs(FF - self.feedforward) < (0.5 * self.charge_conversion) then
+                -- don't adjust feed forward on small changes resulting in less than 2 mB/t
+                FF = self.feedforward
+            else
+                log.debug("reset accumulator and updated feed-forward due to significant input change")
+                self.accumulator = 0
+            end
+
             -- convert to MFE (in rounded kFE) to make constants not microscopic
             local error = util.round((self.sp.gen_rate_setpoint - avg_inflow) / 1000) / 1000
 
@@ -645,9 +672,6 @@ function update.auto_control(ExtChargeIdling)
             local P = RATE_Kp * error
             local I = RATE_Ki * integral
             local D = RATE_Kd * derivative
-
-            -- velocity (rate) (derivative of charge level => rate) feed forward
-            local FF = self.sp.gen_rate_setpoint / self.charge_conversion
 
             local output = P + I + D + FF
 

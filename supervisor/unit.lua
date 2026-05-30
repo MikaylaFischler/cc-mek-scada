@@ -1038,6 +1038,19 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         return total_avail_rate
     end
 
+    -- get the energy generation rate of this unit (sum of all turbine generators)
+    ---@nodiscard
+    ---@return number gen_rate generation rate in Joules
+    function public.get_generation_rate()
+        local sum = 0
+
+        for i = 1, #self.turbines do
+            sum = sum + self.turbines[i].get_db().state.prod_rate
+        end
+
+        return sum
+    end
+
     -- get the annunciator status
     ---@nodiscard
     function public.get_annunciator() return self.db.annunciator end
