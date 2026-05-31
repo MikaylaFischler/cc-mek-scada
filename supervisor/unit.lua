@@ -693,6 +693,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
                 if self.auto_idle then
                     if rate <= IDLE_RATE then
+                        ramp = false
+
                         if self.auto_idle_start == 0 then
                             self.auto_idling = true
                             self.auto_idle_start = util.time_ms()
