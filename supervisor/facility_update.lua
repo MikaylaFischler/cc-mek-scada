@@ -407,7 +407,7 @@ function update.auto_control(ExtChargeIdling)
                         gen_multiplier = u_mult
                     elseif ((gen_multiplier ~= u_mult) or u.get_control_inf().generator_mismatch) and ((self.mode == PROCESS.CHARGE) or (self.mode == PROCESS.GEN_RATE)) then
                         log.warning("FAC: cannot start CHARGE or GEN_RATE process with inconsistent turbine blade counts")
-                        log.info("all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
+                        log.info("FAC: all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
                         next_mode = PROCESS.INACTIVE
                         self.start_fail = START_STATUS.BLADE_MISMATCH
                     end
@@ -427,6 +427,9 @@ function update.auto_control(ExtChargeIdling)
                 self.start_fail = START_STATUS.NO_UNITS
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
+
+                log.debug(util.sprintf("FAC: computed charge conversion factor %f from generator multiplier %f (using Mekanism constants JOULES_PER_MB = %f, STEAM_ENERGY_EFF = %f, WATER_THERMAL_ENTHALPY = %f)",
+                    self.charge_conversion, gen_multiplier, const.mek.JOULES_PER_MB, const.mek.STEAM_ENERGY_EFF, const.mek.WATER_THERMAL_ENTHALPY))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
@@ -669,8 +672,8 @@ function update.auto_control(ExtChargeIdling)
 
             self.saturated = output ~= out_c
 
-            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-            --     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
+            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
+            --     runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
 
             allocate_burn_rate(out_c, false)
 
