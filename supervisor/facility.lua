@@ -143,11 +143,11 @@ function facility.new(config)
         -- statistics
         im_stat_init = false,
         imtx_percent = 0.0,
-        avg_charge = util.mov_avg(3),  -- 3 seconds
-        avg_inflow = util.ema_filter(0.3),
+        avg_charge = util.ema_filter(0.2857),  -- ~3 seconds
+        avg_inflow = util.ema_filter(0.2857),  -- ~3 seconds
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
         -- induction matrix charge delta stats
-        avg_net = util.ema_filter(0.08),
+        avg_net = util.ema_filter(0.075),
         imtx_last_capacity = 0,
         imtx_last_charge = 0,
         imtx_last_charge_t = 0,
@@ -666,7 +666,7 @@ function facility.new(config)
 
         -- power averages from induction matricies
         status.power = {
-            self.avg_charge.compute(),
+            self.avg_charge.get(),
             self.avg_inflow.get(),
             self.avg_outflow.get(),
             0

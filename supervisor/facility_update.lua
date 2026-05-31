@@ -298,7 +298,7 @@ function update.pre_auto()
             self.imtx_percent = db.tanks.energy_fill * 100
 
             if self.im_stat_init then
-                self.avg_charge.record(energy, charge_update)
+                self.avg_charge.update(energy, charge_update)
                 self.avg_inflow.update(input, rate_update)
                 self.avg_outflow.update(output, rate_update)
 
@@ -320,8 +320,8 @@ function update.pre_auto()
                 self.im_stat_init = true
 
                 self.avg_charge.reset(energy)
-                self.avg_inflow.reset()
-                self.avg_outflow.reset()
+                self.avg_inflow.reset(input)
+                self.avg_outflow.reset(output)
                 self.avg_net.reset()
 
                 self.imtx_last_capacity = db.build.max_energy
@@ -361,7 +361,7 @@ function update.auto_control(ExtChargeIdling)
     local AUTO_SCRAM = self.types.AUTO_SCRAM
     local START_STATUS = self.types.START_STATUS
 
-    local avg_charge  = self.avg_charge.compute()
+    local avg_charge  = self.avg_charge.get()
     local avg_inflow  = self.avg_inflow.get()
     local avg_outflow = self.avg_outflow.get()
 
@@ -428,8 +428,9 @@ function update.auto_control(ExtChargeIdling)
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
 
-                log.debug(util.sprintf("FAC: computed charge conversion factor %f from generator multiplier %f (using Mekanism constants JOULES_PER_MB = %f, STEAM_ENERGY_EFF = %f, WATER_THERMAL_ENTHALPY = %f)",
-                    self.charge_conversion, gen_multiplier, const.mek.JOULES_PER_MB, const.mek.STEAM_ENERGY_EFF, const.mek.WATER_THERMAL_ENTHALPY))
+                log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
+                    " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
+                    ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
