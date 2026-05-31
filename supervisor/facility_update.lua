@@ -32,6 +32,8 @@ local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
 local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
+local CHARGE_CLOSE_LOOP_WINDOW_S = 15
+
 local CHARGE_Kp = 0.15
 local CHARGE_Ki = 0.0
 local CHARGE_Kd = 0.6
@@ -565,48 +567,99 @@ function update.auto_control(ExtChargeIdling)
             self.last_time = now
             self.last_error = 0
             self.accumulator = 0
+            self.feedforward = 0
+
+            self.charge_control_open = nil
+
+            -- window in seconds * 20 TPS * maximum generation rate per tick
+            self.loop_close_limit = self.sp.charge_setpoint - (CHARGE_CLOSE_LOOP_WINDOW_S * 20 * self.max_burn_combined * self.charge_conversion)
+            log.debug(util.c("FAC: computed loop close limit of ", self.loop_close_limit))
 
             -- enabling idling on all assigned units
             set_idling(true)
 
-            self.status_text = { "CHARGE MODE", "running control loop" }
-            log.info("FAC: CHARGE mode starting PID control")
+            self.status_text = { "CHARGE MODE", "initialized" }
+            log.info("FAC: CHARGE mode starting up")
         elseif self.last_update < charge_update then
+            local open_loop = false
+
+            if avg_charge <= self.sp.charge_setpoint then
+                local force_open_loop = (avg_outflow >= self.max_burn_combined * self.charge_conversion) and (avg_outflow >= avg_inflow)
+                open_loop = force_open_loop or (avg_charge < self.loop_close_limit)
+            end
+
             -- convert to kFE to make constants not microscopic
             local error = util.round((self.sp.charge_setpoint - avg_charge) / 1000) / 1000
 
-            -- stop accumulator when saturated to avoid windup
-            if not self.saturated then
-                self.accumulator = self.accumulator + (error * (now - self.last_time))
+            if open_loop then
+                self.status_text = { "CHARGE MODE", "running at max burn" }
+
+                if self.charge_control_open ~= true then
+                    log.info("FAC: CHARGE mode running open loop")
+                    log.debug(util.c("a: ", avg_outflow >= self.max_burn_combined * self.charge_conversion))
+                    log.debug(util.c("b: ", avg_outflow >= avg_inflow))
+                    log.debug(util.c("c: ", avg_charge < self.loop_close_limit))
+                end
+
+                allocate_burn_rate(self.max_burn_combined, true)
+
+                self.last_time = now
+                self.last_error = error
+                self.accumulator = 0
+                self.saturated = true
+            else
+                self.status_text = { "CHARGE MODE", "running control loop" }
+
+                if self.charge_control_open ~= false then
+                    log.info("FAC: CHARGE mode running closed loop")
+                    log.debug(util.c("a: ", avg_outflow >= self.max_burn_combined * self.charge_conversion))
+                    log.debug(util.c("b: ", avg_outflow >= avg_inflow))
+                    log.debug(util.c("c: ", avg_charge < self.loop_close_limit))
+                end
+
+                -- stop accumulator when saturated to avoid windup
+                if not self.saturated then
+                    self.accumulator = self.accumulator + (error * (now - self.last_time))
+                end
+
+                local runtime = now - self.time_start
+                local integral = self.accumulator
+                local derivative = (error - self.last_error) / (now - self.last_time)
+
+                local P = CHARGE_Kp * error
+                local I = CHARGE_Ki * integral
+                local D = CHARGE_Kd * derivative
+
+                local FF = avg_outflow / self.charge_conversion
+
+                local output = P + I + D + FF
+
+                -- clamp at range -> output clamped (out_c)
+                local out_c = math.max(0, math.min(output, self.max_burn_combined))
+
+                self.feedforward = FF
+                self.saturated = output ~= out_c
+
+                -- reset accumulator if FF has taken over completly
+                if FF >= self.max_burn_combined then
+                    self.accumulator = 0
+                end
+
+                if not ExtChargeIdling then
+                    -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
+                    set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
+                end
+
+                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
+                    runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
+
+                allocate_burn_rate(out_c, true)
+
+                self.last_time = now
+                self.last_error = error
             end
 
-            -- local runtime = now - self.time_start
-            local integral = self.accumulator
-            local derivative = (error - self.last_error) / (now - self.last_time)
-
-            local P = CHARGE_Kp * error
-            local I = CHARGE_Ki * integral
-            local D = CHARGE_Kd * derivative
-
-            local output = P + I + D
-
-            -- clamp at range -> output clamped (out_c)
-            local out_c = math.max(0, math.min(output, self.max_burn_combined))
-
-            self.saturated = output ~= out_c
-
-            if not ExtChargeIdling then
-                -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
-                set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
-            end
-
-            -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-            --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
-
-            allocate_burn_rate(out_c, true)
-
-            self.last_time = now
-            self.last_error = error
+            self.charge_control_open = open_loop
         end
 
         self.last_update = charge_update
