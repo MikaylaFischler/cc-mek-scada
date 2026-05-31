@@ -624,6 +624,7 @@ function facility.new(config)
             self.mode,
             self.waiting_on_ramp or self.waiting_on_stable,
             self.at_max_burn or self.saturated,
+            self.turbine_gen_rate,
             self.ascram,
             astat.matrix_fault,
             astat.matrix_fill,

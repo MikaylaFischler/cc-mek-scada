@@ -188,7 +188,7 @@ local function new_view(root, x, y)
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     g_target.register(facility.ps, "process_gen_target", g_target.set_value)
-    cur_gen.register(facility.induction_ps_tbl[1], "last_input", function (j) cur_gen.update(util.round(db.energy_convert(j) / 1000)) end)
+    cur_gen.register(facility.ps, "auto_gen_rate", function (r) cur_gen.update(util.round(db.energy_convert_from_fe(r) / 1000)) end)
 
     -----------------
     -- unit limits --
