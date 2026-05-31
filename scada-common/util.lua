@@ -261,8 +261,9 @@ function util.ema_filter(alpha)
     ---@class ema_filter
     local public = {}
 
-    -- reset the filter state
-    function public.reset() state = nil end
+    -- reset the filter state, optionally initializing it to the given value
+    ---@param x number? value
+    function public.reset(x) state = x end
 
     -- update the filter state with a new value
     ---@param x number new value
