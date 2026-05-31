@@ -115,6 +115,7 @@ function facility.new(config)
             gen_fault = false
         },
         -- closed loop control
+        turbine_gen_rate = 0.0,
         charge_conversion = 80000.0, -- mB to FE conversion factor
         time_start = 0.0,
         initial_ramp = true,
@@ -145,7 +146,6 @@ function facility.new(config)
         avg_charge = util.mov_avg(3),  -- 3 seconds
         avg_inflow = util.ema_filter(0.3),
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
-        avg_gen = util.ema_filter(0.3),
         -- induction matrix charge delta stats
         avg_net = util.ema_filter(0.08),
         imtx_last_capacity = 0,
