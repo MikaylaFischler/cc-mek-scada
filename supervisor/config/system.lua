@@ -882,7 +882,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
                     end
                 end
             elseif f[1] == "MekanismWasteToPu" or f[1] == "MekanismWasteToPo" then
-                val = raw[1] .. ":" .. raw[2]
+                if type(raw) == "table" then
+                    val = raw[1] .. ":" .. raw[2]
+                end
             elseif f[1] == "PLC_Listen" or f[1] == "RTU_Listen" or f[1] == "CRD_Listen" then
                 if raw == LISTEN_MODE.WIRELESS then val = "Wireless Only"
                 elseif raw == LISTEN_MODE.WIRED then val = "Wired Only"
