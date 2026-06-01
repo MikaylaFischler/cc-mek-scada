@@ -34,9 +34,9 @@ local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
 local CHARGE_CLOSE_LOOP_WINDOW_S = 15
 
-local CHARGE_Kp = 0.15
-local CHARGE_Ki = 0.0
-local CHARGE_Kd = 0.6
+local CHARGE_Kp = 0.128
+local CHARGE_Ki = 0.009  -- only used when near setpoint/stable
+local CHARGE_Kd = 0.475
 
 local RATE_Kp = 2.45
 local RATE_Ki = 0.4825
@@ -573,7 +573,8 @@ function update.auto_control(ExtChargeIdling)
 
             -- window in seconds * 20 TPS * maximum generation rate per tick
             self.loop_close_limit = self.sp.charge_setpoint - (CHARGE_CLOSE_LOOP_WINDOW_S * 20 * self.max_burn_combined * self.charge_conversion)
-            log.debug(util.c("FAC: computed loop close limit of ", self.loop_close_limit))
+            log.debug(util.c("FAC: computed generation capacity of ", self.max_burn_combined * self.charge_conversion, " FE/t"))
+            log.debug(util.c("FAC: computed loop close limit of ", self.loop_close_limit, " FE"))
 
             -- enabling idling on all assigned units
             set_idling(true)
@@ -596,9 +597,6 @@ function update.auto_control(ExtChargeIdling)
 
                 if self.charge_control_open ~= true then
                     log.info("FAC: CHARGE mode running open loop")
-                    log.debug(util.c("a: ", avg_outflow >= self.max_burn_combined * self.charge_conversion))
-                    log.debug(util.c("b: ", avg_outflow >= avg_inflow))
-                    log.debug(util.c("c: ", avg_charge < self.loop_close_limit))
                 end
 
                 allocate_burn_rate(self.max_burn_combined, true)
@@ -612,14 +610,12 @@ function update.auto_control(ExtChargeIdling)
 
                 if self.charge_control_open ~= false then
                     log.info("FAC: CHARGE mode running closed loop")
-                    log.debug(util.c("a: ", avg_outflow >= self.max_burn_combined * self.charge_conversion))
-                    log.debug(util.c("b: ", avg_outflow >= avg_inflow))
-                    log.debug(util.c("c: ", avg_charge < self.loop_close_limit))
                 end
 
                 -- stop accumulator when saturated to avoid windup
                 if not self.saturated then
-                    self.accumulator = self.accumulator + (error * (now - self.last_time))
+                    -- it has no control when negative, so don't allow that
+                    self.accumulator = math.max(0, self.accumulator + (error * (now - self.last_time)))
                 end
 
                 local runtime = now - self.time_start
@@ -631,6 +627,12 @@ function update.auto_control(ExtChargeIdling)
                 local D = CHARGE_Kd * derivative
 
                 local FF = avg_outflow / self.charge_conversion
+
+                -- suppress integrator when not stabilized
+                if math.abs(P) > 1 or math.abs(D) > 1 then
+                    self.accumulator = 0
+                    I = 0
+                end
 
                 local output = P + I + D + FF
 
