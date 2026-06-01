@@ -55,6 +55,7 @@ local _spctl = {
     -- ramp control
 
     fast_ramp_en = false,
+    fast_ramping = false,   -- once we have passed through check phases once, don't repeat until reset
 
     last_sp = 0.0,
     last_ccool = 0.0,
@@ -107,21 +108,66 @@ local function ramp_init(cur_br)
 
     -- update without ramp if <= 2.5 mB/t change
     if math.abs(setpoints.burn_rate - cur_br) > 2.5 then
-        log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_br, " mB/t to ", setpoints.burn_rate, " mB/t"))
+        local new_state = _spctl.next_state
 
-        _spctl.last_change = os.clock()
-        _spctl.next_state  = STATES.INIT
+        if _spctl.next_state == STATES.STOPPED then
+            log.debug(util.c("SPCTL: starting burn rate ramp from ", cur_br, " mB/t to ", setpoints.burn_rate, " mB/t"))
+
+            new_state = STATES.INIT
+
+            _spctl.fast_ramping = false
+        else
+            log.debug(util.c("SPCTL: burn rate ramp from ", cur_br, " mB/t to ", setpoints.burn_rate, " mB/t (updated setpoint)"))
+
+            -- update to the appropriate direction and phase
+            -- this will only impact the controller if it is a state change
+            if setpoints.burn_rate > cur_br then
+                -- need to ramp up
+                if _spctl.fast_ramp_en and ((cur_br >= FAST_SWITCH_mB_s) or _spctl.fast_ramping) then
+                    if _spctl.fast_ramping then
+                        -- direct set to fast ramp is approved
+                        new_state = STATES.FAST_RAMP_UP
+                    elseif _spctl.next_state ~= STATES.STABLE_WAIT and _spctl.next_state ~= STATES.CCOOL_MON then
+                        new_state = STATES.STABLE_WAIT
+                    end
+                else
+                    new_state = STATES.SLOW_RAMP_UP
+                end
+            else
+                -- need to ramp down
+                if _spctl.fast_ramp_en and ((cur_br >= FAST_SWITCH_mB_s) or _spctl.fast_ramping) then
+                    new_state = STATES.FAST_RAMP_DOWN
+                else
+                    new_state = STATES.SLOW_RAMP_DOWN
+                end
+            end
+        end
+
+        if new_state ~= _spctl.next_state then
+            log.debug("SPCTL: ramp_init() state changed to " .. (STATE_NAMES[new_state] or "UNKNOWN"))
+
+            _spctl.next_state = new_state
+            _spctl.last_change = os.clock()
+        end
     elseif _spctl.fuel_limiting then
         local lim_br = math.min(setpoints.burn_rate, limits.fuel_max_burn)
         plc_state.limit_force_ramp = false
 
         log.debug(util.c("SPCTL: setting burn rate directly to ", lim_br, " mB/t (limiting active, setpoint is ", setpoints.burn_rate, ")"))
         _spctl.new_br = lim_br
+
+        if _spctl.next_state == STATES.STOPPED then
+            setpoints.burn_rate_en = false
+        end
     else
         plc_state.limit_force_ramp = false
 
         log.debug(util.c("SPCTL: setting burn rate directly to ", setpoints.burn_rate, " mB/t"))
         _spctl.new_br = setpoints.burn_rate
+
+        if _spctl.next_state == STATES.STOPPED then
+            setpoints.burn_rate_en = false
+        end
     end
 end
 
@@ -131,6 +177,8 @@ local function ramp_reset()
     _spctl.last_ccool = 0
     _spctl.next_state = STATES.STOPPED
     _spctl.last_state = STATES.STOPPED
+
+    _spctl.fast_ramping = false
 end
 
 -- run the setpoint ramp controller loop
@@ -188,6 +236,8 @@ local function ramp_run(cur_br, cur_ccool, elapsed_s)
         -- don't move on until coolant is not decreasing
         if cur_ccool >= _spctl.last_ccool then
             new_state = STATES.FAST_RAMP_UP
+
+            _spctl.fast_ramping = true
         end
     elseif state == STATES.FAST_RAMP_UP then
         -- step by a percent of the max burn rate
