@@ -233,7 +233,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             control = {
                 ready = false,
                 degraded = false,
-                blade_count = 0,
+                generator_mismatch = false,
+                generator_mult = 0,
                 br100 = 0,
                 lim_br100 = 0,
                 waste_mode = WASTE_MODE.AUTO ---@type WASTE_MODE
@@ -692,6 +693,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
                 if self.auto_idle then
                     if rate <= IDLE_RATE then
+                        ramp = false
+
                         if self.auto_idle_start == 0 then
                             self.auto_idling = true
                             self.auto_idle_start = util.time_ms()
@@ -1035,6 +1038,19 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         end
 
         return total_avail_rate
+    end
+
+    -- get the energy generation rate of this unit (sum of all turbine generators)
+    ---@nodiscard
+    ---@return number gen_rate generation rate in Joules
+    function public.get_generation_rate()
+        local sum = 0
+
+        for i = 1, #self.turbines do
+            sum = sum + self.turbines[i].get_db().state.prod_rate
+        end
+
+        return sum
     end
 
     -- get the annunciator status

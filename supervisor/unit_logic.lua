@@ -43,6 +43,7 @@ function logic.update_annunciator(self)
     local num_boilers = self.num_boilers
     local num_turbines = self.num_turbines
     local annunc = self.db.annunciator
+    local ctrl = self.db.control
 
     annunc.RCSFault = false
 
@@ -72,8 +73,8 @@ function logic.update_annunciator(self)
         plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and self.plc_i.check_received_all_data()
 
         -- update auto control limit
-        if (plc_db.mek_struct.max_burn > 0) and ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
-            self.db.control.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
+        if (plc_db.mek_struct.max_burn > 0) and ((ctrl.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
+            ctrl.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
         end
 
         -- some alarms wait until the burn rate has stabilized, so keep track of that
@@ -127,7 +128,7 @@ function logic.update_annunciator(self)
 
         self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
-        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (self.db.control.lim_br100 / 100))
+        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (ctrl.lim_br100 / 100))
 
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
@@ -294,8 +295,9 @@ function logic.update_annunciator(self)
     local max_water_return_rate = 0
     local turbines_stable = true
 
-    -- recompute blade count on the chance that it may have changed
-    self.db.control.blade_count = 0
+    -- recompute unit generator multiplier in case it changed
+    ctrl.generator_mult = nil
+    ctrl.generator_mismatch = false
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
@@ -318,7 +320,11 @@ function logic.update_annunciator(self)
         total_input_rate = total_input_rate + turbine.state.steam_input_rate
         max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
 
-        self.db.control.blade_count = self.db.control.blade_count + turbine.build.blades
+        local energy_per_steam = turbine.build.max_production / turbine.build.max_flow_rate
+
+        if ctrl.generator_mult then
+            ctrl.generator_mismatch = ctrl.generator_mismatch or (ctrl.generator_mult ~= energy_per_steam)
+        else ctrl.generator_mult = energy_per_steam end
 
         local last = self.turbine_stability_data[i]
 
@@ -412,7 +418,7 @@ function logic.update_annunciator(self)
     --#endregion
 
     -- update auto control ready state for this unit
-    self.db.control.ready = plc_ready and boilers_ready and turbines_ready
+    ctrl.ready = plc_ready and boilers_ready and turbines_ready
 
     -- update auxiliary coolant command
     if plc_ready then

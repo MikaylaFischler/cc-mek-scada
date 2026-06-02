@@ -107,7 +107,14 @@ constants.HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 ---@class _mek_constants
 local mek = {}
 
-mek.BASE_BOIL_TEMP         = 373.15  -- mekanism: HeatUtils.BASE_BOIL_TEMP
+-- hard-coded Mekanism constants (not configurable)
+
+mek.BASE_BOIL_TEMP   = 373.15 -- mekanism: HeatUtils.BASE_BOIL_TEMP
+mek.STEAM_ENERGY_EFF = 0.2    -- mekanism: HeatUtils.getSteamEnergyEfficiency
+
+-- configurable Mekanism constants
+
+mek.WATER_THERMAL_ENTHALPY = 10 -- mekanism: maxEnergyPerSteam
 
 -- WARNING: the following values are overridden by the Mekanism configuration on the Supervisor
 

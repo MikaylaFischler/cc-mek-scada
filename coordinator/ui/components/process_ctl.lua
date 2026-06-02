@@ -159,20 +159,26 @@ local function new_view(root, x, y)
     TextBox{parent=chg_range,x=23,y=2,text="%",fg_bg=style.theme.label_fg}
 
     local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    local cur_percent = DataIndicator{parent=targets,x=11,y=9,label="",format="%19.2f",value=0,unit="%",lu_colors=black,width=23,fg_bg=blk_brn,hidden=true}
     local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function(v)facility.ps.publish("process_alt_mode", v)end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=dis_colors}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
     range_start.register(facility.ps, "process_range_start", range_start.set_value)
     range_stop.register(facility.ps, "process_range_stop", range_stop.set_value)
     cur_charge.register(facility.induction_ps_tbl[1], "avg_charge", function (fe) cur_charge.update(db.energy_convert_from_fe(fe) / 1000000) end)
+    cur_percent.register(facility.induction_ps_tbl[1], "energy_fill", function (val) cur_percent.update(val * 100) end)
     chg_mode.register(facility.ps, "process_alt_mode", chg_mode.set_value)
 
     targets.register(facility.ps, "process_alt_mode", function (alt)
         if alt then
+            cur_charge.hide()
+            cur_percent.show()
             chg_target.hide()
             chg_range.show()
             chg_tag_text.set_value("Charge Range")
         else
+            cur_charge.show()
+            cur_percent.hide()
             chg_target.show()
             chg_range.hide()
             chg_tag_text.set_value("Charge Target")
@@ -188,7 +194,7 @@ local function new_view(root, x, y)
     local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     g_target.register(facility.ps, "process_gen_target", g_target.set_value)
-    cur_gen.register(facility.induction_ps_tbl[1], "last_input", function (j) cur_gen.update(util.round(db.energy_convert(j) / 1000)) end)
+    cur_gen.register(facility.ps, "auto_gen_rate", function (r) cur_gen.update(util.round(db.energy_convert_from_fe(r) / 1000)) end)
 
     -----------------
     -- unit limits --

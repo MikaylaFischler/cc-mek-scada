@@ -102,6 +102,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         auto_active = false,
         auto_ramping = false,
         auto_saturated = false,
+        auto_gen_rate = false,
 
         auto_scram = false,
         ---@type ascram_status
@@ -657,7 +658,7 @@ function ioctl.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 17 then
+        if type(ctl_status) == "table" and #ctl_status == 18 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -670,22 +671,24 @@ function ioctl.update_facility_status(status)
 
             fac.auto_ramping = ctl_status[4]
             fac.auto_saturated = ctl_status[5]
+            fac.auto_gen_rate = ctl_status[6]
 
-            fac.auto_scram = ctl_status[6]
-            fac.ascram_status.matrix_fault = ctl_status[7]
-            fac.ascram_status.matrix_fill = ctl_status[8]
-            fac.ascram_status.crit_alarm = ctl_status[9]
-            fac.ascram_status.radiation = ctl_status[10]
-            fac.ascram_status.gen_fault = ctl_status[11]
+            fac.auto_scram = ctl_status[7]
+            fac.ascram_status.matrix_fault = ctl_status[8]
+            fac.ascram_status.matrix_fill = ctl_status[9]
+            fac.ascram_status.crit_alarm = ctl_status[10]
+            fac.ascram_status.radiation = ctl_status[11]
+            fac.ascram_status.gen_fault = ctl_status[12]
 
-            fac.status_lines[1] = ctl_status[12]
-            fac.status_lines[2] = ctl_status[13]
+            fac.status_lines[1] = ctl_status[13]
+            fac.status_lines[2] = ctl_status[14]
 
             fac.ps.publish("all_sys_ok", fac.all_sys_ok)
             fac.ps.publish("auto_ready", fac.auto_ready)
             fac.ps.publish("auto_active", fac.auto_active)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
             fac.ps.publish("auto_saturated", fac.auto_saturated)
+            fac.ps.publish("auto_gen_rate", fac.auto_gen_rate)
             fac.ps.publish("auto_scram", fac.auto_scram)
             fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
             fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
@@ -695,7 +698,7 @@ function ioctl.update_facility_status(status)
             fac.ps.publish("status_line_1", fac.status_lines[1])
             fac.ps.publish("status_line_2", fac.status_lines[2])
 
-            local group_map = ctl_status[14]
+            local group_map = ctl_status[15]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 for i = 1, #group_map do
@@ -705,9 +708,9 @@ function ioctl.update_facility_status(status)
                 end
             end
 
-            fac.auto_current_waste_product = ctl_status[15]
-            fac.auto_pu_fallback_active = ctl_status[16]
-            fac.auto_sps_disabled = ctl_status[17]
+            fac.auto_current_waste_product = ctl_status[16]
+            fac.auto_pu_fallback_active = ctl_status[17]
+            fac.auto_sps_disabled = ctl_status[18]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
