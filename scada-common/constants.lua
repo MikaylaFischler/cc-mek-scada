@@ -107,9 +107,12 @@ constants.HIGH_RTT = 500 -- 3.33x as long as expected w/ 0 ping
 ---@class _mek_constants
 local mek = {}
 
--- mB to FE conversion factor (do NOT modify)<br>
--- this is the value used for PID tuning and is used to scale the gains when this is not the FE per mB ratio
-mek.STANDARD_FE_PER_MB = 80000.0
+-- controller tuning references
+-- DO NOT MODIFY, this is the reference system, not your system
+
+mek.STANDARD_FE_PER_MB = 80000
+mek.REF_TURBINE_FLOW   = 4896000
+mek.REF_TURBINE_CAP    = 108416000
 
 -- hard-coded Mekanism constants (not configurable)
 

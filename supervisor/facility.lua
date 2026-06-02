@@ -118,7 +118,8 @@ function facility.new(config)
         -- closed loop control
         turbine_gen_rate = 0.0,
         charge_conversion = const.mek.STANDARD_FE_PER_MB,
-        gain_scaler = 1.0,
+        ref_P_scaler = 1.0,
+        ref_D_scaler = 1.0,
         time_start = 0.0,
         initial_ramp = true,
         waiting_on_ramp = false,    -- waiting on auto ramping

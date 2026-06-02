@@ -394,6 +394,7 @@ function update.auto_control(ExtChargeIdling)
             end
 
             local gen_multiplier = nil
+            local turbine_flow_perf = nil
             self.max_burn_combined = 0.0
 
             for i = 1, #self.prio_defs do
@@ -405,12 +406,22 @@ function update.auto_control(ExtChargeIdling)
 
                 for _, u in pairs(self.prio_defs[i]) do
                     local u_mult = u.get_control_inf().generator_mult
+                    local u_perf = u.get_control_inf().turbine_flow_perf
 
                     if gen_multiplier == nil then
                         gen_multiplier = u_mult
                     elseif ((gen_multiplier ~= u_mult) or u.get_control_inf().generator_mismatch) and ((self.mode == PROCESS.CHARGE) or (self.mode == PROCESS.GEN_RATE)) then
                         log.warning("FAC: cannot start CHARGE or GEN_RATE process with inconsistent turbine blade counts")
                         log.info("FAC: all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
+                        next_mode = PROCESS.INACTIVE
+                        self.start_fail = START_STATUS.BLADE_MISMATCH
+                    end
+
+                    if turbine_flow_perf == nil then
+                        turbine_flow_perf = u_perf
+                    elseif ((turbine_flow_perf ~= u_perf) or u.get_control_inf().turbine_mismatch) and (self.mode == PROCESS.CHARGE) then
+                        log.warning("FAC: cannot start CHARGE process with inconsistent turbine construction")
+                        log.info("FAC: all assigned unit's turbine's must have the same steam capacity to maximum flow rate ratio")
                         next_mode = PROCESS.INACTIVE
                         self.start_fail = START_STATUS.BLADE_MISMATCH
                     end
@@ -430,12 +441,13 @@ function update.auto_control(ExtChargeIdling)
                 self.start_fail = START_STATUS.NO_UNITS
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
-                self.gain_scaler = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
+                self.ref_P_scaler = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
+                self.ref_D_scaler = (const.mek.REF_TURBINE_CAP / const.mek.REF_TURBINE_FLOW) / turbine_flow_perf
 
                 log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
                     " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
                     ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
-                log.debug(util.c("FAC: computed gain scaler ", self.gain_scaler))
+                log.debug(util.c("FAC: computed P scaler ", self.ref_P_scaler, " and D scaler ", self.ref_D_scaler))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
@@ -625,9 +637,9 @@ function update.auto_control(ExtChargeIdling)
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
-                local P = self.gain_scaler * CHARGE_Kp * error
-                local I = self.gain_scaler * CHARGE_Ki * integral
-                local D = self.gain_scaler * CHARGE_Kd * derivative
+                local P = self.ref_P_scaler * CHARGE_Kp * error
+                local I = self.ref_P_scaler * CHARGE_Ki * integral
+                local D = self.ref_D_scaler * CHARGE_Kd * derivative
 
                 local FF = avg_outflow / self.charge_conversion
 
@@ -722,9 +734,9 @@ function update.auto_control(ExtChargeIdling)
             local integral = self.accumulator
             local derivative = (error - self.last_error) / (now - self.last_time)
 
-            local P = self.gain_scaler * RATE_Kp * error
-            local I = self.gain_scaler * RATE_Ki * integral
-            local D = self.gain_scaler * RATE_Kd * derivative
+            local P = self.ref_P_scaler * RATE_Kp * error
+            local I = self.ref_P_scaler * RATE_Ki * integral
+            local D = self.ref_D_scaler * RATE_Kd * derivative
 
             local FF = self.feedforward
 
