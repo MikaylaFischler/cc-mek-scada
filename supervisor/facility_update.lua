@@ -34,9 +34,9 @@ local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
 local CHARGE_CLOSE_LOOP_WINDOW_S = 15
 
-local CHARGE_Kp = 0.128
+local CHARGE_Kp = 0.127
 local CHARGE_Ki = 0.009  -- only used when near setpoint/stable
-local CHARGE_Kd = 0.475
+local CHARGE_Kd = 0.5
 
 local RATE_Kp = 0.0
 local RATE_Ki = 0.52
@@ -430,10 +430,12 @@ function update.auto_control(ExtChargeIdling)
                 self.start_fail = START_STATUS.NO_UNITS
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
+                self.gain_scaler = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
 
                 log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
                     " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
                     ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
+                log.debug(util.c("FAC: computed gain scaler ", self.gain_scaler))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
@@ -591,7 +593,7 @@ function update.auto_control(ExtChargeIdling)
             end
 
             -- convert to kFE to make constants not microscopic
-            local error = util.round((self.sp.charge_setpoint - avg_charge) / 1000) / 1000
+            local error = (self.sp.charge_setpoint - avg_charge) / 1000000
 
             if open_loop then
                 self.status_text = { "CHARGE MODE", "running at max burn" }
@@ -619,20 +621,24 @@ function update.auto_control(ExtChargeIdling)
                     self.accumulator = math.max(0, self.accumulator + (error * (now - self.last_time)))
                 end
 
-                -- local runtime = now - self.time_start
+                local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
-                local P = CHARGE_Kp * error
-                local I = CHARGE_Ki * integral
-                local D = CHARGE_Kd * derivative
+                local P = self.gain_scaler * CHARGE_Kp * error
+                local I = self.gain_scaler * CHARGE_Ki * integral
+                local D = self.gain_scaler * CHARGE_Kd * derivative
 
                 local FF = avg_outflow / self.charge_conversion
 
-                -- suppress integrator when not stabilized
+                -- switch from PD to PID control once near target with reduced PD, FF handles external load
+                -- zero accumulator when not stabilized
                 if math.abs(P) > 1 or math.abs(D) > 1 then
                     self.accumulator = 0
                     I = 0
+                else
+                    P = P / 1.25
+                    D = D / 2
                 end
 
                 local output = P + I + D + FF
@@ -653,8 +659,8 @@ function update.auto_control(ExtChargeIdling)
                     set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
                 end
 
-                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
-                --     runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
+                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
+                    runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
 
                 allocate_burn_rate(out_c, true)
 
@@ -712,13 +718,13 @@ function update.auto_control(ExtChargeIdling)
                 self.accumulator = self.accumulator + (error * (now - self.last_time))
             end
 
-            -- local runtime = now - self.time_start
+            local runtime = now - self.time_start
             local integral = self.accumulator
             local derivative = (error - self.last_error) / (now - self.last_time)
 
-            local P = RATE_Kp * error
-            local I = RATE_Ki * integral
-            local D = RATE_Kd * derivative
+            local P = self.gain_scaler * RATE_Kp * error
+            local I = self.gain_scaler * RATE_Ki * integral
+            local D = self.gain_scaler * RATE_Kd * derivative
 
             local FF = self.feedforward
 
@@ -729,8 +735,8 @@ function update.auto_control(ExtChargeIdling)
 
             self.saturated = output ~= out_c
 
-            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
-            --     runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
+            log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
+                runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
 
             allocate_burn_rate(out_c, false)
 

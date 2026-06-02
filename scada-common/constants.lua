@@ -107,6 +107,10 @@ constants.HIGH_RTT = 500    -- 3.33x as long as expected w/ 0 ping
 ---@class _mek_constants
 local mek = {}
 
+-- mB to FE conversion factor (do NOT modify)<br>
+-- this is the value used for PID tuning and is used to scale the gains when this is not the FE per mB ratio
+mek.STANDARD_FE_PER_MB = 80000.0
+
 -- hard-coded Mekanism constants (not configurable)
 
 mek.BASE_BOIL_TEMP   = 373.15 -- mekanism: HeatUtils.BASE_BOIL_TEMP

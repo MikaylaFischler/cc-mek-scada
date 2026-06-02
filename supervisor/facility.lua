@@ -1,3 +1,4 @@
+local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
@@ -116,7 +117,8 @@ function facility.new(config)
         },
         -- closed loop control
         turbine_gen_rate = 0.0,
-        charge_conversion = 80000.0, -- mB to FE conversion factor
+        charge_conversion = const.mek.STANDARD_FE_PER_MB,
+        gain_scaler = 1.0,
         time_start = 0.0,
         initial_ramp = true,
         waiting_on_ramp = false,    -- waiting on auto ramping
