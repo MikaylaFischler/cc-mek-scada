@@ -38,9 +38,9 @@ local CHARGE_Kp = 0.128
 local CHARGE_Ki = 0.009  -- only used when near setpoint/stable
 local CHARGE_Kd = 0.475
 
-local RATE_Kp = 2.45
-local RATE_Ki = 0.4825
-local RATE_Kd = -1.0
+local RATE_Kp = 0.0
+local RATE_Ki = 0.52
+local RATE_Kd = 0.0
 
 local self          = nil ---@type _facility_self
 local next_mode     = 0
