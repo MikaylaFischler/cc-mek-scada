@@ -383,7 +383,8 @@ function update.auto_control(ExtChargeIdling)
             log.warning("facility_update.auto_control(): failed to save supervisor settings file")
         end
 
-        if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
+        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.MATRIX_FAULT_IDLE or
+           self.last_mode == PROCESS.SYSTEM_ALARM_IDLE or self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE then
             self.start_fail = START_STATUS.OK
 
             if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
