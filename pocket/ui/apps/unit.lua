@@ -279,7 +279,7 @@ local function new_view(root)
 
             --#region Reactor Tab
 
-            nav_links[i].reactor = reactor(app, u_page, panes, page_div, u_ps, update)
+            nav_links[i].reactor = reactor(app, u_page, panes, page_div, i, u_ps, update)
 
             --#endregion
 
@@ -347,7 +347,7 @@ local function new_view(root)
 
             for b_id = 1, unit.num_boilers do
                 local ps = unit.boiler_ps_tbl[b_id]
-                nav_links[i].boiler[b_id] = boiler(app, u_page, panes, blr_pane, b_id, ps, update)
+                nav_links[i].boiler[b_id] = boiler(app, u_page, panes, blr_pane, i, b_id, ps, update)
             end
 
             --#endregion

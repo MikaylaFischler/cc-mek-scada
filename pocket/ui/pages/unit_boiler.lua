@@ -2,6 +2,7 @@
 -- Unit Boiler View
 --
 
+local constants      = require("scada-common.constants")
 local types          = require("scada-common.types")
 local util           = require("scada-common.util")
 
@@ -35,10 +36,11 @@ local yel_ind_s = style.icon_states.yel_ind_s
 ---@param u_page nav_tree_page
 ---@param panes Div[]
 ---@param blr_pane Div
+---@param u_id integer unit ID
 ---@param b_id integer boiler ID
 ---@param ps psil
 ---@param update function
-return function (app, u_page, panes, blr_pane, b_id, ps, update)
+return function (app, u_page, panes, blr_pane, u_id, b_id, ps, update)
     local db = ioctl.get_db()
 
     local blr_div = Div{parent=blr_pane,x=2,width=blr_pane.get_width()-2}
@@ -126,10 +128,19 @@ return function (app, u_page, panes, blr_pane, b_id, ps, update)
     cooled_p.register(ps, "ccool_fill", function (x) cooled_p.update(x * 100) end)
     ccool_amnt.register(ps, "ccool", update_amount(ccool_amnt))
 
-    TextBox{parent=blr_ext_div,text="Env. Loss",y=15,width=9,fg_bg=label}
-    local env_loss = DataIndicator{parent=blr_ext_div,x=11,y=15,lu_colors=lu_col,label="",unit="",format="%11.8f",value=0,width=11,fg_bg=text_fg}
+    TextBox{parent=blr_ext_div,text="Environmental Loss",y=15,fg_bg=label}
+    local env_loss = DataIndicator{parent=blr_ext_div,y=16,lu_colors=lu_col,label="",unit="J",format="%18.6f",value=0,width=21,fg_bg=text_fg}
 
-    env_loss.register(ps, "env_loss", env_loss.update)
+    env_loss.register(ps, "env_loss", function (raw)
+        local ok, result = pcall(function ()
+            local data = db.units[u_id].boiler_data_tbl[b_id].build
+            local size = data.length * data.width * data.height
+            local inner_size = (data.length - 1) * (data.width - 1) * (data.height - 1)
+            return raw * constants.mek.BOILER_CASING_HEAT_CAP * (size - inner_size)
+        end)
+
+        if ok then env_loss.update(result) end
+    end)
 
     return blr_page.nav_to
 end

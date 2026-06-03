@@ -109,19 +109,21 @@ local mek = {}
 
 -- hard-coded Mekanism constants (not configurable)
 
-mek.BASE_BOIL_TEMP   = 373.15 -- mekanism: HeatUtils.BASE_BOIL_TEMP
-mek.STEAM_ENERGY_EFF = 0.2    -- mekanism: HeatUtils.getSteamEnergyEfficiency
+mek.BASE_BOIL_TEMP         = 373.15 -- HeatUtils.BASE_BOIL_TEMP
+mek.STEAM_ENERGY_EFF       = 0.2    -- HeatUtils.getSteamEnergyEfficiency
+
+mek.BOILER_CASING_HEAT_CAP = 50     -- BoilerMultiblockData.CASING_HEAT_CAPACITY
 
 -- configurable Mekanism constants
 
-mek.WATER_THERMAL_ENTHALPY = 10 -- mekanism: maxEnergyPerSteam
+mek.WATER_THERMAL_ENTHALPY = 10 -- maxEnergyPerSteam
 
 -- WARNING: the following values are overridden by the Mekanism configuration on the Supervisor
 
-mek.JOULES_PER_MB          = 1000000 -- mekanism: energyPerFissionFuel
-mek.TURBINE_GAS_PER_TANK   = 64000   -- mekanism: turbineGasPerTank
-mek.TURBINE_DISPERSER_FLOW = 1280    -- mekanism: turbineDisperserGasFlow
-mek.TURBINE_VENT_FLOW      = 32000   -- mekanism: turbineVentGasFlow
+mek.JOULES_PER_MB          = 1000000 -- energyPerFissionFuel
+mek.TURBINE_GAS_PER_TANK   = 64000   -- turbineGasPerTank
+mek.TURBINE_DISPERSER_FLOW = 1280    -- turbineDisperserGasFlow
+mek.TURBINE_VENT_FLOW      = 32000   -- turbineVentGasFlow
 
 constants.mek = mek
 
