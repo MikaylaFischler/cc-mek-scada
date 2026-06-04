@@ -441,13 +441,17 @@ function update.auto_control(ExtChargeIdling)
                 self.start_fail = START_STATUS.NO_UNITS
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
-                self.ref_P_scaler = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
-                self.ref_D_scaler = (const.mek.REF_TURBINE_CAP / const.mek.REF_TURBINE_FLOW) / turbine_flow_perf
+
+                local p_ratio = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
+                self.ref_P_scaler = util.trinary(p_ratio <= 1, p_ratio, 2 ^ ((p_ratio - 1) / 6))
+
+                local d_ratio = (const.mek.REF_TURBINE_CAP / const.mek.REF_TURBINE_FLOW) / turbine_flow_perf
+                self.ref_D_scaler = util.trinary(d_ratio <= 1, d_ratio, 2 ^ ((d_ratio - 1) / 20))
 
                 log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
                     " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
                     ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
-                log.debug(util.c("FAC: computed P scaler ", self.ref_P_scaler, " and D scaler ", self.ref_D_scaler))
+                log.debug(util.c("FAC: computed P scaler ", self.ref_P_scaler, " (ratio was ", p_ratio, ") and D scaler ", self.ref_D_scaler, " (ratio was ", d_ratio, ")"))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
