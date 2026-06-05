@@ -235,6 +235,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 degraded = false,
                 generator_mismatch = false,
                 generator_mult = 0,
+                turbine_mismatch = false,
+                turbine_flow_perf = 0,
                 br100 = 0,
                 lim_br100 = 0,
                 waste_mode = WASTE_MODE.AUTO ---@type WASTE_MODE

@@ -295,9 +295,11 @@ function logic.update_annunciator(self)
     local max_water_return_rate = 0
     local turbines_stable = true
 
-    -- recompute unit generator multiplier in case it changed
+    -- recompute unit generator multiplier and turbine flow perofrmance in case they changed
     ctrl.generator_mult = nil
     ctrl.generator_mismatch = false
+    ctrl.turbine_flow_perf = nil
+    ctrl.turbine_mismatch = false
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
@@ -325,6 +327,12 @@ function logic.update_annunciator(self)
         if ctrl.generator_mult then
             ctrl.generator_mismatch = ctrl.generator_mismatch or (ctrl.generator_mult ~= energy_per_steam)
         else ctrl.generator_mult = energy_per_steam end
+
+        local flow_perf = turbine.build.steam_cap / turbine.build.max_flow_rate
+
+        if ctrl.turbine_flow_perf then
+            ctrl.turbine_mismatch = ctrl.turbine_mismatch or (ctrl.turbine_flow_perf ~= flow_perf)
+        else ctrl.turbine_flow_perf = flow_perf end
 
         local last = self.turbine_stability_data[i]
 

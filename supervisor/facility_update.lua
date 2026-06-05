@@ -34,9 +34,9 @@ local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
 local CHARGE_CLOSE_LOOP_WINDOW_S = 15
 
-local CHARGE_Kp = 0.128
+local CHARGE_Kp = 0.127
 local CHARGE_Ki = 0.009  -- only used when near setpoint/stable
-local CHARGE_Kd = 0.475
+local CHARGE_Kd = 0.5
 
 local RATE_Kp = 0.0
 local RATE_Ki = 0.52
@@ -394,6 +394,7 @@ function update.auto_control(ExtChargeIdling)
             end
 
             local gen_multiplier = nil
+            local turbine_flow_perf = nil
             self.max_burn_combined = 0.0
 
             for i = 1, #self.prio_defs do
@@ -405,12 +406,22 @@ function update.auto_control(ExtChargeIdling)
 
                 for _, u in pairs(self.prio_defs[i]) do
                     local u_mult = u.get_control_inf().generator_mult
+                    local u_perf = u.get_control_inf().turbine_flow_perf
 
                     if gen_multiplier == nil then
                         gen_multiplier = u_mult
                     elseif ((gen_multiplier ~= u_mult) or u.get_control_inf().generator_mismatch) and ((self.mode == PROCESS.CHARGE) or (self.mode == PROCESS.GEN_RATE)) then
                         log.warning("FAC: cannot start CHARGE or GEN_RATE process with inconsistent turbine blade counts")
                         log.info("FAC: all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
+                        next_mode = PROCESS.INACTIVE
+                        self.start_fail = START_STATUS.BLADE_MISMATCH
+                    end
+
+                    if turbine_flow_perf == nil then
+                        turbine_flow_perf = u_perf
+                    elseif ((turbine_flow_perf ~= u_perf) or u.get_control_inf().turbine_mismatch) and (self.mode == PROCESS.CHARGE) then
+                        log.warning("FAC: cannot start CHARGE process with inconsistent turbine construction")
+                        log.info("FAC: all assigned unit's turbine's must have the same steam capacity to maximum flow rate ratio")
                         next_mode = PROCESS.INACTIVE
                         self.start_fail = START_STATUS.BLADE_MISMATCH
                     end
@@ -431,9 +442,16 @@ function update.auto_control(ExtChargeIdling)
             else
                 self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
 
+                local p_ratio = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
+                self.ref_P_scaler = util.trinary(p_ratio <= 1, p_ratio, 2 ^ ((p_ratio - 1) / 6))
+
+                local d_ratio = (const.mek.REF_TURBINE_CAP / const.mek.REF_TURBINE_FLOW) / turbine_flow_perf
+                self.ref_D_scaler = util.trinary(d_ratio <= 1, d_ratio, 2 ^ ((d_ratio - 1) / 20))
+
                 log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
                     " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
                     ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
+                log.debug(util.c("FAC: computed P scaler ", self.ref_P_scaler, " (ratio was ", p_ratio, ") and D scaler ", self.ref_D_scaler, " (ratio was ", d_ratio, ")"))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
@@ -591,7 +609,7 @@ function update.auto_control(ExtChargeIdling)
             end
 
             -- convert to kFE to make constants not microscopic
-            local error = util.round((self.sp.charge_setpoint - avg_charge) / 1000) / 1000
+            local error = (self.sp.charge_setpoint - avg_charge) / 1000000
 
             if open_loop then
                 self.status_text = { "CHARGE MODE", "running at max burn" }
@@ -623,16 +641,20 @@ function update.auto_control(ExtChargeIdling)
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
-                local P = CHARGE_Kp * error
-                local I = CHARGE_Ki * integral
-                local D = CHARGE_Kd * derivative
+                local P = self.ref_P_scaler * CHARGE_Kp * error
+                local I = self.ref_P_scaler * CHARGE_Ki * integral
+                local D = self.ref_D_scaler * CHARGE_Kd * derivative
 
                 local FF = avg_outflow / self.charge_conversion
 
-                -- suppress integrator when not stabilized
+                -- switch from PD to PID control once near target with reduced PD, FF handles external load
+                -- zero accumulator when not stabilized
                 if math.abs(P) > 1 or math.abs(D) > 1 then
                     self.accumulator = 0
                     I = 0
+                else
+                    P = P / 1.25
+                    D = D / 2
                 end
 
                 local output = P + I + D + FF
@@ -716,9 +738,9 @@ function update.auto_control(ExtChargeIdling)
             local integral = self.accumulator
             local derivative = (error - self.last_error) / (now - self.last_time)
 
-            local P = RATE_Kp * error
-            local I = RATE_Ki * integral
-            local D = RATE_Kd * derivative
+            local P = self.ref_P_scaler * RATE_Kp * error
+            local I = self.ref_P_scaler * RATE_Ki * integral
+            local D = self.ref_D_scaler * RATE_Kd * derivative
 
             local FF = self.feedforward
 
