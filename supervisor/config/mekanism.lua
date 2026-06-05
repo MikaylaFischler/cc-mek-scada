@@ -146,11 +146,21 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
         TextBox{parent=mek_c_2,x=string.len(key[3])+17,y=field.get_y(),text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     end
 
+    local cfg_err = TextBox{parent=mek_c_2,x=8,y=14,width=35,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
+
     local function submit_custom_profile()
         for _, key in ipairs(mekanism.ordered_keys) do
-            tmp_cfg.MekanismConfig[key[1]] = tool_ctl.custom_configs[key[1]].get_value()
+            local val = tonumber(tool_ctl.custom_configs[key[1]].get_value())
+
+            if val ~= nil then
+                tmp_cfg.MekanismConfig[key[1]] = val
+            else
+                cfg_err.show()
+                return
+            end
         end
 
+        cfg_err.hide()
         mek_pane.set_value(3)
     end
 
@@ -171,12 +181,26 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
 
     TextBox{parent=mek_c_3,y=8,height=2,text="Tip: the easist way to check these are their receipes in JEI.",fg_bg=g_lg_fg_bg}
 
-    local function submit_waste_ratios()
-        tmp_cfg.MekanismWasteToPu[1] = tool_ctl.waste_ratios[1].get_value()
-        tmp_cfg.MekanismWasteToPu[2] = tool_ctl.waste_ratios[2].get_value()
-        tmp_cfg.MekanismWasteToPo[1] = tool_ctl.waste_ratios[3].get_value()
-        tmp_cfg.MekanismWasteToPo[2] = tool_ctl.waste_ratios[4].get_value()
+    local ratio_err = TextBox{parent=mek_c_3,x=8,y=14,width=35,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
+    local function submit_waste_ratios()
+        local values = {}
+
+        for i = 1, #tool_ctl.waste_ratios do
+            values[i] = tonumber(tool_ctl.waste_ratios[i].get_value())
+
+            if values[i] == nil then
+                ratio_err.show()
+                return
+            end
+        end
+
+        tmp_cfg.MekanismWasteToPu[1] = values[1]
+        tmp_cfg.MekanismWasteToPu[2] = values[2]
+        tmp_cfg.MekanismWasteToPo[1] = values[3]
+        tmp_cfg.MekanismWasteToPo[2] = values[4]
+
+        ratio_err.hide()
         main_pane.set_value(4)
     end
 
