@@ -637,7 +637,7 @@ function update.auto_control(ExtChargeIdling)
                     self.accumulator = math.max(0, self.accumulator + (error * (now - self.last_time)))
                 end
 
-                local runtime = now - self.time_start
+                -- local runtime = now - self.time_start
                 local integral = self.accumulator
                 local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -675,8 +675,8 @@ function update.auto_control(ExtChargeIdling)
                     set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
                 end
 
-                log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
-                    runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
+                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
+                --     runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
 
                 allocate_burn_rate(out_c, true)
 
@@ -734,7 +734,7 @@ function update.auto_control(ExtChargeIdling)
                 self.accumulator = self.accumulator + (error * (now - self.last_time))
             end
 
-            local runtime = now - self.time_start
+            -- local runtime = now - self.time_start
             local integral = self.accumulator
             local derivative = (error - self.last_error) / (now - self.last_time)
 
@@ -751,8 +751,8 @@ function update.auto_control(ExtChargeIdling)
 
             self.saturated = output ~= out_c
 
-            log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
-                runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
+            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
+            --     runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
 
             allocate_burn_rate(out_c, false)
 
