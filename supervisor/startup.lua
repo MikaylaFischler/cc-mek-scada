@@ -174,6 +174,9 @@ local function main()
         -- free any closed sessions
         svsessions.free_all_closed()
 
+        -- report energy mismatches
+        databus.tx_energy_mismatch(sv_facility.has_energy_mismatch())
+
         -- start next clock timer
         loop_clock.start()
 

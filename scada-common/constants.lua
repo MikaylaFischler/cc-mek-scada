@@ -80,6 +80,8 @@ constants.RS_THRESHOLDS = rs
 
 --#region Supervisor Constants
 
+constants.ENERGY_MISMATCH_TOL = 0.01
+
 -- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks
 constants.FLOW_STABILITY_DELAY_MS = 10000
 
@@ -116,10 +118,15 @@ mek.REF_TURBINE_CAP    = 108416000
 
 -- hard-coded Mekanism constants (not configurable)
 
-mek.BASE_BOIL_TEMP         = 373.15 -- HeatUtils.BASE_BOIL_TEMP
-mek.STEAM_ENERGY_EFF       = 0.2    -- HeatUtils.getSteamEnergyEfficiency
+mek.BASE_BOIL_TEMP          = 373.15 -- HeatUtils.BASE_BOIL_TEMP
+mek.STEAM_ENERGY_EFF        = 0.2    -- HeatUtils.getSteamEnergyEfficiency
 
-mek.BOILER_CASING_HEAT_CAP = 50     -- BoilerMultiblockData.CASING_HEAT_CAPACITY
+mek.BOILER_CASING_HEAT_CAP  = 50     -- BoilerMultiblockData.CASING_HEAT_CAPACITY
+
+mek.SODIUM_CONDUCTIVITY     = 1
+mek.SODIUM_THERMAL_ENTHALPY = 5
+
+mek.WATER_CONDUCTIVITY      = 0.5
 
 -- configurable Mekanism constants
 
