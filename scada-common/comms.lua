@@ -15,8 +15,6 @@ local TYPE_TBL = "table"
 
 -- comms settings/attributes
 
----@type integer computer ID
----@diagnostic disable-next-line: undefined-field
 local COMPUTER_ID = os.getComputerID()
 
 ---@type number|nil maximum acceptable transmission distance
@@ -26,8 +24,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.2.0"
-comms.api_version = "0.1.0"
+comms.version = "3.3.3"
+comms.api_version = "0.1.2"
 
 ---@alias frame scada_frame|authd_frame
 ---@alias packet_container modbus_container|rplc_container|mgmt_container|crdn_container

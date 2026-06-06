@@ -6,6 +6,7 @@ require("/initenv").init_env()
 
 local crash      = require("scada-common.crash")
 local comms      = require("scada-common.comms")
+local constants  = require("scada-common.constants")
 local log        = require("scada-common.log")
 local network    = require("scada-common.network")
 local ppm        = require("scada-common.ppm")
@@ -24,7 +25,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.9.3"
+local SUPERVISOR_VERSION = "v1.10.1"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -118,6 +119,12 @@ local function main()
     -- report versions
     databus.tx_versions(SUPERVISOR_VERSION, comms.version)
 
+    -- report Mekanism configuration
+    log.debug("MekanismConfig: JOULES_PER_MB = " .. constants.mek.JOULES_PER_MB)
+    log.debug("MekanismConfig: TURBINE_DISPERSER_FLOW = " .. constants.mek.TURBINE_DISPERSER_FLOW)
+    log.debug("MekanismConfig: TURBINE_VENT_FLOW = " .. constants.mek.TURBINE_VENT_FLOW)
+    log.debug("MekanismConfig: TURBINE_GAS_PER_TANK = " .. constants.mek.TURBINE_GAS_PER_TANK)
+
     -- mount connected devices
     ppm.mount_all()
 
@@ -166,6 +173,9 @@ local function main()
 
         -- free any closed sessions
         svsessions.free_all_closed()
+
+        -- report energy mismatches
+        databus.tx_energy_mismatch(sv_facility.has_energy_mismatch())
 
         -- start next clock timer
         loop_clock.start()

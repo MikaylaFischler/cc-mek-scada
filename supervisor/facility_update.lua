@@ -30,19 +30,17 @@ local ALARM_LIMS     = const.ALARM_LIMITS
 
 local DTV_RTU_S_DATA = qtypes.DTV_RTU_S_DATA
 
--- 7.14 kJ per blade for 1 mB of fissile fuel<br>
--- 2856 FE per blade per 1 mB, 285.6 FE per blade per 0.1 mB (minimum)
-local POWER_PER_BLADE = util.joules_to_fe_rf(7140)
-
 local FLOW_STABILITY_DELAY_S = const.FLOW_STABILITY_DELAY_MS / 1000
 
-local CHARGE_Kp = 0.15
-local CHARGE_Ki = 0.0
-local CHARGE_Kd = 0.6
+local CHARGE_CLOSE_LOOP_WINDOW_S = 15
 
-local RATE_Kp = 2.45
-local RATE_Ki = 0.4825
-local RATE_Kd = -1.0
+local CHARGE_Kp = 0.127
+local CHARGE_Ki = 0.009  -- only used when near setpoint/stable
+local CHARGE_Kd = 0.5
+
+local RATE_Kp = 0.0
+local RATE_Ki = 0.52
+local RATE_Kd = 0.0
 
 local self          = nil ---@type _facility_self
 local next_mode     = 0
@@ -82,9 +80,13 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
         local units = self.prio_defs[i]
 
         if #units > 0 then
-            local split = math.floor(unallocated / #units)
+            local last_br = {}  ---@type integer[]
+            local avail   = {}  ---@type { cap: integer, ctl: unit_control }[]
+            local redist  = false
 
+            -- split unallocated across this priority group
             local splits = {}
+            local split  = math.floor(unallocated / #units)
             for u = 1, #units do splits[u] = split end
             splits[#units] = splits[#units] + (unallocated % #units)
 
@@ -92,20 +94,39 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
             for id = 1, #units do
                 local u = units[id]
 
-                local ctl = u.get_control_inf()
-                local lim_br100 = u.auto_get_effective_limit()
+                local ctl         = u.get_control_inf()
+                local lim_br100   = u.auto_get_effective_limit()
+                local f_lim_br100 = u.auto_get_fuel_limited()
 
                 if abort_on_fault and (lim_br100 ~= ctl.lim_br100) then
                     -- effective limit differs from set limit, unit is degraded
                     return unallocated, true
                 end
 
-                local last = ctl.br100
+                last_br[u.get_id()] = ctl.br100
 
-                if splits[id] <= lim_br100 then
+                if splits[id] <= f_lim_br100 then
                     ctl.br100 = splits[id]
+
+                    unallocated = math.max(0, unallocated - ctl.br100)
+
+                    if splits[id] < f_lim_br100 then
+                        table.insert(avail, { cap = f_lim_br100 - splits[id], ctl = ctl })
+                    end
                 else
-                    ctl.br100 = lim_br100
+                    if splits[id] <= lim_br100 then
+                        -- still assign the most we can so that it can recover from rate limiting
+                        ctl.br100 = splits[id]
+                    else
+                        ctl.br100 = lim_br100
+                    end
+
+                    -- we are sorted by user limit, so it only makes sense to redistribute in this group if fuel limiting activated
+                    redist = redist or (f_lim_br100 ~= lim_br100)
+
+                    -- we know we can't go higher even if assigned, so use f_lim_br100 for the remainder
+                    -- we still might go past this though, but it should correct itself afterwards
+                    unallocated = math.max(0, unallocated - f_lim_br100)
 
                     if id < #units then
                         local remaining = #units - id
@@ -114,15 +135,61 @@ local function allocate_burn_rate(burn_rate, ramp, abort_on_fault)
                         splits[#units] = splits[#units] + (unallocated % remaining)
                     end
                 end
+            end
 
-                unallocated = math.max(0, unallocated - ctl.br100)
+            -- if we were fuel limited, we need to go through the list again since it wasn't sorted by fuel limited capacity
+            if redist then
+                -- check if only one with available capacity, otherwise we need to go through sorting
+                if #avail == 1 then
+                    local ctl = avail[1].ctl
+                    local add = math.min(unallocated, avail[1].cap)
 
-                if last ~= ctl.br100 then u.auto_commit_br100(ramp) end
+                    ctl.br100   = ctl.br100 + add
+                    unallocated = math.max(0, unallocated - add)
+                elseif #avail > 1 then
+                    -- sort by capacity, ascending
+                    table.sort(avail, function (a, b) return a.cap < b.cap end)
+
+                    -- redistribute remainder
+                    splits = {}
+                    split  = math.floor(unallocated / #avail)
+                    for x = 1, #avail do splits[x] = split end
+                    splits[#avail] = splits[#avail] + (unallocated % #avail)
+
+                    for id = 1, #avail do
+                        local ctl  = avail[id].ctl
+                        local used = math.min(splits[id], avail[id].cap)
+
+                        ctl.br100   = ctl.br100 + used
+                        unallocated = math.max(0, unallocated - used)
+                    end
+                end
+            end
+
+            -- commit burn rates
+            for id = 1, #units do
+                local u = units[id]
+                if last_br[u.get_id()] ~= u.get_control_inf().br100 then u.auto_commit_br100(ramp) end
             end
         end
     end
 
     return unallocated, false
+end
+
+-- check if all auto-controlled units sum to meet the specified burn rate
+---@nodiscard
+local function reached_rate(burn_rate)
+    local sum = 0.0
+
+    for i = 1, #self.prio_defs do
+        local units = self.prio_defs[i]
+        for u = 1, #units do
+            sum = sum + units[u].get_burn_rate()
+        end
+    end
+
+    return sum == burn_rate
 end
 
 -- set idle state of all assigned reactors
@@ -233,9 +300,9 @@ function update.pre_auto()
             self.imtx_percent = db.tanks.energy_fill * 100
 
             if self.im_stat_init then
-                self.avg_charge.record(energy, charge_update)
-                self.avg_inflow.record(input, rate_update)
-                self.avg_outflow.record(output, rate_update)
+                self.avg_charge.update(energy, charge_update)
+                self.avg_inflow.update(input, rate_update)
+                self.avg_outflow.update(output, rate_update)
 
                 if charge_update ~= self.imtx_last_charge_t then
                     local delta = (energy - self.imtx_last_charge) / (charge_update - self.imtx_last_charge_t)
@@ -248,7 +315,7 @@ function update.pre_auto()
                         self.imtx_last_capacity = db.build.max_energy
                         self.avg_net.reset()
                     else
-                        self.avg_net.record(delta, charge_update)
+                        self.avg_net.update(delta, charge_update)
                     end
                 end
             else
@@ -272,6 +339,18 @@ function update.pre_auto()
         self.im_stat_init = false
     end
 
+    -- calculate energy generated by turbines under auto control
+    local turbine_gen = 0
+    for i = 1, #self.prio_defs do
+        local units = self.prio_defs[i]
+        for u = 1, #units do
+            turbine_gen = turbine_gen + units[u].get_generation_rate()
+        end
+    end
+
+    self.turbine_gen_rate = util.joules_to_fe_rf(turbine_gen)
+
+    -- update ok state
     self.all_sys_ok = true
     for i = 1, #self.units do
         self.all_sys_ok = self.all_sys_ok and not self.units[i].get_control_inf().degraded
@@ -284,9 +363,9 @@ function update.auto_control(ExtChargeIdling)
     local AUTO_SCRAM = self.types.AUTO_SCRAM
     local START_STATUS = self.types.START_STATUS
 
-    local avg_charge  = self.avg_charge.compute()
-    local avg_inflow  = self.avg_inflow.compute()
-    local avg_outflow = self.avg_outflow.compute()
+    local avg_charge  = self.avg_charge.get()
+    local avg_inflow  = self.avg_inflow.get()
+    local avg_outflow = self.avg_outflow.get()
 
     local now = os.clock()
 
@@ -304,7 +383,8 @@ function update.auto_control(ExtChargeIdling)
             log.warning("facility_update.auto_control(): failed to save supervisor settings file")
         end
 
-        if (self.last_mode == PROCESS.INACTIVE) or (self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE) then
+        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.MATRIX_FAULT_IDLE or
+           self.last_mode == PROCESS.SYSTEM_ALARM_IDLE or self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE then
             self.start_fail = START_STATUS.OK
 
             if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
@@ -313,7 +393,8 @@ function update.auto_control(ExtChargeIdling)
                 self.ascram_reason = AUTO_SCRAM.NONE
             end
 
-            local blade_count = nil
+            local gen_multiplier = nil
+            local turbine_flow_perf = nil
             self.max_burn_combined = 0.0
 
             for i = 1, #self.prio_defs do
@@ -324,12 +405,23 @@ function update.auto_control(ExtChargeIdling)
                 )
 
                 for _, u in pairs(self.prio_defs[i]) do
-                    local u_blade_count = u.get_control_inf().blade_count
+                    local u_mult = u.get_control_inf().generator_mult
+                    local u_perf = u.get_control_inf().turbine_flow_perf
 
-                    if blade_count == nil then
-                        blade_count = u_blade_count
-                    elseif (u_blade_count ~= blade_count) and (self.mode == PROCESS.GEN_RATE) then
-                        log.warning("FAC: cannot start GEN_RATE process with inconsistent unit blade counts")
+                    if gen_multiplier == nil then
+                        gen_multiplier = u_mult
+                    elseif ((gen_multiplier ~= u_mult) or u.get_control_inf().generator_mismatch) and ((self.mode == PROCESS.CHARGE) or (self.mode == PROCESS.GEN_RATE)) then
+                        log.warning("FAC: cannot start CHARGE or GEN_RATE process with inconsistent turbine blade counts")
+                        log.info("FAC: all assigned unit's turbine's must have the same number of blades and enough coils to support those blades")
+                        next_mode = PROCESS.INACTIVE
+                        self.start_fail = START_STATUS.BLADE_MISMATCH
+                    end
+
+                    if turbine_flow_perf == nil then
+                        turbine_flow_perf = u_perf
+                    elseif ((turbine_flow_perf ~= u_perf) or u.get_control_inf().turbine_mismatch) and (self.mode == PROCESS.CHARGE) then
+                        log.warning("FAC: cannot start CHARGE process with inconsistent turbine construction")
+                        log.info("FAC: all assigned unit's turbine's must have the same steam capacity to maximum flow rate ratio")
                         next_mode = PROCESS.INACTIVE
                         self.start_fail = START_STATUS.BLADE_MISMATCH
                     end
@@ -342,13 +434,24 @@ function update.auto_control(ExtChargeIdling)
 
             log.debug(util.c("FAC: computed a max combined burn rate of ", self.max_burn_combined, "mB/t"))
 
-            if blade_count == nil then
+            if gen_multiplier == nil then
                 -- no units
                 log.warning("FAC: cannot start process control with 0 units assigned")
                 next_mode = PROCESS.INACTIVE
                 self.start_fail = START_STATUS.NO_UNITS
             else
-                self.charge_conversion = blade_count * POWER_PER_BLADE
+                self.charge_conversion = util.joules_to_fe_rf(gen_multiplier * (const.mek.JOULES_PER_MB * const.mek.STEAM_ENERGY_EFF / const.mek.WATER_THERMAL_ENTHALPY))
+
+                local p_ratio = const.mek.STANDARD_FE_PER_MB / self.charge_conversion
+                self.ref_P_scaler = util.trinary(p_ratio <= 1, p_ratio, 2 ^ ((p_ratio - 1) / 6))
+
+                local d_ratio = (const.mek.REF_TURBINE_CAP / const.mek.REF_TURBINE_FLOW) / turbine_flow_perf
+                self.ref_D_scaler = util.trinary(d_ratio <= 1, d_ratio, 2 ^ ((d_ratio - 1) / 20))
+
+                log.debug(util.c("FAC: computed charge conversion factor ", self.charge_conversion, " from generator multiplier ", gen_multiplier,
+                    " (using Mekanism constants JOULES_PER_MB = ", const.mek.JOULES_PER_MB, ", STEAM_ENERGY_EFF = ", const.mek.STEAM_ENERGY_EFF,
+                    ", WATER_THERMAL_ENTHALPY = ", const.mek.WATER_THERMAL_ENTHALPY, ")"))
+                log.debug(util.c("FAC: computed P scaler ", self.ref_P_scaler, " (ratio was ", p_ratio, ") and D scaler ", self.ref_D_scaler, " (ratio was ", d_ratio, ")"))
             end
         elseif self.mode == PROCESS.INACTIVE then
             for i = 1, #self.prio_defs do
@@ -371,18 +474,25 @@ function update.auto_control(ExtChargeIdling)
     end
 
     -- update unit ready state
+    self.units_ready = nil
+
     local assign_count = 0
-    self.units_ready = true
     for i = 1, #self.prio_defs do
         for _, u in pairs(self.prio_defs[i]) do
             assign_count = assign_count + 1
-            self.units_ready = self.units_ready and u.get_control_inf().ready
+
+            self.units_ready = (self.units_ready or (self.units_ready == nil)) and u.get_control_inf().ready
         end
     end
 
+    -- nil to false, no units assigned, so auto control is not ready
+    self.units_ready = self.units_ready or false
+
     -- perform mode-specific operations
     if self.mode == PROCESS.INACTIVE then
-        if not self.units_ready then
+        if assign_count == 0 then
+            self.status_text = { "NOT READY", "no units assigned" }
+        elseif not self.units_ready then
             self.status_text = { "NOT READY", "assigned units not ready" }
         else
             -- clear ASCRAM once ready
@@ -425,7 +535,7 @@ function update.auto_control(ExtChargeIdling)
             self.status_text = { "BURN RATE MODE", "ramping to target" }
             log.info("FAC: BURN_RATE process mode started")
         elseif self.waiting_on_ramp then
-            if all_units_ramped() then
+            if all_units_ramped() or reached_rate(self.sp.burn_target) then
                 self.waiting_on_ramp = false
 
                 self.status_text = { "BURN RATE MODE", "running" }
@@ -476,56 +586,115 @@ function update.auto_control(ExtChargeIdling)
             self.last_time = now
             self.last_error = 0
             self.accumulator = 0
+            self.feedforward = 0
+
+            self.charge_control_open = nil
+
+            -- window in seconds * 20 TPS * maximum generation rate per tick
+            self.loop_close_limit = self.sp.charge_setpoint - (CHARGE_CLOSE_LOOP_WINDOW_S * 20 * self.max_burn_combined * self.charge_conversion)
+            log.debug(util.c("FAC: computed generation capacity of ", self.max_burn_combined * self.charge_conversion, " FE/t"))
+            log.debug(util.c("FAC: computed loop close limit of ", self.loop_close_limit, " FE"))
 
             -- enabling idling on all assigned units
             set_idling(true)
 
-            self.status_text = { "CHARGE MODE", "running control loop" }
-            log.info("FAC: CHARGE mode starting PID control")
+            self.status_text = { "CHARGE LEVEL MODE", "initialized" }
+            log.info("FAC: CHARGE mode starting up")
         elseif self.last_update < charge_update then
+            local open_loop = false
+
+            if avg_charge <= self.sp.charge_setpoint then
+                local force_open_loop = (avg_outflow >= self.max_burn_combined * self.charge_conversion) and (avg_outflow >= avg_inflow)
+                open_loop = force_open_loop or (avg_charge < self.loop_close_limit)
+            end
+
             -- convert to kFE to make constants not microscopic
-            local error = util.round((self.sp.charge_setpoint - avg_charge) / 1000) / 1000
+            local error = (self.sp.charge_setpoint - avg_charge) / 1000000
 
-            -- stop accumulator when saturated to avoid windup
-            if not self.saturated then
-                self.accumulator = self.accumulator + (error * (now - self.last_time))
+            if open_loop then
+                self.status_text = { "CHARGE LEVEL MODE", "running at max burn" }
+
+                if self.charge_control_open ~= true then
+                    log.info("FAC: CHARGE mode running open loop")
+                end
+
+                allocate_burn_rate(self.max_burn_combined, true)
+
+                self.last_time = now
+                self.last_error = error
+                self.accumulator = 0
+                self.saturated = true
+            else
+                self.status_text = { "CHARGE LEVEL MODE", "running control loop" }
+
+                if self.charge_control_open ~= false then
+                    log.info("FAC: CHARGE mode running closed loop")
+                end
+
+                -- stop accumulator when saturated to avoid windup
+                if not self.saturated then
+                    -- it has no control when negative, so don't allow that
+                    self.accumulator = math.max(0, self.accumulator + (error * (now - self.last_time)))
+                end
+
+                -- local runtime = now - self.time_start
+                local integral = self.accumulator
+                local derivative = (error - self.last_error) / (now - self.last_time)
+
+                local P = self.ref_P_scaler * CHARGE_Kp * error
+                local I = self.ref_P_scaler * CHARGE_Ki * integral
+                local D = self.ref_D_scaler * CHARGE_Kd * derivative
+
+                local FF = avg_outflow / self.charge_conversion
+
+                -- switch from PD to PID control once near target with reduced PD, FF handles external load
+                -- zero accumulator when not stabilized
+                if math.abs(P) > 1 or math.abs(D) > 1 then
+                    self.accumulator = 0
+                    I = 0
+                else
+                    P = P / 1.25
+                    D = D / 2
+                end
+
+                local output = P + I + D + FF
+
+                -- clamp at range -> output clamped (out_c)
+                local out_c = math.max(0, math.min(output, self.max_burn_combined))
+
+                self.feedforward = FF
+                self.saturated = output ~= out_c
+
+                -- reset accumulator if FF has taken over completly
+                if FF >= self.max_burn_combined then
+                    self.accumulator = 0
+                end
+
+                if not ExtChargeIdling then
+                    -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
+                    set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
+                end
+
+                -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] <= DISCHG[%f] }",
+                --     runtime, avg_charge, error, integral, output, out_c, P, I, D, FF, avg_outflow))
+
+                allocate_burn_rate(out_c, true)
+
+                self.last_time = now
+                self.last_error = error
             end
 
-            -- local runtime = now - self.time_start
-            local integral = self.accumulator
-            local derivative = (error - self.last_error) / (now - self.last_time)
-
-            local P = CHARGE_Kp * error
-            local I = CHARGE_Ki * integral
-            local D = CHARGE_Kd * derivative
-
-            local output = P + I + D
-
-            -- clamp at range -> output clamped (out_c)
-            local out_c = math.max(0, math.min(output, self.max_burn_combined))
-
-            self.saturated = output ~= out_c
-
-            if not ExtChargeIdling then
-                -- stop idling early if the output is zero, we are at or above the setpoint, and are not losing charge
-                set_idling(not ((out_c == 0) and (error <= 0) and (avg_outflow <= 0)))
-            end
-
-            -- log.debug(util.sprintf("CHARGE[%f] { CHRG[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-            --     runtime, avg_charge, error, integral, output, out_c, P, I, D))
-
-            allocate_burn_rate(out_c, true)
-
-            self.last_time = now
-            self.last_error = error
+            self.charge_control_open = open_loop
         end
 
         self.last_update = charge_update
     elseif self.mode == PROCESS.GEN_RATE then
         -- target a rate of generation
         if state_changed then
-            -- estimate an initial output
+            -- estimate an initial output (feed-forward)
             local output = self.sp.gen_rate_setpoint / self.charge_conversion
+
+            self.feedforward = output
 
             local unallocated = allocate_burn_rate(output, true)
 
@@ -535,7 +704,7 @@ function update.auto_control(ExtChargeIdling)
             self.status_text = { "GENERATION MODE", "starting up" }
             log.info(util.c("FAC: GEN_RATE process mode initial ramp started (initial target is ", output, " mB/t)"))
         elseif self.waiting_on_ramp then
-            if all_units_ramped() then
+            if all_units_ramped() or reached_rate(self.sp.gen_rate_setpoint / self.charge_conversion) then
                 self.waiting_on_ramp = false
                 self.waiting_on_stable = true
 
@@ -558,7 +727,7 @@ function update.auto_control(ExtChargeIdling)
             end
         elseif self.last_update < rate_update then
             -- convert to MFE (in rounded kFE) to make constants not microscopic
-            local error = util.round((self.sp.gen_rate_setpoint - avg_inflow) / 1000) / 1000
+            local error = util.round((self.sp.gen_rate_setpoint - self.turbine_gen_rate) / 1000) / 1000
 
             -- stop accumulator when saturated to avoid windup
             if not self.saturated then
@@ -569,12 +738,11 @@ function update.auto_control(ExtChargeIdling)
             local integral = self.accumulator
             local derivative = (error - self.last_error) / (now - self.last_time)
 
-            local P = RATE_Kp * error
-            local I = RATE_Ki * integral
-            local D = RATE_Kd * derivative
+            local P = self.ref_P_scaler * RATE_Kp * error
+            local I = self.ref_P_scaler * RATE_Ki * integral
+            local D = self.ref_D_scaler * RATE_Kd * derivative
 
-            -- velocity (rate) (derivative of charge level => rate) feed forward
-            local FF = self.sp.gen_rate_setpoint / self.charge_conversion
+            local FF = self.feedforward
 
             local output = P + I + D + FF
 
@@ -583,8 +751,8 @@ function update.auto_control(ExtChargeIdling)
 
             self.saturated = output ~= out_c
 
-            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] }",
-            --     runtime, avg_inflow, error, integral, output, out_c, P, I, D))
+            -- log.debug(util.sprintf("GEN_RATE[%f] { RATE[%f] GEN[%f] ERR[%f] INT[%f] => OUT[%f] OUT_C[%f] <= P[%f] I[%f] D[%f] FF[%f] }",
+            --     runtime, avg_inflow, self.turbine_gen_rate, error, integral, output, out_c, P, I, D, FF))
 
             allocate_burn_rate(out_c, false)
 

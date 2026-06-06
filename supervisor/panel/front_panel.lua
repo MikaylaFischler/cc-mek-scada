@@ -22,10 +22,11 @@ local MultiPane     = require("graphics.elements.MultiPane")
 local Rectangle     = require("graphics.elements.Rectangle")
 local TextBox       = require("graphics.elements.TextBox")
 
+local PushButton    = require("graphics.elements.controls.PushButton")
 local TabBar        = require("graphics.elements.controls.TabBar")
 
-local LED           = require("graphics.elements.indicators.LED")
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local LED           = require("graphics.elements.indicators.LED")
 
 local ALIGN = core.ALIGN
 
@@ -76,12 +77,22 @@ local function init(panel, config)
     end
 
     --
+    -- warnings
+    --
+
+    local warning_box = Rectangle{parent=main_page,x=20,y=2,width=28,height=11,border=border(1,s_hi_box.bkg,true),thin=true,even_inner=true,hidden=true}
+
+    TextBox{parent=warning_box,text="One or more units have a heating rate that deviates from the configured Joules per mB of fuel. Check the Supervisor's Mekanism configuration against Mekanism's configuration.",fg_bg=cpair(colors.red,colors._INHERIT)}
+    PushButton{parent=warning_box,x=18,y=9,min_width=9,text="DISMISS",callback=function()warning_box.hide(true)end,fg_bg=s_hi_box,active_fg_bg=s_hi_bright}
+
+    warning_box.register(databus.ps, "energy_mismatch", function (x) if x then warning_box.show() else warning_box.hide(true) end end)
+
+    --
     -- hardware labeling
     --
 
     local hw_labels = Rectangle{parent=main_page,x=2,y=term_h-7,width=14,height=5,border=border(1,s_hi_box.bkg,true),even_inner=true}
 
----@diagnostic disable-next-line: undefined-field
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
     TextBox{parent=hw_labels,text="FW "..databus.ps.get("version"),fg_bg=s_hi_box}
@@ -127,7 +138,7 @@ local function init(panel, config)
     -- rtu sessions page
 
     local rtu_page = Div{parent=page_div,y=1,hidden=true}
-    local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,fg_bg=cpair(colors.black,colors.ivory),nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
+    local rtu_list = ListBox{parent=rtu_page,y=1,height=term_h-2,width=term_w,scroll_height=1000,nav_fg_bg=cpair(colors.gray,colors.lightGray),nav_active=cpair(colors.black,colors.gray)}
     local _ = Div{parent=rtu_list,height=1} -- padding
 
     -- coordinator session page

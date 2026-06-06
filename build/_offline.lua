@@ -17,7 +17,6 @@ local RSHFT = bit.blogic_rshift ---@type function
 -- decode a base64 string
 ---@param input string
 local function b64_decode(input)
----@diagnostic disable-next-line: undefined-field
     local t_start = os.epoch("local")
 
     local decoded = {}
@@ -50,7 +49,6 @@ local function b64_decode(input)
         idx = idx + 4
     end
 
----@diagnostic disable-next-line: undefined-field
     local elapsed = (os.epoch("local") - t_start)
     local decoded_str = table.concat(decoded)
 
@@ -73,7 +71,6 @@ local function write_files(files, path)
                 write_files(v, path .. "/" .. k .. "/")
             end
 
----@diagnostic disable-next-line: undefined-field
             os.sleep(0.05)
         else
             local handle = fs.open(path .. k, "w")

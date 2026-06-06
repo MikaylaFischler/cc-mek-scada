@@ -60,7 +60,6 @@ local function create_pages(root)
     PushButton{parent=nt_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
 
     TextBox{parent=nt_div,x=2,y=3,text="Pocket Address",fg_bg=label}
----@diagnostic disable-next-line: undefined-field
     TextBox{parent=nt_div,x=2,text=util.c(os.getComputerID(),":",config.PKT_Channel)}
 
     nt_div.line_break()

@@ -1,3 +1,4 @@
+local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
 local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
@@ -42,6 +43,9 @@ local DT_KEYS = {
 
 -- burn rate to idle at
 local IDLE_RATE = 0.01
+
+local SODIUM_THERM_CONV = const.mek.SODIUM_THERMAL_ENTHALPY / const.mek.SODIUM_CONDUCTIVITY
+local WATER_THERM_CONV  = const.mek.WATER_THERMAL_ENTHALPY / const.mek.STEAM_ENERGY_EFF
 
 ---@class reactor_control_unit
 local unit = {}
@@ -88,7 +92,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         auto_idling = false,
         auto_idle_start = 0,
         auto_was_alarmed = false,
-        ramp_target_br100 = 0,
+        auto_act_diff_cnt = 0,
+        auto_act_lim_br100 = math.huge,
         -- state tracking
         deltas = {},    ---@type { last_t: number, last_v: number, dt: number }[]
         last_heartbeat = 0,
@@ -101,6 +106,9 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
         status_text = { "UNKNOWN", "awaiting connection..." },
         enable_aux_cool = false,
+        fuel_burn_rate_limited = false,
+        energy_mismatch = false,
+        energy_mismatch_start = nil,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -113,7 +121,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             low_cool = false,
             ex_waste = false,
             ex_hcool = false,
-            no_fuel = false,
             fault = false,
             timeout = false,
             manual = false,
@@ -132,7 +139,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 low_cool = false,
                 ex_waste = false,
                 ex_hcool = false,
-                no_fuel = false,
                 fault = false,
                 timeout = false,
                 manual = false,
@@ -142,6 +148,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             },
             damage = 0,
             temp = 0,
+            fuel = 0,
             waste = 0,
             high_temp_lim = 1150
         },
@@ -232,7 +239,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             control = {
                 ready = false,
                 degraded = false,
-                blade_count = 0,
+                generator_mismatch = false,
+                generator_mult = 0,
+                turbine_mismatch = false,
+                turbine_flow_perf = 0,
                 br100 = 0,
                 lim_br100 = 0,
                 waste_mode = WASTE_MODE.AUTO ---@type WASTE_MODE
@@ -564,6 +574,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
         -- plc instance checks
         if self.plc_i ~= nil then
+            local now = util.time_ms()
+
             -- check if degraded
             local rps = self.plc_i.get_rps()
             if rps.fault or rps.sys_fail then self.db.control.degraded = true end
@@ -572,10 +584,34 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
 
             -- stop idling when completed
-            if self.auto_idling and (((util.time_ms() - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
+            if self.auto_idling and (((now - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
                 log.info(util.c(log_tag, "completed idling period"))
                 self.auto_idling = false
                 self.plc_i.auto_set_burn(0, false)
+            end
+
+            -- check for appropriate energy production
+            if self.plc_cache.active and ((now - self.last_rate_change_ms) > 2000) then
+                local db = self.plc_i.get_db()
+
+                if (not self.db.annunciator.CoolantLevelLow) and (db.mek_status.act_burn_rate > 0) then
+                    local prod = db.mek_status.act_burn_rate * const.mek.JOULES_PER_MB
+                    local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
+                    local heat = db.mek_status.heating_rate * util.trinary(num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
+
+                    local mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
+
+                    if mismatch and (db.mek_status.ccool_amnt > (1.1 * db.mek_status.heating_rate)) then
+                        if self.energy_mismatch_start == nil then
+                            self.energy_mismatch_start = now
+                        elseif (now - self.energy_mismatch_start) > 2000 then
+                            self.energy_mismatch = true
+                        end
+                    else
+                        self.energy_mismatch_start = nil
+                        self.energy_mismatch = false
+                    end
+                end
             end
         end
 
@@ -588,8 +624,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         -- update alarm status
         unit_logic.update_alarms(self)
 
-        -- if in auto mode, SCRAM on certain alarms
-        unit_logic.update_auto_safety(self, public)
+        -- update auto burn rate monitoring and SCRAM on certain alarms
+        unit_logic.update_auto_mgmt(self, public)
 
         -- update status text
         unit_logic.update_status_text(self)
@@ -642,17 +678,42 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         self.auto_idle = idle
     end
 
-    -- get the actual limit of this unit<br>
-    -- if it is degraded or not ready, the limit will be 0
+    -- get the actual limit of this unit
+    -- - if it is degraded or not ready, the limit will be 0
     ---@nodiscard
     ---@return integer lim_br100
     function public.auto_get_effective_limit()
-        local ctrl = self.db.control
+        local ctrl    = self.db.control
+        local eff_lim = ctrl.lim_br100
+
         if (not ctrl.ready) or ctrl.degraded or self.plc_cache.rps_trip then
             -- log.debug(util.c(log_tag, "effective limit is zero! ready[", ctrl.ready, "] degraded[", ctrl.degraded, "] rps_trip[", self.plc_cache.rps_trip, "]"))
             ctrl.br100 = 0
-            return 0
-        else return ctrl.lim_br100 end
+            eff_lim = 0
+        end
+
+        return eff_lim
+    end
+
+    -- get the actual limit of this unit accounting for fuel burn rate limiting
+    -- - if it is degraded or not ready, the limit will be 0
+    -- - if fuel is limiting the maximum burn rate, the smaller of that rate and the control limit will be returned
+    -- - if the actual rate is less than the set rate for a few samples, that will be returned if less than the other limits
+    ---@nodiscard
+    ---@return integer lim_br100
+    function public.auto_get_fuel_limited()
+        local eff_lim = public.auto_get_effective_limit()
+
+        if self.plc_i ~= nil then
+            local max = self.plc_i.get_db().reportable_max_burn
+            if max then
+                eff_lim = math.min(math.floor(max * 100), eff_lim)
+            end
+
+            eff_lim = math.min(self.auto_act_lim_br100, eff_lim)
+        end
+
+        return eff_lim
     end
 
     -- set the automatic burn rate based on the last set burn rate in 100ths
@@ -666,6 +727,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
                 if self.auto_idle then
                     if rate <= IDLE_RATE then
+                        ramp = false
+
                         if self.auto_idle_start == 0 then
                             self.auto_idling = true
                             self.auto_idle_start = util.time_ms()
@@ -689,8 +752,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 end
 
                 self.plc_i.auto_set_burn(rate, ramp)
-
-                if ramp then self.ramp_target_br100 = self.db.control.br100 end
             end
         end
     end
@@ -794,7 +855,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         elseif mode == WASTE_MODE.MANUAL_ANTI_MATTER then
             _set_waste_valves(WASTE.ANTI_MATTER)
         elseif mode > WASTE_MODE.MANUAL_ANTI_MATTER then
-            log.debug(util.c("invalid waste mode setting ", mode))
+            log.debug(util.c(log_tag, "invalid waste mode setting ", mode))
         end
     end
 
@@ -856,6 +917,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     -- check if emergency coolant activation has been tripped
     ---@nodiscard
     function public.is_emer_cool_tripped() return self.em_cool_opened end
+
+    -- check if produced energy (heat) doesn't match expectations from configuration
+    ---@nodiscard
+    function public.has_energy_mismatch() return self.energy_mismatch end
 
     -- get build properties of machines
     --
@@ -1013,6 +1078,19 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         return total_avail_rate
     end
 
+    -- get the energy generation rate of this unit (sum of all turbine generators)
+    ---@nodiscard
+    ---@return number gen_rate generation rate in Joules
+    function public.get_generation_rate()
+        local sum = 0
+
+        for i = 1, #self.turbines do
+            sum = sum + self.turbines[i].get_db().state.prod_rate
+        end
+
+        return sum
+    end
+
     -- get the annunciator status
     ---@nodiscard
     function public.get_annunciator() return self.db.annunciator end
@@ -1036,7 +1114,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             self.db.control.waste_mode,
             self.waste_product,
             self.last_rate_change_ms,
-            self.turbine_flow_stable
+            self.turbine_flow_stable,
+            self.fuel_burn_rate_limited
         }
     end
 

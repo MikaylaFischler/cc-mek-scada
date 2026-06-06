@@ -52,6 +52,12 @@ function databus.tx_hw_wl_modem(has_modem)
     eval_status()
 end
 
+-- transmit energy mismatch condition
+---@param mismatch boolean
+function databus.tx_energy_mismatch(mismatch)
+    databus.ps.publish("energy_mismatch", mismatch)
+end
+
 -- transmit PLC firmware version and session connection state
 ---@param reactor_id integer reactor unit ID
 ---@param fw string firmware version

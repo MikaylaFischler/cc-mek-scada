@@ -236,6 +236,7 @@ function ioctl.init_fac(conf)
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
+            fuel_burn_rate_limited = false,
             waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             -- auto control group

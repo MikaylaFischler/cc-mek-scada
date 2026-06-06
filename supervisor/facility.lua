@@ -1,3 +1,4 @@
+local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
@@ -114,13 +115,19 @@ function facility.new(config)
             radiation = false,
             gen_fault = false
         },
+        energy_mismatch = false,
         -- closed loop control
-        charge_conversion = 1.0,
+        turbine_gen_rate = 0.0,
+        charge_conversion = const.mek.STANDARD_FE_PER_MB,
+        ref_P_scaler = 1.0,
+        ref_D_scaler = 1.0,
         time_start = 0.0,
         initial_ramp = true,
         waiting_on_ramp = false,    -- waiting on auto ramping
         waiting_on_stable = false,  -- waiting on gen rate stabilization
         range_control_en = false,
+        charge_control_open = nil,
+        feedforward = 0.0,
         accumulator = 0.0,
         saturated = false,
         last_update = 0,
@@ -141,11 +148,11 @@ function facility.new(config)
         -- statistics
         im_stat_init = false,
         imtx_percent = 0.0,
-        avg_charge = util.mov_avg(3),  -- 3 seconds
-        avg_inflow = util.mov_avg(6),  -- 3 seconds
-        avg_outflow = util.mov_avg(6), -- 3 seconds
+        avg_charge = util.ema_filter(0.2857),  -- ~3 seconds
+        avg_inflow = util.ema_filter(0.2857),  -- ~3 seconds
+        avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
         -- induction matrix charge delta stats
-        avg_net = util.mov_avg(60),    -- 60 seconds
+        avg_net = util.ema_filter(0.075),
         imtx_last_capacity = 0,
         imtx_last_charge = 0,
         imtx_last_charge_t = 0,
@@ -369,10 +376,16 @@ function facility.new(config)
     -- call the update function of all units in the facility<br>
     -- additionally sets the requested auto waste mode if applicable
     function public.update_units()
+        self.energy_mismatch = false
+
         for i = 1, #self.units do
             local u = self.units[i]
             u.auto_set_waste(self.current_waste_product)
             u.update()
+
+            if u.has_energy_mismatch() then
+                self.energy_mismatch = true
+            end
         end
     end
 
@@ -574,6 +587,10 @@ function facility.new(config)
 
     --#region Read States/Properties
 
+    -- check for energy mismatch condition
+    ---@nodiscard
+    function public.has_energy_mismatch() return self.energy_mismatch end
+
     -- get current alarm tone on/off states
     ---@nodiscard
     function public.get_alarm_tones() return self.tone_states end
@@ -622,12 +639,14 @@ function facility.new(config)
             self.mode,
             self.waiting_on_ramp or self.waiting_on_stable,
             self.at_max_burn or self.saturated,
+            self.turbine_gen_rate,
             self.ascram,
             astat.matrix_fault,
             astat.matrix_fill,
             astat.crit_alarm,
             astat.radiation,
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
+            self.energy_mismatch,
             self.status_text[1],
             self.status_text[2],
             self.group_map,
@@ -663,9 +682,9 @@ function facility.new(config)
 
         -- power averages from induction matricies
         status.power = {
-            self.avg_charge.compute(),
-            self.avg_inflow.compute(),
-            self.avg_outflow.compute(),
+            self.avg_charge.get(),
+            self.avg_inflow.get(),
+            self.avg_outflow.get(),
             0
         }
 
@@ -677,7 +696,7 @@ function facility.new(config)
 
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
-            local fe_per_ms = self.avg_net.compute()
+            local fe_per_ms = self.avg_net.get()
             local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
             status.power[4] = remaining / fe_per_ms
         end

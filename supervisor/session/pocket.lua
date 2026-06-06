@@ -176,7 +176,6 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
             elseif pkt.type == MGMT_TYPE.INFO_LIST_CMP then
                 local get = databus.ps.get
 
----@diagnostic disable-next-line: undefined-field
                 local devices = { { DEV_TYPE.SVR, os.getComputerID(), get("version"), 0 } }
 
                 -- add the coordinator if connected

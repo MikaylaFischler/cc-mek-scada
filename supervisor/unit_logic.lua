@@ -43,6 +43,7 @@ function logic.update_annunciator(self)
     local num_boilers = self.num_boilers
     local num_turbines = self.num_turbines
     local annunc = self.db.annunciator
+    local ctrl = self.db.control
 
     annunc.RCSFault = false
 
@@ -72,8 +73,8 @@ function logic.update_annunciator(self)
         plc_ready = plc_db.formed and (not plc_db.no_reactor) and (not plc_db.rps_tripped) and self.plc_i.check_received_all_data()
 
         -- update auto control limit
-        if (plc_db.mek_struct.max_burn > 0) and ((self.db.control.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
-            self.db.control.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
+        if (plc_db.mek_struct.max_burn > 0) and ((ctrl.lim_br100 / 100) > plc_db.mek_struct.max_burn) then
+            ctrl.lim_br100 = math.floor(plc_db.mek_struct.max_burn * 100)
         end
 
         -- some alarms wait until the burn rate has stabilized, so keep track of that
@@ -93,6 +94,7 @@ function logic.update_annunciator(self)
         self.plc_cache.rps_status = plc_db.rps_status
         self.plc_cache.damage = plc_db.mek_status.damage
         self.plc_cache.temp = plc_db.mek_status.temp
+        self.plc_cache.fuel = plc_db.mek_status.fuel_fill
         self.plc_cache.waste = plc_db.mek_status.waste_fill
 
         -- track damage
@@ -126,6 +128,8 @@ function logic.update_annunciator(self)
 
         self.plc_cache.high_temp_lim = math.min(high_temp + ANNUNC_LIMS.OpTempTolerance, 1200)
 
+        self.fuel_burn_rate_limited = plc_db.reportable_max_burn and (plc_db.reportable_max_burn < (ctrl.lim_br100 / 100))
+
         -- update other annunciator fields
         annunc.ReactorSCRAM = plc_db.rps_tripped
         annunc.ManualReactorSCRAM = plc_db.rps_trip_cause == types.RPS_TRIP_CAUSE.MANUAL
@@ -135,7 +139,7 @@ function logic.update_annunciator(self)
         annunc.CoolantLevelLow = plc_db.mek_status.ccool_fill < ANNUNC_LIMS.CoolantLevelLow
         annunc.ReactorTempHigh = plc_db.mek_status.temp >= self.plc_cache.high_temp_lim
         annunc.ReactorHighDeltaT = _get_dt(DT_KEYS.ReactorTemp) > ANNUNC_LIMS.ReactorHighDeltaT
-        annunc.FuelInputRateLow = _get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow
+        annunc.FuelInputRateLow = self.fuel_burn_rate_limited or (_get_dt(DT_KEYS.ReactorFuel) < -1.0 or plc_db.mek_status.fuel_fill <= ANNUNC_LIMS.FuelLevelLow)
         annunc.WasteLineOcclusion = _get_dt(DT_KEYS.ReactorWaste) > 1.0 or plc_db.mek_status.waste_fill >= ANNUNC_LIMS.WasteLevelHigh
 
         local heating_rate_conv = util.trinary(plc_db.mek_status.ccool_type == types.FLUID.SODIUM, 200000, 20000)
@@ -291,8 +295,11 @@ function logic.update_annunciator(self)
     local max_water_return_rate = 0
     local turbines_stable = true
 
-    -- recompute blade count on the chance that it may have changed
-    self.db.control.blade_count = 0
+    -- recompute unit generator multiplier and turbine flow perofrmance in case they changed
+    ctrl.generator_mult = nil
+    ctrl.generator_mismatch = false
+    ctrl.turbine_flow_perf = nil
+    ctrl.turbine_mismatch = false
 
     -- go through turbines for stats and online
     for i = 1, #self.turbines do
@@ -315,7 +322,17 @@ function logic.update_annunciator(self)
         total_input_rate = total_input_rate + turbine.state.steam_input_rate
         max_water_return_rate = max_water_return_rate + turbine.build.max_water_output
 
-        self.db.control.blade_count = self.db.control.blade_count + turbine.build.blades
+        local energy_per_steam = turbine.build.max_production / turbine.build.max_flow_rate
+
+        if ctrl.generator_mult then
+            ctrl.generator_mismatch = ctrl.generator_mismatch or (ctrl.generator_mult ~= energy_per_steam)
+        else ctrl.generator_mult = energy_per_steam end
+
+        local flow_perf = turbine.build.steam_cap / turbine.build.max_flow_rate
+
+        if ctrl.turbine_flow_perf then
+            ctrl.turbine_mismatch = ctrl.turbine_mismatch or (ctrl.turbine_flow_perf ~= flow_perf)
+        else ctrl.turbine_flow_perf = flow_perf end
 
         local last = self.turbine_stability_data[i]
 
@@ -409,7 +426,7 @@ function logic.update_annunciator(self)
     --#endregion
 
     -- update auto control ready state for this unit
-    self.db.control.ready = plc_ready and boilers_ready and turbines_ready
+    ctrl.ready = plc_ready and boilers_ready and turbines_ready
 
     -- update auxiliary coolant command
     if plc_ready then
@@ -540,11 +557,13 @@ function logic.update_alarms(self)
     for key, val in pairs(plc_cache.rps_status) do self.last_rps_trips[key] = val end
 end
 
--- update the internal automatic safety control performed while in auto control mode
+-- update the burn rate mismatch detection and internal automatic safety control performed while in auto control mode
 ---@param self _unit_self
 ---@param public reactor_unit reactor unit public functions
-function logic.update_auto_safety(self, public)
+function logic.update_auto_mgmt(self, public)
     if self.auto_engaged then
+        -- manage auto alarms
+
         local alarmed = false
 
         for _, alarm in pairs(self.alarms) do
@@ -564,6 +583,23 @@ function logic.update_auto_safety(self, public)
         end
 
         self.auto_was_alarmed = alarmed
+
+        -- manage burn rate discrepancies
+
+        if self.plc_s ~= nil then
+            local mek_status = self.plc_i.get_db().mek_status
+            if mek_status.status and ((mek_status.burn_rate - mek_status.act_burn_rate) > 0) then
+                -- actual rate dropped below intended, may be fuel limited, but debounce this
+                if self.auto_act_diff_cnt > 3 then
+                    self.auto_act_lim_br100 = math.floor(mek_status.act_burn_rate * 100)
+                else
+                    self.auto_act_diff_cnt = self.auto_act_diff_cnt + 1
+                end
+            else
+                self.auto_act_diff_cnt = 0
+                self.auto_act_lim_br100 = math.huge
+            end
+        end
     else
         self.auto_was_alarmed = false
     end
@@ -662,10 +698,12 @@ function logic.update_status_text(self)
         if plc_db.mek_status.status then
             self.status_text[1] = "ACTIVE"
 
-            if annunc.ReactorHighDeltaT then
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif self.fuel_burn_rate_limited then
+                self.status_text[2] = "low fuel limiting max burn rate"
+            elseif annunc.ReactorHighDeltaT then
                 self.status_text[2] = "core temperature rising"
-            elseif annunc.ReactorTempHigh then
-                self.status_text[2] = "core temp high, system nominal"
             elseif annunc.FuelInputRateLow then
                 self.status_text[2] = "insufficient fuel input rate"
             elseif annunc.WasteLineOcclusion then
@@ -674,6 +712,8 @@ function logic.update_status_text(self)
                 self.status_text[2] = "awaiting coolant flow stability"
             elseif not self.turbine_flow_stable then
                 self.status_text[2] = "awaiting turbine flow stability"
+            elseif annunc.ReactorTempHigh then
+                self.status_text[2] = "core temp high, system nominal"
             else
                 self.status_text[2] = "system nominal"
             end
@@ -692,8 +732,6 @@ function logic.update_status_text(self)
                 cause = "excess waste"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.EX_HCOOLANT then
                 cause = "excess heated coolant"
-            elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.NO_FUEL then
-                cause = "insufficient fuel"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.FAULT then
                 cause = "hardware fault"
             elseif plc_db.rps_trip_cause == RPS_TRIP_CAUSE.TIMEOUT then
@@ -716,7 +754,10 @@ function logic.update_status_text(self)
             self.status_text[1] = "IDLE"
 
             local temp = plc_db.mek_status.temp
-            if temp < 350 then
+
+            if plc_db.mek_status.fuel == 0 then
+                self.status_text[2] = "no fuel remaining"
+            elseif temp < 350 then
                 self.status_text[2] = "core cold"
             elseif temp < 600 then
                 self.status_text[2] = "core warm"
@@ -783,7 +824,7 @@ function logic.handle_redstone(self)
     self.io_ctl.digital_write(IO.R_LOW_COOLANT, rps.low_cool)
     self.io_ctl.digital_write(IO.R_EXCESS_HC, rps.ex_hcool)
     self.io_ctl.digital_write(IO.R_EXCESS_WS, rps.ex_waste)
-    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, rps.no_fuel)
+    self.io_ctl.digital_write(IO.R_INSUFF_FUEL, cache.fuel == 0) -- legacy, RPS trip removed
     self.io_ctl.digital_write(IO.R_PLC_FAULT, rps.fault)
     self.io_ctl.digital_write(IO.R_PLC_TIMEOUT, rps.timeout)
 

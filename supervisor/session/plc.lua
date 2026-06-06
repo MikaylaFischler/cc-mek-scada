@@ -135,13 +135,12 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
         rps.low_cool  = rps_status[5]
         rps.ex_waste  = rps_status[6]
         rps.ex_hcool  = rps_status[7]
-        rps.no_fuel   = rps_status[8]
-        rps.fault     = rps_status[9]
-        rps.timeout   = rps_status[10]
-        rps.manual    = rps_status[11]
-        rps.automatic = rps_status[12]
-        rps.sys_fail  = rps_status[13]
-        rps.force_dis = rps_status[14]
+        rps.fault     = rps_status[8]
+        rps.timeout   = rps_status[9]
+        rps.manual    = rps_status[10]
+        rps.automatic = rps_status[11]
+        rps.sys_fail  = rps_status[12]
+        rps.force_dis = rps_status[13]
     end
 
     -- copy in the reactor status
@@ -203,24 +202,28 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
     -- handle a reactor status packet
     ---@param pkt rplc_packet
     local function _handle_status(pkt)
-        local valid = (type(pkt.data[1]) == "number") and (type(pkt.data[2]) == "boolean") and
-                      (type(pkt.data[3]) == "boolean") and (type(pkt.data[4]) == "boolean") and
-                      (type(pkt.data[5]) == "number")
+        local data = pkt.data ---@type plc_status_msg
+        local db   = self.sDB
+
+        local valid = (type(data[1]) == "number") and (type(data[2]) == "boolean") and
+                      (type(data[3]) == "boolean") and (type(data[4]) == "boolean") and
+                      (type(data[5]) == "number") and (type(data[6]) == "number" or data[6] == false)
 
         if valid then
-            self.sDB.last_status_update = pkt.data[1]
-            self.sDB.control_state = pkt.data[2]
-            self.sDB.no_reactor = pkt.data[3]
-            self.sDB.formed = pkt.data[4]
-            self.sDB.auto_ack_token = pkt.data[5]
+            db.last_status_update = data[1]
+            db.control_state = data[2]
+            db.no_reactor = data[3]
+            db.formed = data[4]
+            db.auto_ack_token = data[5]
+            db.reportable_max_burn = data[6]
 
-            if (not self.sDB.no_reactor) and self.sDB.formed and (type(pkt.data[6]) == "number") then
-                self.sDB.mek_status.heating_rate = pkt.data[6] or 0.0
+            if (not db.no_reactor) and db.formed and (type(data[7]) == "number") then
+                db.mek_status.heating_rate = data[7] or 0.0
 
                 -- attempt to read mek_data table
-                if type(pkt.data[7]) == "table" then
-                    if #pkt.data[7] == 17 then
-                        _copy_status(pkt.data[7])
+                if type(data[8]) == "table" then
+                    if #data[8] == 17 then
+                        _copy_status(data[8])
                         self.received_status_cache = true
                     else
                         log.error(log_tag .. "RPLC status packet reactor data length mismatch")
@@ -304,7 +307,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
             -- handle packet by type
             if pkt.type == RPLC_TYPE.STATUS then
                 -- status packet received, update data
-                if pkt.length >= 5 then
+                if pkt.length >= 7 then
                     _handle_status(pkt)
                 else
                     log.debug(log_tag .. "RPLC status packet length mismatch")
@@ -378,7 +381,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
             elseif pkt.type == RPLC_TYPE.RPS_STATUS then
                 -- RPS status packet received, copy data
-                if pkt.length == 14 then
+                if pkt.length == 13 then
                     local status = pcall(_copy_rps_status, pkt.data)
                     if status then
                         -- copied in RPS status data OK

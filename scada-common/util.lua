@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.8.5"
+util.version = "1.9.4"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -199,7 +199,7 @@ function util.sign(x) return util.trinary(x < 0, -1, 1) end
 ---@return integer rounded
 function util.round(x) return math.floor(x + 0.5) end
 
--- get a new moving average object (FIR filter)
+-- create a new moving average object (FIR filter)
 ---@nodiscard
 ---@param length integer history length
 function util.mov_avg(length)
@@ -251,6 +251,41 @@ function util.mov_avg(length)
     return public
 end
 
+-- create a new exponential moving average object (IIR filter)
+---@nodiscard
+---@param alpha number EMA filter alpha value
+function util.ema_filter(alpha)
+    local state = nil ---@type number|nil
+    local last_t = 0 ---@type number|nil
+
+    ---@class ema_filter
+    local public = {}
+
+    -- reset the filter state, optionally initializing it to the given value
+    ---@param x number? value
+    function public.reset(x) state = x end
+
+    -- update the filter state with a new value
+    ---@param x number new value
+    ---@param t number? optional last update time to prevent duplicated entries
+    function public.update(x, t)
+        if type(t) == "number" and last_t == t then return end
+
+        if state then
+            state = state + (alpha * (x - state))
+        else state = x end
+
+        last_t = t
+    end
+
+    -- get the moving average
+    ---@nodiscard
+    ---@return number average
+    function public.get() return state or 0.0 end
+
+    return public
+end
+
 --#endregion
 
 --#region TIME
@@ -258,19 +293,28 @@ end
 -- current time
 ---@nodiscard
 ---@return integer milliseconds
----@diagnostic disable-next-line: undefined-field
 function util.time_ms() return os.epoch("local") end
 
 -- current time
 ---@nodiscard
 ---@return number seconds
----@diagnostic disable-next-line: undefined-field
 function util.time_s() return os.epoch("local") / 1000.0 end
 
 -- current time
 ---@nodiscard
 ---@return integer milliseconds
 function util.time() return util.time_ms() end
+
+-- check the TPS by yielding for one tick and timing how long that takes
+---@nodiscard
+--- EVENT_CONSUMER: this function consumes events
+function util.get_tps()
+    local t_start = util.time_ms()
+    util.nop()
+    local t_end = util.time_ms()
+
+    return 1000 / (t_end - t_start)
+end
 
 --#endregion
 
@@ -280,7 +324,6 @@ function util.time() return util.time_ms() end
 ---@nodiscard
 ---@param target_event? string event to wait for
 ---@return os_event event, any param1, any param2, any param3, any param4, any param5
----@diagnostic disable-next-line: undefined-field
 function util.pull_event(target_event) return os.pullEventRaw(target_event) end
 
 -- OS queue event raw wrapper with types
@@ -291,7 +334,6 @@ function util.pull_event(target_event) return os.pullEventRaw(target_event) end
 ---@param param4 any
 ---@param param5 any
 function util.push_event(event, param1, param2, param3, param4, param5)
----@diagnostic disable-next-line: undefined-field
     return os.queueEvent(event, param1, param2, param3, param4, param5)
 end
 
@@ -299,12 +341,10 @@ end
 ---@nodiscard
 ---@param t number timer duration in seconds
 ---@return integer timer ID
----@diagnostic disable-next-line: undefined-field
 function util.start_timer(t) return os.startTimer(t) end
 
 -- cancel an OS timer
 ---@param timer integer timer ID
----@diagnostic disable-next-line: undefined-field
 function util.cancel_timer(timer) os.cancelTimer(timer) end
 
 --#endregion
@@ -316,7 +356,6 @@ function util.cancel_timer(timer) os.cancelTimer(timer) end
 ---@param t number seconds
 ---@return boolean success, any result, any ...
 --- EVENT_CONSUMER: this function consumes events
----@diagnostic disable-next-line: undefined-field
 function util.psleep(t) return pcall(os.sleep, t) end
 
 -- no-op to provide a brief pause (1 tick) to yield<br>

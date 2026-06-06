@@ -35,9 +35,10 @@ local yel_ind_s = style.icon_states.yel_ind_s
 ---@param u_page nav_tree_page
 ---@param panes Div[]
 ---@param page_div Div
+---@param u_id integer unit ID
 ---@param u_ps psil
 ---@param update function
-return function (app, u_page, panes, page_div, u_ps, update)
+return function (app, u_page, panes, page_div, u_id, u_ps, update)
     local db = ioctl.get_db()
 
     local rct_pane = Div{parent=page_div}
@@ -153,10 +154,13 @@ return function (app, u_page, panes, page_div, u_ps, update)
     TextBox{parent=rct_ext_div,text="Boil Eff.",y=15,width=9,fg_bg=label}
     TextBox{parent=rct_ext_div,text="Env. Loss",y=16,width=9,fg_bg=label}
     local boil_eff = DataIndicator{parent=rct_ext_div,x=11,y=15,lu_colors=lu_col,label="",unit="%",format="%9.2f",value=0,width=11,fg_bg=text_fg}
-    local env_loss = DataIndicator{parent=rct_ext_div,x=11,y=16,lu_colors=lu_col,label="",unit="",format="%11.8f",value=0,width=11,fg_bg=text_fg}
+    local env_loss = DataIndicator{parent=rct_ext_div,x=11,y=16,lu_colors=lu_col,label="",unit="J",format="%9.2f",value=0,width=11,fg_bg=text_fg}
 
     boil_eff.register(u_ps, "boil_eff", function (x) boil_eff.update(x * 100) end)
-    env_loss.register(u_ps, "env_loss", env_loss.update)
+    env_loss.register(u_ps, "env_loss", function (raw)
+        local ok, result = pcall(function () return raw * db.units[u_id].reactor_data.mek_struct.heat_cap end)
+        if ok then env_loss.update(result) end
+    end)
 
     return rct_page.nav_to
 end

@@ -36,7 +36,9 @@ local changes = {
     { "v1.7.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.8.21", { "Added option to invert emergency coolant redstone control" } },
     { "v1.10.0", { "Added support for wired communications modems" } },
-    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } }
+    { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } },
+    { "v1.12.1", { "Added option for limiting maximum burn rate when running out of fuel in auto control" } },
+    { "v1.12.5", { "Added option for displaying a diagnostics panel" } }
 }
 
 ---@class plc_configurator
@@ -81,6 +83,8 @@ local tmp_cfg = {
     UnitID = 0,
     FastRamp = true,
     FastRampConfirmed = false,
+    FuelAutoLimiting = false,
+    EnableDiagnostics = false,
     EmerCoolEnable = false,
     EmerCoolSide = nil,     ---@type string|nil
     EmerCoolColor = nil,    ---@type color|nil
@@ -111,6 +115,8 @@ local fields = {
     { "UnitID", "Unit ID", 1 },
     { "FastRamp", "Fast Ramp", true },
     { "FastRampConfirmed", "Fast Ramp Confirmed", false },
+    { "FuelAutoLimiting", "Low Fuel Auto Rate Limiting", false },
+    { "EnableDiagnostics", "Enable Diagnostics Panel", false },
     { "EmerCoolEnable", "Emergency Coolant", false },
     { "EmerCoolSide", "Emergency Coolant Side", nil },
     { "EmerCoolColor", "Emergency Coolant Color", nil },
@@ -152,7 +158,6 @@ local function config_view(display)
     local btn_act_fg_bg = style.btn_act_fg_bg
     local btn_dis_fg_bg = style.btn_dis_fg_bg
 
----@diagnostic disable-next-line: undefined-field
     local function exit() os.queueEvent("terminate") end
 
     TextBox{parent=display,y=1,text="Reactor PLC Configurator",alignment=CENTER,fg_bg=style.header}

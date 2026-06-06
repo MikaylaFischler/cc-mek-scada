@@ -34,6 +34,8 @@ local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 local ioctl = {}
 
 local _ioctl = {
+    -- mekanism configuration
+    mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
     -- connection states for status evaluation
     wd_modem = true,
     wl_modem = true,
@@ -100,6 +102,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         auto_active = false,
         auto_ramping = false,
         auto_saturated = false,
+        auto_gen_rate = false,
 
         auto_scram = false,
         ---@type ascram_status
@@ -188,6 +191,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
             last_rate_change_ms = 0,
             turbine_flow_stable = false,
+            fuel_burn_rate_limited = false,
 
             -- auto control group
             a_group = types.AUTO_GROUP.MANUAL,
@@ -284,6 +288,22 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
     -- coordinator's process handle
     io.process = process.create_handle()
+end
+
+-- set relevant mekanism configuration fields (currently the Supervisor's MekanismWasteToPu and MekanismWasteToPo)
+---@param conf table
+---@return boolean valid received excpected tables
+function ioctl.set_mek_config(conf)
+    local valid = type(conf) == "table" and type(conf[1]) == "table" and type(conf[2]) == "table"
+
+    if valid then
+        _ioctl.mek.pu_ratio[1] = conf[1][1]
+        _ioctl.mek.pu_ratio[2] = conf[1][2]
+        _ioctl.mek.po_ratio[1] = conf[2][1]
+        _ioctl.mek.po_ratio[2] = conf[2][2]
+    end
+
+    return valid
 end
 
 --#region Front Panel PSIL
@@ -638,7 +658,7 @@ function ioctl.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 17 then
+        if type(ctl_status) == "table" and #ctl_status == 19 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -651,32 +671,35 @@ function ioctl.update_facility_status(status)
 
             fac.auto_ramping = ctl_status[4]
             fac.auto_saturated = ctl_status[5]
+            fac.auto_gen_rate = ctl_status[6]
 
-            fac.auto_scram = ctl_status[6]
-            fac.ascram_status.matrix_fault = ctl_status[7]
-            fac.ascram_status.matrix_fill = ctl_status[8]
-            fac.ascram_status.crit_alarm = ctl_status[9]
-            fac.ascram_status.radiation = ctl_status[10]
-            fac.ascram_status.gen_fault = ctl_status[11]
+            fac.auto_scram = ctl_status[7]
+            fac.ascram_status.matrix_fault = ctl_status[8]
+            fac.ascram_status.matrix_fill = ctl_status[9]
+            fac.ascram_status.crit_alarm = ctl_status[10]
+            fac.ascram_status.radiation = ctl_status[11]
+            fac.ascram_status.gen_fault = ctl_status[12]
 
-            fac.status_lines[1] = ctl_status[12]
-            fac.status_lines[2] = ctl_status[13]
+            fac.status_lines[1] = ctl_status[14]
+            fac.status_lines[2] = ctl_status[15]
 
             fac.ps.publish("all_sys_ok", fac.all_sys_ok)
             fac.ps.publish("auto_ready", fac.auto_ready)
             fac.ps.publish("auto_active", fac.auto_active)
             fac.ps.publish("auto_ramping", fac.auto_ramping)
             fac.ps.publish("auto_saturated", fac.auto_saturated)
+            fac.ps.publish("auto_gen_rate", fac.auto_gen_rate)
             fac.ps.publish("auto_scram", fac.auto_scram)
             fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
             fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
             fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             fac.ps.publish("as_radiation", fac.ascram_status.radiation)
             fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+            fac.ps.publish("config_warning", ctl_status[13])
             fac.ps.publish("status_line_1", fac.status_lines[1])
             fac.ps.publish("status_line_2", fac.status_lines[2])
 
-            local group_map = ctl_status[14]
+            local group_map = ctl_status[16]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 for i = 1, #group_map do
@@ -686,9 +709,9 @@ function ioctl.update_facility_status(status)
                 end
             end
 
-            fac.auto_current_waste_product = ctl_status[15]
-            fac.auto_pu_fallback_active = ctl_status[16]
-            fac.auto_sps_disabled = ctl_status[17]
+            fac.auto_current_waste_product = ctl_status[17]
+            fac.auto_pu_fallback_active = ctl_status[18]
+            fac.auto_sps_disabled = ctl_status[19]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
@@ -1260,7 +1283,7 @@ function ioctl.update_unit_statuses(statuses)
                 local unit_state = status[5]
 
                 if type(unit_state) == "table" then
-                    if #unit_state == 8 then
+                    if #unit_state == 9 then
                         unit.status_lines[1] = unit_state[1]
                         unit.status_lines[2] = unit_state[2]
                         unit.auto_ready = unit_state[3]
@@ -1269,6 +1292,7 @@ function ioctl.update_unit_statuses(statuses)
                         unit.waste_product = unit_state[6]
                         unit.last_rate_change_ms = unit_state[7]
                         unit.turbine_flow_stable = unit_state[8]
+                        unit.fuel_burn_rate_limited = unit_state[9]
 
                         unit.unit_ps.publish("U_StatusLine1", unit.status_lines[1])
                         unit.unit_ps.publish("U_StatusLine2", unit.status_lines[2])
@@ -1314,40 +1338,37 @@ function ioctl.update_unit_statuses(statuses)
 
                 -- determine waste production for this unit, add to statistics
 
-                local is_pu = unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM
-                local waste_rate = burn_rate / 10.0
+                local u_spent_rate
+                local u_pu_rate, u_po_rate, u_po_pl_rate, u_po_am_rate = 0, unit.sna_out_rate, 0, 0
 
-                local u_spent_rate = waste_rate
-                local u_pu_rate = util.trinary(is_pu, waste_rate, 0.0)
-                local u_po_rate = unit.sna_out_rate
-                local u_po_pl_rate = 0
+                unit.unit_ps.publish("sna_in", util.trinary(unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
+
+                if unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                    u_po_am_rate = u_po_rate
+                    po_am_rate   = po_am_rate + u_po_am_rate
+
+                    u_spent_rate = 0
+                elseif unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                    u_po_pl_rate = u_po_rate
+                    po_pl_rate   = po_pl_rate + u_po_rate
+
+                    u_spent_rate = u_po_rate
+                else -- plutonium
+                    u_pu_rate    = (burn_rate * _ioctl.mek.pu_ratio[2]) / _ioctl.mek.pu_ratio[1]
+                    pu_rate      = pu_rate + u_pu_rate
+
+                    u_spent_rate = u_pu_rate
+                end
 
                 unit.unit_ps.publish("pu_rate", u_pu_rate)
                 unit.unit_ps.publish("po_rate", u_po_rate)
-
-                unit.unit_ps.publish("sna_in", util.trinary(is_pu, 0, burn_rate))
-
-                if unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
-                    u_spent_rate = u_po_rate
-                    unit.unit_ps.publish("po_pl_rate", u_po_rate)
-                    unit.unit_ps.publish("po_am_rate", 0)
-                    u_po_pl_rate = u_po_rate
-                    po_pl_rate = po_pl_rate + u_po_rate
-                elseif unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
-                    u_spent_rate = 0
-                    unit.unit_ps.publish("po_pl_rate", 0)
-                    unit.unit_ps.publish("po_am_rate", u_po_rate)
-                    po_am_rate = po_am_rate + u_po_rate
-                else
-                    unit.unit_ps.publish("po_pl_rate", 0)
-                    unit.unit_ps.publish("po_am_rate", 0)
-                end
+                unit.unit_ps.publish("po_pl_rate", u_po_pl_rate)
+                unit.unit_ps.publish("po_am_rate", u_po_am_rate)
 
                 unit.waste_stats = { u_pu_rate, u_po_rate, u_po_pl_rate }
 
                 unit.unit_ps.publish("ws_rate", u_spent_rate)
 
-                pu_rate = pu_rate + u_pu_rate
                 po_rate = po_rate + u_po_rate
                 spent_rate = spent_rate + u_spent_rate
             end

@@ -52,7 +52,6 @@ end
 ---@param seconds? number
 function testutils.pause(seconds)
     seconds = seconds or 1.0
----@diagnostic disable-next-line: undefined-field
     os.sleep(seconds)
 end
 
