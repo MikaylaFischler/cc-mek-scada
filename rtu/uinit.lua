@@ -351,8 +351,8 @@ return function(config, __shared_memory)
                 println_ts(util.c("uinit> failed to check if '", name, "' is formed"))
                 log.warning(util.c("uinit> failed to check if '", name, "' is a formed SPS multiblock"))
             end
-        elseif type == "solarNeutronActivator" then
-            -- SNA
+        elseif type == "solarNeutronActivator" or type == "largeSolarNeutronActivator" then
+            -- SNA (normal or large)
             if not validate_assign() then return false end
 
             rtu_type = RTU_UNIT_TYPE.SNA

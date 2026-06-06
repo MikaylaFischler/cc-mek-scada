@@ -43,8 +43,8 @@ local self = {
 
 local peripherals = {}
 
-local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "reinforcedInductionPort", "spsPort", "solarNeutronActivator", "environmentDetector", "environment_detector" }
-local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector", "environment_detector" }
+local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "largeSolarNeutronActivator", "reinforcedInductionPort", "environmentDetector", "environment_detector" }
+local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "largeSolarNeutronActivator", "environmentDetector", "environment_detector" }
 
 -- create the peripherals configuration view
 ---@param tool_ctl _rtu_cfg_tool_ctl
@@ -145,7 +145,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             reposition("This is reactor unit #    's #     turbine.", 31, 3, 23, 4, 7)
             self.p_assign_btn.hide(true)
             self.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. The numberings are per unit (unit 1 and unit 2 would both have a turbine #1) and can be split amongst multiple RTUs (one has #1, another has #2).")
-        elseif type == "solarNeutronActivator" then
+        elseif type == "solarNeutronActivator" or type == "largeSolarNeutronActivator" then
             reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
             self.p_idx.hide()
             self.p_assign_btn.hide(true)
