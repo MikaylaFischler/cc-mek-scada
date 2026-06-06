@@ -126,8 +126,6 @@ mek.BOILER_CASING_HEAT_CAP  = 50     -- BoilerMultiblockData.CASING_HEAT_CAPACIT
 mek.SODIUM_CONDUCTIVITY     = 1
 mek.SODIUM_THERMAL_ENTHALPY = 5
 
-mek.WATER_CONDUCTIVITY      = 0.5
-
 -- configurable Mekanism constants
 
 mek.WATER_THERMAL_ENTHALPY = 10 -- maxEnergyPerSteam

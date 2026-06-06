@@ -45,7 +45,7 @@ local DT_KEYS = {
 local IDLE_RATE = 0.01
 
 local SODIUM_THERM_CONV = const.mek.SODIUM_THERMAL_ENTHALPY / const.mek.SODIUM_CONDUCTIVITY
-local WATER_THERM_CONV  = const.mek.WATER_THERMAL_ENTHALPY / const.mek.STEAM_ENERGY_EFF / const.mek.WATER_CONDUCTIVITY
+local WATER_THERM_CONV  = const.mek.WATER_THERMAL_ENTHALPY / const.mek.STEAM_ENERGY_EFF
 
 ---@class reactor_control_unit
 local unit = {}
