@@ -100,6 +100,7 @@ local function new_view(root, x, y)
     local unit_crit   = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local fac_rad_h   = IndicatorLight{parent=main,label="Facility Radiation High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local gen_fault   = IndicatorLight{parent=main,label="Gen. Control Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local cfg_warn    = IndicatorLight{parent=main,label="Configuration Warning",colors=ind_yel}
 
     auto_scram.register(facility.ps, "auto_scram", auto_scram.update)
     matrix_flt.register(facility.ps, "as_matrix_fault", matrix_flt.update)
@@ -107,6 +108,7 @@ local function new_view(root, x, y)
     unit_crit.register(facility.ps, "as_crit_alarm", unit_crit.update)
     fac_rad_h.register(facility.ps, "as_radiation", fac_rad_h.update)
     gen_fault.register(facility.ps, "as_gen_fault", gen_fault.update)
+    cfg_warn.register(facility.ps, "config_warning", cfg_warn.update)
 
     TextBox{parent=main,y=23,text="Radiation",width=13,fg_bg=style.label}
     local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}

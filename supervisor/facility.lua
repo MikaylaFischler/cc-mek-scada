@@ -115,6 +115,7 @@ function facility.new(config)
             radiation = false,
             gen_fault = false
         },
+        energy_mismatch = false,
         -- closed loop control
         turbine_gen_rate = 0.0,
         charge_conversion = const.mek.STANDARD_FE_PER_MB,
@@ -375,10 +376,16 @@ function facility.new(config)
     -- call the update function of all units in the facility<br>
     -- additionally sets the requested auto waste mode if applicable
     function public.update_units()
+        self.energy_mismatch = false
+
         for i = 1, #self.units do
             local u = self.units[i]
             u.auto_set_waste(self.current_waste_product)
             u.update()
+
+            if u.has_energy_mismatch() then
+                self.energy_mismatch = true
+            end
         end
     end
 
@@ -580,6 +587,10 @@ function facility.new(config)
 
     --#region Read States/Properties
 
+    -- check for energy mismatch condition
+    ---@nodiscard
+    function public.has_energy_mismatch() return self.energy_mismatch end
+
     -- get current alarm tone on/off states
     ---@nodiscard
     function public.get_alarm_tones() return self.tone_states end
@@ -635,6 +646,7 @@ function facility.new(config)
             astat.crit_alarm,
             astat.radiation,
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
+            self.energy_mismatch,
             self.status_text[1],
             self.status_text[2],
             self.group_map,

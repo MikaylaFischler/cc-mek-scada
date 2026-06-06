@@ -1,3 +1,4 @@
+local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
 local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
@@ -42,6 +43,9 @@ local DT_KEYS = {
 
 -- burn rate to idle at
 local IDLE_RATE = 0.01
+
+local SODIUM_THERM_CONV = const.mek.SODIUM_THERMAL_ENTHALPY / const.mek.SODIUM_CONDUCTIVITY
+local WATER_THERM_CONV  = const.mek.WATER_THERMAL_ENTHALPY / const.mek.STEAM_ENERGY_EFF
 
 ---@class reactor_control_unit
 local unit = {}
@@ -103,6 +107,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         status_text = { "UNKNOWN", "awaiting connection..." },
         enable_aux_cool = false,
         fuel_burn_rate_limited = false,
+        energy_mismatch = false,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -581,6 +586,19 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                 self.auto_idling = false
                 self.plc_i.auto_set_burn(0, false)
             end
+
+            -- check for appropriate energy production
+            if self.plc_cache.active and ((util.time_ms() - self.last_rate_change_ms) > 2000) then
+                local db = self.plc_i.get_db()
+
+                if (not self.db.annunciator.CoolantLevelLow) and (db.mek_status.act_burn_rate > 0) then
+                    local prod = db.mek_status.act_burn_rate * const.mek.JOULES_PER_MB
+                    local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
+                    local heat = db.mek_status.heating_rate * util.trinary(num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
+
+                    self.energy_mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
+                end
+            end
         end
 
         -- update deltas
@@ -885,6 +903,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     -- check if emergency coolant activation has been tripped
     ---@nodiscard
     function public.is_emer_cool_tripped() return self.em_cool_opened end
+
+    -- check if produced energy (heat) doesn't match expectations from configuration
+    ---@nodiscard
+    function public.has_energy_mismatch() return self.energy_mismatch end
 
     -- get build properties of machines
     --

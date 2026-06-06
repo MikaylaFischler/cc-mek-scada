@@ -22,6 +22,7 @@ local MultiPane     = require("graphics.elements.MultiPane")
 local Rectangle     = require("graphics.elements.Rectangle")
 local TextBox       = require("graphics.elements.TextBox")
 
+local PushButton    = require("graphics.elements.controls.PushButton")
 local TabBar        = require("graphics.elements.controls.TabBar")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
@@ -74,6 +75,17 @@ local function init(panel, config)
         local modem = LED{parent=system,label="MODEM",colors=ind_grn}
         modem.register(databus.ps, util.trinary(config.WirelessModem, "has_wl_modem", "has_wd_modem"), modem.update)
     end
+
+    --
+    -- warnings
+    --
+
+    local warning_box = Rectangle{parent=main_page,x=20,y=2,width=28,height=11,border=border(1,s_hi_box.bkg,true),thin=true,even_inner=true,hidden=true}
+
+    TextBox{parent=warning_box,text="One or more units have a heating rate that deviates from the configured Joules per mB of fuel. Check the Supervisor's Mekanism configuration against Mekanism's configuration.",fg_bg=cpair(colors.red,colors._INHERIT)}
+    PushButton{parent=warning_box,x=18,y=9,min_width=9,text="DISMISS",callback=function()warning_box.hide(true)end,fg_bg=s_hi_box,active_fg_bg=s_hi_bright}
+
+    warning_box.register(databus.ps, "energy_mismatch", function (x) if x then warning_box.show() else warning_box.hide(true) end end)
 
     --
     -- hardware labeling
