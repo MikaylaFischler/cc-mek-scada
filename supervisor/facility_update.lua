@@ -598,7 +598,7 @@ function update.auto_control(ExtChargeIdling)
             -- enabling idling on all assigned units
             set_idling(true)
 
-            self.status_text = { "CHARGE MODE", "initialized" }
+            self.status_text = { "CHARGE LEVEL MODE", "initialized" }
             log.info("FAC: CHARGE mode starting up")
         elseif self.last_update < charge_update then
             local open_loop = false
@@ -612,7 +612,7 @@ function update.auto_control(ExtChargeIdling)
             local error = (self.sp.charge_setpoint - avg_charge) / 1000000
 
             if open_loop then
-                self.status_text = { "CHARGE MODE", "running at max burn" }
+                self.status_text = { "CHARGE LEVEL MODE", "running at max burn" }
 
                 if self.charge_control_open ~= true then
                     log.info("FAC: CHARGE mode running open loop")
@@ -625,7 +625,7 @@ function update.auto_control(ExtChargeIdling)
                 self.accumulator = 0
                 self.saturated = true
             else
-                self.status_text = { "CHARGE MODE", "running control loop" }
+                self.status_text = { "CHARGE LEVEL MODE", "running control loop" }
 
                 if self.charge_control_open ~= false then
                     log.info("FAC: CHARGE mode running closed loop")

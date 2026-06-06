@@ -108,6 +108,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         enable_aux_cool = false,
         fuel_burn_rate_limited = false,
         energy_mismatch = false,
+        energy_mismatch_start = nil,
         -- logic for alarms
         had_reactor = false,
         turbine_flow_stable = false,
@@ -573,6 +574,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
         -- plc instance checks
         if self.plc_i ~= nil then
+            local now = util.time_ms()
+
             -- check if degraded
             local rps = self.plc_i.get_rps()
             if rps.fault or rps.sys_fail then self.db.control.degraded = true end
@@ -581,14 +584,14 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             if self.auto_engaged and not self.plc_i.is_auto_locked() then self.plc_i.auto_lock(true) end
 
             -- stop idling when completed
-            if self.auto_idling and (((util.time_ms() - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
+            if self.auto_idling and (((now - self.auto_idle_start) > IDLE_TIME) or not self.auto_idle) then
                 log.info(util.c(log_tag, "completed idling period"))
                 self.auto_idling = false
                 self.plc_i.auto_set_burn(0, false)
             end
 
             -- check for appropriate energy production
-            if self.plc_cache.active and ((util.time_ms() - self.last_rate_change_ms) > 2000) then
+            if self.plc_cache.active and ((now - self.last_rate_change_ms) > 2000) then
                 local db = self.plc_i.get_db()
 
                 if (not self.db.annunciator.CoolantLevelLow) and (db.mek_status.act_burn_rate > 0) then
@@ -596,7 +599,18 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                     local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
                     local heat = db.mek_status.heating_rate * util.trinary(num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
 
-                    self.energy_mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
+                    local mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
+
+                    if mismatch and (db.mek_status.ccool_amnt > (1.1 * db.mek_status.heating_rate)) then
+                        if self.energy_mismatch_start == nil then
+                            self.energy_mismatch_start = now
+                        elseif (now - self.energy_mismatch_start) > 2000 then
+                            self.energy_mismatch = true
+                        end
+                    else
+                        self.energy_mismatch_start = nil
+                        self.energy_mismatch = false
+                    end
                 end
             end
         end
