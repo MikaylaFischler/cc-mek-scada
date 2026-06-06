@@ -596,8 +596,6 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
                     local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
                     local heat = db.mek_status.heating_rate * util.trinary(num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
 
-                    log.debug(util.sprintf("UNIT[%d] - PROD[%f] LOSS[%f] HEAT[%f] - ERROR[%f] THRESHOLD[%f]", reactor_id, prod, loss, heat, math.abs(prod - (heat + loss)), const.ENERGY_MISMATCH_TOL * prod))
-
                     self.energy_mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
                 end
             end
