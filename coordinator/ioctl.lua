@@ -658,7 +658,7 @@ function ioctl.update_facility_status(status)
 
         local ctl_status = status[1]
 
-        if type(ctl_status) == "table" and #ctl_status == 18 then
+        if type(ctl_status) == "table" and #ctl_status == 19 then
             fac.all_sys_ok = ctl_status[1]
             fac.auto_ready = ctl_status[2]
 
@@ -680,8 +680,8 @@ function ioctl.update_facility_status(status)
             fac.ascram_status.radiation = ctl_status[11]
             fac.ascram_status.gen_fault = ctl_status[12]
 
-            fac.status_lines[1] = ctl_status[13]
-            fac.status_lines[2] = ctl_status[14]
+            fac.status_lines[1] = ctl_status[14]
+            fac.status_lines[2] = ctl_status[15]
 
             fac.ps.publish("all_sys_ok", fac.all_sys_ok)
             fac.ps.publish("auto_ready", fac.auto_ready)
@@ -695,10 +695,11 @@ function ioctl.update_facility_status(status)
             fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             fac.ps.publish("as_radiation", fac.ascram_status.radiation)
             fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+            fac.ps.publish("config_warning", ctl_status[13])
             fac.ps.publish("status_line_1", fac.status_lines[1])
             fac.ps.publish("status_line_2", fac.status_lines[2])
 
-            local group_map = ctl_status[15]
+            local group_map = ctl_status[16]
 
             if (type(group_map) == "table") and (#group_map == fac.num_units) then
                 for i = 1, #group_map do
@@ -708,9 +709,9 @@ function ioctl.update_facility_status(status)
                 end
             end
 
-            fac.auto_current_waste_product = ctl_status[16]
-            fac.auto_pu_fallback_active = ctl_status[17]
-            fac.auto_sps_disabled = ctl_status[18]
+            fac.auto_current_waste_product = ctl_status[17]
+            fac.auto_pu_fallback_active = ctl_status[18]
+            fac.auto_sps_disabled = ctl_status[19]
 
             fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
             fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
