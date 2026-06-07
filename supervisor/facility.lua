@@ -139,6 +139,7 @@ function facility.new(config)
         po_prod_ratio = config.MekanismWasteToPo[1] / config.MekanismWasteToPo[2],
         pu_fallback = false,
         pu_fallback_active = false,
+        pu_fallback_times = {}, ---@type integer[]
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
@@ -182,6 +183,7 @@ function facility.new(config)
         table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling, self.cooling_conf.aux_coolant[i]))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
         table.insert(self.last_unit_states, false)
+        table.insert(self.pu_fallback_times, 0)
     end
 
     -- list for RTU session management

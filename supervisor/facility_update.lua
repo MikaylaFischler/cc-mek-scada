@@ -1093,11 +1093,23 @@ function update.unit_mgmt()
             local waste_mode = self.current_waste_product
 
             if self.pu_fallback then
-                local avail, near_full = u.get_sna_status()
+                local f_t = self.pu_fallback_times[i]
+                local avail, near_full, low_fill = u.get_sna_status()
+
                 if ((avail * self.po_prod_ratio) < u.get_burn_rate()) and near_full then
+                    -- enter fallback if we can't keep up and nearly filled the input buffers
+                    f_t = util.time_ms()
+                elseif (f_t > 0) and ((util.time_ms() - f_t) > const.PU_FALLBACK_MIN_TIME_MS) and low_fill then
+                    -- exit fallback after no less than min period and at least one SNA has mostly emptied
+                    f_t = 0
+                end
+
+                if f_t > 0 then
                     waste_mode = WASTE.PLUTONIUM
                     fallback_count = fallback_count + 1
                 end
+
+                self.pu_fallback_times[i] = f_t
             end
 
             u.auto_set_waste(waste_mode)

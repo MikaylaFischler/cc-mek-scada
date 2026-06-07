@@ -1064,19 +1064,23 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         return status
     end
 
-    -- get the current total available production rate and if all SNAs have <= their production rate of remaining input capacity
+    -- get SNA production status
+    -- - total available production rate
+    -- - if all SNAs have <= their production rate of remaining input capacity
+    -- - if any SNAs are less than 15% full
     ---@nodiscard
-    ---@return number total_avail_rate, boolean near_full
+    ---@return number total_avail_rate, boolean near_full, boolean low_fill
     function public.get_sna_status()
-        local total_avail_rate, near_full = 0, true
+        local total_avail_rate, near_full, low_fill = 0, true, false
 
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()
             total_avail_rate = total_avail_rate + db.state.production_rate
             near_full = near_full and (db.tanks.input_need <= db.state.production_rate)
+            low_fill = low_fill or (db.tanks.input_fill < 0.15)
         end
 
-        return total_avail_rate, near_full
+        return total_avail_rate, near_full, low_fill
     end
 
     -- get the energy generation rate of this unit (sum of all turbine generators)
