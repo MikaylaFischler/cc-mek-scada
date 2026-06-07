@@ -552,6 +552,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
             end
 
             try_set(tool_ctl.en_fac_tanks, ini_cfg.FacilityTankMode > 0)
+            try_set(tool_ctl.ext_idling, ini_cfg.ExtChargeIdling)
+            try_set(tool_ctl.sna_stats, ini_cfg.UseSNAStatistics)
 
             for k, v in pairs(ini_cfg.MekanismConfig) do
                 try_set(tool_ctl.custom_configs[k], v)
