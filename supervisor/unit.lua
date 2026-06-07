@@ -57,7 +57,8 @@ local unit = {}
 ---@param num_turbines integer number of turbines expected
 ---@param ext_idle boolean extended idling mode
 ---@param aux_coolant boolean if this unit has auxiliary coolant
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
+---@param po_prod_ratio number waste to polonium ratio
+function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant, po_prod_ratio)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
 
@@ -1048,8 +1049,9 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             local db = self.snas[i].get_db()
             total_peak = total_peak + db.state.peak_production
             total_avail = total_avail + db.state.production_rate
-            local out_from_in = util.trinary(db.tanks.input.amount >= 10, db.tanks.input.amount / 10, 0)
-            total_out = total_out + math.min(out_from_in, db.state.production_rate)
+            local out_from_in = util.trinary(db.tanks.input.amount >= po_prod_ratio, db.tanks.input.amount / po_prod_ratio, 0)
+            local out = util.trinary(db.tanks.output.amount > 0, math.min(out_from_in, db.tanks.output.amount), out_from_in)
+            total_out = total_out + math.min(out, db.state.production_rate)
         end
         status.sna = { #self.snas, total_peak, total_avail, total_out }
 
