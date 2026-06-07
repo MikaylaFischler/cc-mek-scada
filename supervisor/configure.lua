@@ -80,10 +80,12 @@ local tool_ctl = {
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
+    ext_idling = {},      ---@type Checkbox
+    sna_stats = {},       ---@type Checkbox
 
-    mek_profile = nil,     ---@type RadioButton
-    custom_configs = {},   ---@type NumberField[]
-    waste_ratios = {},     ---@type NumberField[]
+    mek_profile = nil,    ---@type RadioButton
+    custom_configs = {},  ---@type NumberField[]
+    waste_ratios = {},    ---@type NumberField[]
 
     gen_modem_list = function () end
 }
@@ -99,6 +101,7 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    UseSNAStatistics = true,
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
     MekanismWasteToPu = { 10, 1 },
@@ -144,6 +147,7 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "UseSNAStatistics", "Use SNA Statistics", true },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },
