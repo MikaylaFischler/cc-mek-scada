@@ -1069,7 +1069,6 @@ function update.unit_mgmt()
     -- update waste product
 
     self.current_waste_product = self.waste_product
-    self.pu_fallback_active = false
 
     if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
         local db = self.induction[1].get_db()
@@ -1084,6 +1083,8 @@ function update.unit_mgmt()
         self.disabled_sps = false
     end
 
+    local fallback_count = 0
+
     for i = 1, #self.units do
         local u = self.units[i]
 
@@ -1095,7 +1096,7 @@ function update.unit_mgmt()
                 local avail, near_full = u.get_sna_status()
                 if ((avail * self.po_prod_ratio) < u.get_burn_rate()) and near_full then
                     waste_mode = WASTE.PLUTONIUM
-                    self.pu_fallback_active = true
+                    fallback_count = fallback_count + 1
                 end
             end
 
@@ -1112,6 +1113,11 @@ function update.unit_mgmt()
             self.last_unit_states[i] = u.is_reactor_enabled()
             write_state = true
         end
+    end
+
+    self.pu_fallback_active = fallback_count > 0
+    if fallback_count == #self.units then
+        self.current_waste_product = WASTE.PLUTONIUM
     end
 
     -- record unit control states
