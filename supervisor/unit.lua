@@ -1049,11 +1049,15 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
         local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()
+            local in_a, out_a, prod = db.tanks.input.amount, db.tanks.output.amount, db.state.production_rate
+
             total_peak = total_peak + db.state.peak_production
-            total_avail = total_avail + db.state.production_rate
-            local out_from_in = util.trinary(db.tanks.input.amount >= po_prod_ratio, db.tanks.input.amount / po_prod_ratio, 0)
-            local out = util.trinary(db.tanks.output.amount > 0, math.min(out_from_in, db.tanks.output.amount), out_from_in)
-            total_out = total_out + math.min(out, db.state.production_rate)
+            total_avail = total_avail + prod
+
+            local out_from_in = util.trinary(in_a >= po_prod_ratio, in_a / po_prod_ratio, 0)
+            local out_rate_appx = util.trinary(out_a > 0, math.min(out_from_in, out_a), out_from_in)
+
+            total_out = total_out + math.min(out_rate_appx, prod)
         end
 
         if not use_sna_stats then
