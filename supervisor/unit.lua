@@ -55,10 +55,11 @@ local unit = {}
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
----@param ext_idle boolean extended idling mode
 ---@param aux_coolant boolean if this unit has auxiliary coolant
+---@param ext_idle boolean extended idling mode
+---@param use_sna_stats boolean if the SNAs should be used for Po total_out rate calculation
 ---@param po_prod_ratio number waste to polonium ratio
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant, po_prod_ratio)
+function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, use_sna_stats, po_prod_ratio)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
 
@@ -1043,7 +1044,8 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant, 
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
-        -- SNA statistical information
+        -- SNA/Po statistical information
+
         local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()
@@ -1053,6 +1055,11 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant, 
             local out = util.trinary(db.tanks.output.amount > 0, math.min(out_from_in, db.tanks.output.amount), out_from_in)
             total_out = total_out + math.min(out, db.state.production_rate)
         end
+
+        if not use_sna_stats then
+            total_out = util.trinary(self.waste_product == WASTE.PLUTONIUM, 0, public.get_burn_rate() / po_prod_ratio)
+        end
+
         status.sna = { #self.snas, total_peak, total_avail, total_out }
 
         -- radiation monitors (environment detectors)

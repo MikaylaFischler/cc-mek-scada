@@ -739,11 +739,11 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     --#region SNA Statistics
 
     TextBox{parent=fac_c_10,height=3,text="The flow display and other data displays use connected Solar Neutron Activators (SNAs) for indicating Polonium production values."}
-    TextBox{parent=fac_c_10,y=5,height=3,text="If you are not using SNAs, you can unselect this option to cause the Supervisor to compute an estimate based on the current burn rate."}
+    TextBox{parent=fac_c_10,y=5,height=3,text="If you are not using SNAs, you can unselect this option to have the Supervisor compute an estimate based on the current burn rate."}
 
     tool_ctl.sna_stats = Checkbox{parent=fac_c_10,y=9,label="Use SNAs for Po Statistics",default=ini_cfg.UseSNAStatistics,box_fg_bg=cpair(colors.yellow,colors.black)}
 
-    TextBox{parent=fac_c_10,y=11,height=3,text="Both modes depend on correct entry of waste ratios in the Mekanism Configuration section.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_10,y=11,height=3,text="Both modes depend on correct waste ratios in the Mekanism Configuration section.",fg_bg=g_lg_fg_bg}
 
     local function submit_sna_stats()
         tmp_cfg.UseSNAStatistics = tool_ctl.sna_stats.get_value()
