@@ -1063,18 +1063,43 @@ end
 
 -- update unit tasks
 function update.unit_mgmt()
-    local insufficent_po_rate = false
     local need_emcool = false
     local write_state = false
+
+    -- update waste product
+
+    self.current_waste_product = self.waste_product
+    self.pu_fallback_active = false
+
+    if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
+        local db = self.induction[1].get_db()
+
+        if db.tanks.energy_fill >= 0.15 then
+            self.disabled_sps = false
+        elseif self.disabled_sps or ((db.tanks.last_update > 0) and (db.tanks.energy_fill < 0.1)) then
+            self.disabled_sps = true
+            self.current_waste_product = WASTE.POLONIUM
+        end
+    else
+        self.disabled_sps = false
+    end
 
     for i = 1, #self.units do
         local u = self.units[i]
 
         -- update auto waste processing
         if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
-            if (u.get_sna_rate() * 10.0) < u.get_burn_rate() then
-                insufficent_po_rate = true
+            local waste_mode = self.current_waste_product
+
+            if self.pu_fallback then
+                local avail, near_full = u.get_sna_status()
+                if ((avail * self.po_prod_ratio) < u.get_burn_rate()) and near_full then
+                    waste_mode = WASTE.PLUTONIUM
+                    self.pu_fallback_active = true
+                end
             end
+
+            u.auto_set_waste(waste_mode)
         end
 
         -- check if unit activated emergency coolant & uses facility tanks
@@ -1096,27 +1121,6 @@ function update.unit_mgmt()
         if not settings.save("/supervisor.settings") then
             log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
         end
-    end
-
-    -- update waste product
-
-    self.current_waste_product = self.waste_product
-
-    if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
-        local db = self.induction[1].get_db()
-
-        if db.tanks.energy_fill >= 0.15 then
-            self.disabled_sps = false
-        elseif self.disabled_sps or ((db.tanks.last_update > 0) and (db.tanks.energy_fill < 0.1)) then
-            self.disabled_sps = true
-            self.current_waste_product = WASTE.POLONIUM
-        end
-    else
-        self.disabled_sps = false
-    end
-
-    if self.pu_fallback and insufficent_po_rate then
-        self.current_waste_product = WASTE.PLUTONIUM
     end
 
     -- make sure dynamic tanks are allowing outflow if required
