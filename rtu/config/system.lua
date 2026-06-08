@@ -47,12 +47,12 @@ local system = {}
 ---@param main_pane MultiPane
 ---@param cfg_sys [ rtu_config, rtu_config, rtu_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
----@param ext [ MultiPane, MultiPane, string[], function, function, function ]
+---@param ext [ MultiPane, MultiPane, string[], function, function, function, function ]
 ---@param style { [string]: cpair }
 function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local spkr_cfg, net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4], divs[5]
-    local peri_pane, rs_pane, NEEDS_UNIT, show_peri_conns, show_rs_conns, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6]
+    local peri_pane, rs_pane, NEEDS_UNIT, show_peri_conns, show_rs_conns, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6], ext[7]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
@@ -524,7 +524,13 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     TextBox{parent=sum_c_4,y=3,height=4,text="Remember to configure any peripherals or redstone that you have connected to this RTU gateway if you have not already done so, or if you have added, removed, or modified any of them."}
     PushButton{parent=sum_c_4,y=8,min_width=24,text="Peripheral Connections",callback=jump_peri_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=sum_c_4,y=10,min_width=22,text="Redstone Connections",callback=jump_rs_conns,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_4,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    if tool_ctl.ask_config then
+        PushButton{parent=sum_c_4,y=14,min_width=16,text="Resume Startup",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=sum_c_4,y=14,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    end
+
     PushButton{parent=sum_c_4,x=44,y=14,min_width=6,text="Home",callback=function()tool_ctl.go_home()end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=sum_c_5,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}

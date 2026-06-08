@@ -72,8 +72,9 @@ local system = {}
 ---@param cfg_sys [ plc_config, plc_config, plc_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
 ---@param style { [string]: cpair }
+---@param startup function
 ---@param exit function
-function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local plc_cfg, net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4], divs[5]
 
@@ -668,7 +669,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, exit)
     end
 
     PushButton{parent=sum_c_2,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    if tool_ctl.ask_config then
+        PushButton{parent=sum_c_2,x=34,y=14,min_width=16,text="Resume Startup",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    end
 
     TextBox{parent=sum_c_3,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 
