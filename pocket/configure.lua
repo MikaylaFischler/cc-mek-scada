@@ -170,11 +170,15 @@ local function config_view(display)
         exit()
     end
 
-    PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    local start_btn = PushButton{parent=main_page,x=17,y=18,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=main_page,x=2,y=y_start+4,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    if tool_ctl.ask_config then start_btn.disable() end
+    if tool_ctl.ask_config then
+        PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,dis_fg_bg=btn_dis_fg_bg}.disable()
+        PushButton{parent=main_page,x=18,y=18,min_width=8,text="Resume",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+        PushButton{parent=main_page,x=17,y=18,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    end
 
     --#endregion
 
@@ -183,7 +187,7 @@ local function config_view(display)
     local settings = { settings_cfg, ini_cfg, tmp_cfg, fields, load_settings }
     local divs     = { ui_cfg, net_cfg, log_cfg, summary }
 
-    system.create(tool_ctl, main_pane, settings, divs, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, style, startup, exit)
 
     --#endregion
 
