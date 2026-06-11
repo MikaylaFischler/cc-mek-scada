@@ -1063,40 +1063,8 @@ end
 
 -- update unit tasks
 function update.unit_mgmt()
-    local insufficent_po_rate = false
     local need_emcool = false
     local write_state = false
-
-    for i = 1, #self.units do
-        local u = self.units[i]
-
-        -- update auto waste processing
-        if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
-            if (u.get_sna_rate() * 10.0) < u.get_burn_rate() then
-                insufficent_po_rate = true
-            end
-        end
-
-        -- check if unit activated emergency coolant & uses facility tanks
-        if (self.cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (self.cooling_conf.fac_tank_defs[i] == 2) then
-            need_emcool = true
-        end
-
-        -- check for enabled state changes to save
-        if self.last_unit_states[i] ~= u.is_reactor_enabled() then
-            self.last_unit_states[i] = u.is_reactor_enabled()
-            write_state = true
-        end
-    end
-
-    -- record unit control states
-
-    if write_state then
-        settings.set("LastUnitStates", self.last_unit_states)
-        if not settings.save("/supervisor.settings") then
-            log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
-        end
-    end
 
     -- update waste product
 
@@ -1115,8 +1083,62 @@ function update.unit_mgmt()
         self.disabled_sps = false
     end
 
-    if self.pu_fallback and insufficent_po_rate then
+    local fallback_count = 0
+
+    for i = 1, #self.units do
+        local u = self.units[i]
+
+        -- update auto waste processing
+        if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
+            local waste_mode = self.current_waste_product
+
+            if self.pu_fallback then
+                local f_t = self.pu_fallback_times[i]
+                local avail, near_full, low_fill = u.get_sna_status()
+
+                if ((avail * self.po_prod_ratio) < u.get_burn_rate()) and near_full then
+                    -- enter fallback if we can't keep up and nearly filled the input buffers
+                    f_t = util.time_ms()
+                elseif (f_t > 0) and ((util.time_ms() - f_t) > const.PU_FALLBACK_MIN_TIME_MS) and low_fill then
+                    -- exit fallback after no less than min period and at least one SNA has mostly emptied
+                    f_t = 0
+                end
+
+                if f_t > 0 then
+                    waste_mode = WASTE.PLUTONIUM
+                    fallback_count = fallback_count + 1
+                end
+
+                self.pu_fallback_times[i] = f_t
+            end
+
+            u.auto_set_waste(waste_mode)
+        end
+
+        -- check if unit activated emergency coolant & uses facility tanks
+        if (self.cooling_conf.fac_tank_mode > 0) and u.is_emer_cool_tripped() and (self.cooling_conf.fac_tank_defs[i] == 2) then
+            need_emcool = true
+        end
+
+        -- check for enabled state changes to save
+        if self.last_unit_states[i] ~= u.is_reactor_enabled() then
+            self.last_unit_states[i] = u.is_reactor_enabled()
+            write_state = true
+        end
+    end
+
+    self.pu_fallback_active = fallback_count > 0
+    if fallback_count == #self.units then
         self.current_waste_product = WASTE.PLUTONIUM
+    end
+
+    -- record unit control states
+
+    if write_state then
+        settings.set("LastUnitStates", self.last_unit_states)
+        if not settings.save("/supervisor.settings") then
+            log.warning("facility_update.unit_mgmt(): failed to save supervisor settings file")
+        end
     end
 
     -- make sure dynamic tanks are allowing outflow if required

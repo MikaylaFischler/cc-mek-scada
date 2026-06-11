@@ -57,8 +57,9 @@ local system = {}
 ---@param fac_pane MultiPane
 ---@param mek_pane MultiPane
 ---@param style { [string]: cpair }
+---@param startup function
 ---@param exit function
-function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, style, exit)
+function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, style, startup, exit)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary, import_err = divs[1], divs[2], divs[3], divs[4], divs[5]
 
@@ -450,11 +451,11 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
     end
 
     TextBox{parent=clr_c_3,y=1,text="Settings saved!"}
-    PushButton{parent=clr_c_3,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_3,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=clr_c_3,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=clr_c_4,y=1,height=5,text="Failed to save the settings file.\n\nThere may not be enough space for the modification or server file permissions may be denying writes."}
-    PushButton{parent=clr_c_4,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+    PushButton{parent=clr_c_4,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
     PushButton{parent=clr_c_4,x=44,y=14,min_width=6,text="Home",callback=c_go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -552,6 +553,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
             end
 
             try_set(tool_ctl.en_fac_tanks, ini_cfg.FacilityTankMode > 0)
+            try_set(tool_ctl.ext_idling, ini_cfg.ExtChargeIdling)
+            try_set(tool_ctl.sna_stats, ini_cfg.UseSNAStatistics)
 
             for k, v in pairs(ini_cfg.MekanismConfig) do
                 try_set(tool_ctl.custom_configs[k], v)
@@ -603,7 +606,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
     end
 
     PushButton{parent=sum_c_2,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    if tool_ctl.ask_config then
+        PushButton{parent=sum_c_2,x=34,y=14,min_width=16,text="Resume Startup",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    end
 
     TextBox{parent=sum_c_3,y=1,height=2,text="The old config.lua file will now be deleted, then the configurator will exit."}
 

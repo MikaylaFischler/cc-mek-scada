@@ -136,7 +136,10 @@ function facility.new(config)
         -- waste processing
         waste_product = WASTE.PLUTONIUM,         ---@type WASTE_PRODUCT
         current_waste_product = WASTE.PLUTONIUM, ---@type WASTE_PRODUCT
+        po_prod_ratio = config.MekanismWasteToPo[1] / config.MekanismWasteToPo[2],
         pu_fallback = false,
+        pu_fallback_active = false,
+        pu_fallback_times = {}, ---@type integer[]
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
@@ -177,9 +180,11 @@ function facility.new(config)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount, config.ExtChargeIdling, self.cooling_conf.aux_coolant[i]))
+        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount,
+                                          self.cooling_conf.aux_coolant[i], config.ExtChargeIdling, config.UseSNAStatistics, self.po_prod_ratio))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
         table.insert(self.last_unit_states, false)
+        table.insert(self.pu_fallback_times, 0)
     end
 
     -- list for RTU session management
@@ -373,14 +378,12 @@ function facility.new(config)
         f_update.alarm_audio()
     end
 
-    -- call the update function of all units in the facility<br>
-    -- additionally sets the requested auto waste mode if applicable
+    -- call the update function of all units in the facility
     function public.update_units()
         self.energy_mismatch = false
 
         for i = 1, #self.units do
             local u = self.units[i]
-            u.auto_set_waste(self.current_waste_product)
             u.update()
 
             if u.has_energy_mismatch() then
@@ -651,7 +654,7 @@ function facility.new(config)
             self.status_text[2],
             self.group_map,
             self.current_waste_product,
-            self.pu_fallback and (self.current_waste_product == WASTE.PLUTONIUM) and (self.waste_product ~= WASTE.PLUTONIUM),
+            self.pu_fallback_active,
             self.disabled_sps
         }
     end

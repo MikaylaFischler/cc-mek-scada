@@ -52,6 +52,7 @@ function supervisor.load_config()
     config.TankFluidTypes = settings.get("TankFluidTypes")
     config.AuxiliaryCoolant = settings.get("AuxiliaryCoolant")
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
+    config.UseSNAStatistics = settings.get("UseSNAStatistics")
 
     config.MekanismConfig = settings.get("MekanismConfig")
     config.MekanismWasteToPu = settings.get("MekanismWasteToPu")
@@ -100,11 +101,16 @@ function supervisor.load_config()
     cfv.assert_type_table(config.FacilityTankConns)
     cfv.assert_type_table(config.TankFluidTypes)
     cfv.assert_type_table(config.AuxiliaryCoolant)
-    cfv.assert_range(config.FacilityTankMode, 0, 8)
+    cfv.assert_type_bool(config.ExtChargeIdling)
+    cfv.assert_type_bool(config.UseSNAStatistics)
+
+    if cfv.valid() then
+        cfv.assert_range(config.FacilityTankMode, 0, 8)
+    end
 
     cfv.assert_type_table(config.MekanismConfig)
 
-    if type(config.MekanismConfig) == "table" then
+    if cfv.valid() then
         cfv.assert_type_num(config.MekanismConfig.energyPerFissionFuel)
         cfv.assert_type_num(config.MekanismConfig.turbineDisperserChemicalFlow)
         cfv.assert_type_num(config.MekanismConfig.turbineVentChemicalFlow)
@@ -114,14 +120,19 @@ function supervisor.load_config()
     cfv.assert_type_table(config.MekanismWasteToPu)
     cfv.assert_type_table(config.MekanismWasteToPo)
 
-    if type(config.MekanismWasteToPu) == "table" and type(config.MekanismWasteToPo) == "table" then
+    if cfv.valid() then
         cfv.assert_type_int(config.MekanismWasteToPu[1])
         cfv.assert_type_int(config.MekanismWasteToPu[2])
         cfv.assert_type_int(config.MekanismWasteToPo[1])
         cfv.assert_type_int(config.MekanismWasteToPo[2])
-    end
 
-    cfv.assert_type_bool(config.ExtChargeIdling)
+        if cfv.valid() then
+            cfv.assert_min(config.MekanismWasteToPu[1], 1)
+            cfv.assert_min(config.MekanismWasteToPu[2], 1)
+            cfv.assert_min(config.MekanismWasteToPo[1], 1)
+            cfv.assert_min(config.MekanismWasteToPo[2], 1)
+        end
+    end
 
     cfv.assert_type_bool(config.WirelessModem)
     cfv.assert((config.WiredModem == false) or (type(config.WiredModem) == "string"))

@@ -18,6 +18,8 @@ local tri = util.trinary
 local cpair = core.cpair
 
 local self = {
+    any_has_tank = false,
+
     vis_draw = nil,       ---@type function
     draw_fluid_ops = nil, ---@type function
 
@@ -184,8 +186,9 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local fac_c_7 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_8 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_9 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_10 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9}}
+    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9,fac_c_10}}
 
     TextBox{parent=fac_cfg,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -263,7 +266,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         if any_missing then
             cool_err.show()
         else
-            local any_has_tank = false
+            self.any_has_tank = false
 
             tmp_cfg.CoolingConfig = {}
             for i = 1, tmp_cfg.UnitCount do
@@ -275,7 +278,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                     TankConnection = conf.tank.get_value()
                 }
 
-                if conf.tank.get_value() then any_has_tank = true end
+                if conf.tank.get_value() then self.any_has_tank = true end
             end
 
             for i = 1, 4 do
@@ -292,7 +295,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                 else elem.div.hide(true) end
             end
 
-            if not any_has_tank then
+            if not self.any_has_tank then
                 tmp_cfg.FacilityTankMode = 0
                 tmp_cfg.FacilityTankDefs = {}
                 tmp_cfg.FacilityTankList = {}
@@ -300,7 +303,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
                 tmp_cfg.TankFluidTypes = {}
             end
 
-            if any_has_tank then fac_pane.set_value(3) else main_pane.set_value(3) end
+            if self.any_has_tank then fac_pane.set_value(3) else fac_pane.set_value(8) end
         end
     end
 
@@ -699,6 +702,10 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         tool_ctl.aux_cool_elems[i] = { line = line, enable = aux_cool }
     end
 
+    local function back_from_aux_cool()
+        if self.any_has_tank then fac_pane.set_value(7) else fac_pane.set_value(2) end
+    end
+
     local function submit_aux_cool()
         tmp_cfg.AuxiliaryCoolant = {}
 
@@ -709,24 +716,42 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         fac_pane.set_value(9)
     end
 
-    PushButton{parent=fac_c_8,y=14,text="\x1b Back",callback=function()fac_pane.set_value(7)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_8,y=14,text="\x1b Back",callback=back_from_aux_cool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_8,x=44,y=14,text="Next \x1a",callback=submit_aux_cool,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
     --#region Extended Idling
 
-    TextBox{parent=fac_c_9,height=6,text="Charge control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
+    TextBox{parent=fac_c_9,height=6,text="Charge level control provides automatic control to maintain an induction matrix charge level. In order to have smoother control, reactors that were activated will be held on at 0.01 mB/t for a short period before allowing them to turn off. This minimizes overshooting the charge target."}
     TextBox{parent=fac_c_9,y=8,height=3,text="You can extend this to a full minute to minimize reactors flickering on/off, but there may be more overshoot of the target."}
 
-    local ext_idling = Checkbox{parent=fac_c_9,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
+    tool_ctl.ext_idling = Checkbox{parent=fac_c_9,y=12,label="Enable Extended Idling",default=ini_cfg.ExtChargeIdling,box_fg_bg=cpair(colors.yellow,colors.black)}
 
     local function submit_idling()
-        tmp_cfg.ExtChargeIdling = ext_idling.get_value()
-        main_pane.set_value(3)
+        tmp_cfg.ExtChargeIdling = tool_ctl.ext_idling.get_value()
+        fac_pane.set_value(10)
     end
 
     PushButton{parent=fac_c_9,y=14,text="\x1b Back",callback=function()fac_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_9,x=44,y=14,text="Next \x1a",callback=submit_idling,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+    --#region SNA Statistics
+
+    TextBox{parent=fac_c_10,height=3,text="The flow display and other data displays use connected Solar Neutron Activators (SNAs) for indicating Polonium production values."}
+    TextBox{parent=fac_c_10,y=5,height=3,text="If you are not using SNAs, you can unselect this option to have the Supervisor compute an estimate based on the current burn rate."}
+
+    tool_ctl.sna_stats = Checkbox{parent=fac_c_10,y=9,label="Use SNAs for Po Statistics",default=ini_cfg.UseSNAStatistics,box_fg_bg=cpair(colors.yellow,colors.black)}
+
+    TextBox{parent=fac_c_10,y=11,height=3,text="Both modes depend on correct waste ratios in the Mekanism Configuration section.",fg_bg=g_lg_fg_bg}
+
+    local function submit_sna_stats()
+        tmp_cfg.UseSNAStatistics = tool_ctl.sna_stats.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=fac_c_10,y=14,text="\x1b Back",callback=function()fac_pane.set_value(9)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_10,x=44,y=14,text="Next \x1a",callback=submit_sna_stats,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
