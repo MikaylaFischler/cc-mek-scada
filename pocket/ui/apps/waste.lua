@@ -138,11 +138,11 @@ local function new_view(root)
             local cur_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
 
             count.register(u_ps, "sna_count", count.update)
-            peak_i.register(u_ps, "sna_peak_rate", function (x) peak_i.update(x * 10) end)
-            peak_o.register(u_ps, "sna_peak_rate", peak_o.update)
-            max_i.register(u_ps, "sna_max_rate", function (x) max_i.update(x * 10) end)
-            max_o.register(u_ps, "sna_max_rate", max_o.update)
-            cur_i.register(u_ps, "sna_out_rate", function (x) cur_i.update(x * 10) end)
+            peak_i.register(u_ps, "sna_peak_rate_in", peak_i.update)
+            peak_o.register(u_ps, "sna_peak_rate_out", peak_o.update)
+            max_i.register(u_ps, "sna_max_rate_in", max_i.update)
+            max_o.register(u_ps, "sna_max_rate_out", max_o.update)
+            cur_i.register(u_ps, "sna_in_rate", cur_i.update)
             cur_o.register(u_ps, "sna_out_rate", cur_o.update)
         end
 

@@ -637,18 +637,24 @@ function iorx.record_waste_data(data)
         unit.waste_mode = u_data[1]
         unit.waste_product = u_data[2]
         unit.num_snas = u_data[3]
-        unit.sna_peak_rate = u_data[4]
-        unit.sna_max_rate = u_data[5]
-        unit.sna_out_rate = u_data[6]
-        unit.waste_stats = u_data[7]
+        unit.sna_peak_rate_in = u_data[4]
+        unit.sna_peak_rate_out = u_data[5]
+        unit.sna_max_rate_in = u_data[6]
+        unit.sna_max_rate_out = u_data[7]
+        unit.sna_in_rate = u_data[8]
+        unit.sna_out_rate = u_data[9]
+        unit.waste_stats = u_data[10]
 
         u_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
         u_ps.publish("U_WasteMode", unit.waste_mode)
         u_ps.publish("U_WasteProduct", unit.waste_product)
 
         u_ps.publish("sna_count", unit.num_snas)
-        u_ps.publish("sna_peak_rate", unit.sna_peak_rate)
-        u_ps.publish("sna_max_rate", unit.sna_max_rate)
+        u_ps.publish("sna_peak_rate_in", unit.sna_peak_rate_in)
+        u_ps.publish("sna_peak_rate_out", unit.sna_peak_rate_out)
+        u_ps.publish("sna_max_rate_in", unit.sna_max_rate_in)
+        u_ps.publish("sna_max_rate_out", unit.sna_max_rate_out)
+        u_ps.publish("sna_in_rate", unit.sna_in_rate)
         u_ps.publish("sna_out_rate", unit.sna_out_rate)
 
         u_ps.publish("pu_rate", unit.waste_stats[1])

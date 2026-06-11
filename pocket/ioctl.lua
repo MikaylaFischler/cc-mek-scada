@@ -227,8 +227,11 @@ function ioctl.init_fac(conf)
             burn_rate_cmd = 0.0,
             radiation = types.new_zero_radiation_reading(),
 
-            sna_peak_rate = 0.0,
-            sna_max_rate = 0.0,
+            sna_peak_rate_in = 0.0,
+            sna_peak_rate_out = 0.0,
+            sna_max_rate_in = 0.0,
+            sna_max_rate_out = 0.0,
+            sna_in_rate = 0.0,
             sna_out_rate = 0.0,
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
