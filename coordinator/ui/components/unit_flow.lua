@@ -245,8 +245,8 @@ local function make(parent, x, y, wide, unit_id)
     sna_act.register(unit.unit_ps, "po_rate", function (r) sna_act.update(r > 0) end)
     sna_cnt.register(unit.unit_ps, "sna_count", sna_cnt.update)
     sna_pk.register(unit.unit_ps, "sna_peak_rate", sna_pk.update)
-    sna_max_o.register(unit.unit_ps, "sna_max_rate", sna_max_o.update)
-    sna_max_i.register(unit.unit_ps, "sna_max_rate", function (r) sna_max_i.update(r * 10) end)
+    sna_max_o.register(unit.unit_ps, "sna_max_rate_out", sna_max_o.update)
+    sna_max_i.register(unit.unit_ps, "sna_max_rate_in", sna_max_i.update)
     sna_in.register(unit.unit_ps, "sna_in", sna_in.update)
 
     return root
