@@ -34,8 +34,6 @@ local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
 local ioctl = {}
 
 local _ioctl = {
-    -- mekanism configuration
-    mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
     -- connection states for status evaluation
     wd_modem = true,
     wl_modem = true,
@@ -46,6 +44,8 @@ local _ioctl = {
 
 ---@class crd_io
 local io = {
+    -- mekanism configuration
+    mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
     ---@class crd_io_fp
     fp = { ps = psil.create() }
 }
@@ -297,10 +297,10 @@ function ioctl.set_mek_config(conf)
     local valid = type(conf) == "table" and type(conf[1]) == "table" and type(conf[2]) == "table"
 
     if valid then
-        _ioctl.mek.pu_ratio[1] = conf[1][1]
-        _ioctl.mek.pu_ratio[2] = conf[1][2]
-        _ioctl.mek.po_ratio[1] = conf[2][1]
-        _ioctl.mek.po_ratio[2] = conf[2][2]
+        io.mek.pu_ratio[1] = conf[1][1]
+        io.mek.pu_ratio[2] = conf[1][2]
+        io.mek.po_ratio[1] = conf[2][1]
+        io.mek.po_ratio[2] = conf[2][2]
     end
 
     return valid
@@ -1177,7 +1177,8 @@ function ioctl.update_unit_statuses(statuses)
 
                         unit.unit_ps.publish("sna_count", unit.num_snas)
                         unit.unit_ps.publish("sna_peak_rate", unit.sna_peak_rate)
-                        unit.unit_ps.publish("sna_max_rate", unit.sna_max_rate)
+                        unit.unit_ps.publish("sna_max_rate_out", unit.sna_max_rate)
+                        unit.unit_ps.publish("sna_max_rate_in", (unit.sna_max_rate * io.mek.po_ratio[1]) / io.mek.po_ratio[2])
                         unit.unit_ps.publish("sna_out_rate", unit.sna_out_rate)
 
                         sna_count_sum = sna_count_sum + unit.num_snas
@@ -1354,7 +1355,7 @@ function ioctl.update_unit_statuses(statuses)
 
                     u_spent_rate = u_po_rate
                 else -- plutonium
-                    u_pu_rate    = (burn_rate * _ioctl.mek.pu_ratio[2]) / _ioctl.mek.pu_ratio[1]
+                    u_pu_rate    = (burn_rate * io.mek.pu_ratio[2]) / io.mek.pu_ratio[1]
                     pu_rate      = pu_rate + u_pu_rate
 
                     u_spent_rate = u_pu_rate

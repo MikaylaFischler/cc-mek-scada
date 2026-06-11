@@ -391,6 +391,8 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
             elseif pkt.type == CRDN_TYPE.API_GET_WASTE then
                 local data = {}
 
+                local po_ratio = db.mek.po_ratio
+
                 local fac = db.facility
                 local proc = process.get_control_states().process
 
@@ -402,8 +404,11 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                         u.waste_mode,
                         u.waste_product,
                         u.num_snas,
+                        (u.sna_peak_rate * po_ratio[1]) / po_ratio[2],
                         u.sna_peak_rate,
+                        (u.sna_max_rate * po_ratio[1]) / po_ratio[2],
                         u.sna_max_rate,
+                        u.unit_ps.get("sna_in"),
                         u.sna_out_rate,
                         u.waste_stats
                     }
