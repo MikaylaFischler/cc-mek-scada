@@ -47,26 +47,26 @@ local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
 
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
-    local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=11}
+    local root = Div{parent=parent,x=x,y=y,width=_wide(124,102),height=11}
 
     local waste_c = style.theme.fuel_color
 
     local waste_pipes = {
-        pipe(_wide(13, 12), 1, _wide(19, 16), 1, colors.brown, true),
-        pipe(_wide(14, 13), 1, _wide(19, 17), 5, colors.brown, true),
-        pipe(_wide(22, 19), 1, _wide(49, 45), 1, colors.brown, true),
-        pipe(_wide(22, 19), 5, _wide(28, 24), 5, colors.brown, true),
+        pipe(0, 1, _wide(7, 4), 1, colors.brown, true),
+        pipe(_wide(2, 1), 1, _wide(7, 5), 5, colors.brown, true),
+        pipe(_wide(10, 7), 1, _wide(37, 33), 1, colors.brown, true),
+        pipe(_wide(10, 7), 5, _wide(16, 12), 5, colors.brown, true),
 
-        pipe(_wide(64, 53), 1, _wide(95, 81), 1, colors.cyan, true),
+        pipe(_wide(52, 41), 1, _wide(83, 69), 1, colors.cyan, true),
 
-        pipe(_wide(48, 43), 4, _wide(71, 61), 4, colors.green, true),
-        pipe(_wide(66, 57), 4, _wide(71, 61), 8, colors.green, true),
-        pipe(_wide(74, 63), 4, _wide(95, 81), 4, colors.green, true),
-        pipe(_wide(74, 63), 8, _wide(133, 111), 8, colors.green, true),
+        pipe(_wide(36, 31), 4, _wide(59, 49), 4, colors.green, true),
+        pipe(_wide(54, 45), 4, _wide(59, 49), 8, colors.green, true),
+        pipe(_wide(62, 51), 4, _wide(83, 69), 4, colors.green, true),
+        pipe(_wide(62, 51), 8, _wide(121, 99), 8, colors.green, true),
 
-        pipe(_wide(108, 94), 1, _wide(132, 110), 6, waste_c, true, true),
-        pipe(_wide(108, 94), 4, _wide(111, 95), 1, waste_c, true, true),
-        pipe(_wide(132, 110), 6, _wide(130, 108), 6, waste_c, true, true)
+        pipe(_wide(96, 82), 1, _wide(120, 98), 6, waste_c, true, true),
+        pipe(_wide(96, 82), 4, _wide(99, 83), 1, waste_c, true, true),
+        pipe(_wide(120, 98), 6, _wide(118, 96), 6, waste_c, true, true)
     }
 
     PipeNetwork{parent=root,y=1,pipes=waste_pipes,bg=style.theme.bg}
@@ -85,11 +85,11 @@ local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
         TextBox{parent=root,x=mx,y=my+1,text=name,alignment=ALIGN.CENTER,fg_bg=style.theme.header,width=l}
     end
 
-    local pu_rate = DataIndicator{parent=root,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=s_field}
-    local po_rate = DataIndicator{parent=root,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local popl_rate = DataIndicator{parent=root,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local poam_rate = DataIndicator{parent=root,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local spent_rate = DataIndicator{parent=root,x=_wide(117,98),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
+    local pu_rate = DataIndicator{parent=root,x=_wide(70,58),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=s_field}
+    local po_rate = DataIndicator{parent=root,x=_wide(40,33),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local popl_rate = DataIndicator{parent=root,x=_wide(70,58),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local poam_rate = DataIndicator{parent=root,x=_wide(70,58),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local spent_rate = DataIndicator{parent=root,x=_wide(105,86),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
 
     pu_rate.register(ps, "pu_rate", pu_rate.update)
     po_rate.register(ps, "po_rate", po_rate.update)
@@ -97,18 +97,18 @@ local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
     poam_rate.register(ps, "po_am_rate", poam_rate.update)
     spent_rate.register(ps, "ws_rate", spent_rate.update)
 
-    _valve(_wide(21, 18), 2, 1)
-    _valve(_wide(21, 18), 6, 2)
-    _valve(_wide(73, 62), 5, 3)
-    _valve(_wide(73, 62), 9, 4)
+    _valve(_wide(9, 6), 2, 1)
+    _valve(_wide(9, 6), 6, 2)
+    _valve(_wide(61, 50), 5, 3)
+    _valve(_wide(61, 50), 9, 4)
 
-    _machine(_wide(51, 45), 1, "CENTRIFUGE \x1a");
-    _machine(_wide(97, 83), 1, "PRC [Pu] \x1a");
-    _machine(_wide(97, 83), 4, "PRC [Po] \x1a");
-    _machine(_wide(116, 94), 6, "SPENT WASTE \x1b")
+    _machine(_wide(39, 33), 1, "CENTRIFUGE \x1a");
+    _machine(_wide(85, 71), 1, "PRC [Pu] \x1a");
+    _machine(_wide(85, 71), 4, "PRC [Po] \x1a");
+    _machine(_wide(104, 82), 6, "SPENT WASTE \x1b")
 
-    TextBox{parent=root,x=_wide(30,25),y=3,text="SNAs [Po]",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local sna_po  = Rectangle{parent=root,x=_wide(30,25),y=4,border=border(1,colors.gray,true),width=19,height=8,thin=true,fg_bg=style.theme.highlight_box_bright}
+    TextBox{parent=root,x=_wide(18,13),y=3,text="SNAs [Po]",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
+    local sna_po  = Rectangle{parent=root,x=_wide(18,13),y=4,border=border(1,colors.gray,true),width=19,height=8,thin=true,fg_bg=style.theme.highlight_box_bright}
     local sna_act = IndicatorLight{parent=sna_po,label="ACTIVE",colors=ind_grn}
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c_d,label="CNT",unit="",format="%2d",value=0,width=7}
     TextBox{parent=sna_po,y=3,text="PEAK\x1a",width=5,fg_bg=cpair(style.theme.label_dark,colors._INHERIT)}
