@@ -47,7 +47,7 @@ local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
 
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
-    local root = Div{parent=parent,x=x,y=y,width=_wide(124,102),height=11}
+    local root = Div{parent=parent,x=x,y=y,width=_wide(122,100),height=11}
 
     local waste_c = style.theme.fuel_color
 

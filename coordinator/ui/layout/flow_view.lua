@@ -10,6 +10,7 @@ local ioctl          = require("coordinator.ioctl")
 local style          = require("coordinator.ui.style")
 
 local unit_flow      = require("coordinator.ui.components.unit_flow")
+local waste_flow     = require("coordinator.ui.components.waste_flow")
 
 local core           = require("graphics.core")
 
@@ -39,8 +40,8 @@ local wh_gray = style.wh_gray
 local function init(main)
     local s_hi_bright = style.theme.highlight_box_bright
     local s_field = style.theme.field_box
-    local text_col = style.text_colors
-    local lu_col = style.lu_colors
+    local text_c = style.text_colors
+    local lu_c = style.lu_colors
     local lu_c_d = style.lu_colors_dark
 
     local fac   = ioctl.get_db().facility
@@ -65,7 +66,7 @@ local function init(main)
 
     -- get the y offset for this unit index
     ---@param idx integer unit index
-    local function y_ofs(idx) return ((idx - 1) * 20) end
+    local function y_ofs(idx) return ((idx - 1) * util.trinary(fac_waste, 19, 20)) end
 
     -- get the coolant color
     ---@param idx integer tank index
@@ -269,12 +270,36 @@ local function init(main)
 
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
+
         unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, fac_waste, i)
-        table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
+
+        if not fac_waste then
+            table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
+        end
+
         util.nop()
     end
 
-    PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
+    ---------------------------------
+    -- facility waste and SPS pipe --
+    ---------------------------------
+
+    if fac_waste then
+        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)-6}
+
+        waste_flow(waste, 18, 1, #emcool_pipes == 0, fac_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
+
+        local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
+        waste_rate.register(fac.ps, "burn_sum", waste_rate.update)
+
+        PipeNetwork{parent=waste,x=3,y=2,pipes={pipe(0,0,14,0,colors.brown,true)},bg=style.theme.bg}
+
+        TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
+
+        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-13,2,0,colors.green,true,true)},bg=style.theme.bg}
+    else
+        PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
+    end
 
     -----------------
     -- tank valves --
@@ -286,7 +311,7 @@ local function init(main)
         if tank_defs[i] > 0 then
             local vy = 3 + y_ofs(i)
 
-            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
+            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
 
             local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", (i * 6) - 1),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
@@ -314,8 +339,8 @@ local function init(main)
 
             PipeNetwork{parent=main,x=vx-6,y=vy,pipes={pipe(0,1,9,0,colors.blue,true)},bg=style.theme.bg}
 
-            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
-            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_col.bkg),width=1}
+            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
+            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
 
             local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", i * 6),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
@@ -350,8 +375,8 @@ local function init(main)
             local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
 
             TextBox{parent=tank_box,x=2,y=3,text="Fill",width=10,fg_bg=style.label}
-            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
-            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=s_field}
+            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_c,width=8,fg_bg=text_c}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_c,width=16,fg_bg=s_field}
 
             local is_water = tank_types[i] == COOLANT_TYPE.WATER
 
@@ -406,12 +431,12 @@ local function init(main)
     status.register(fac.sps_ps_tbl[1], "computed_status", status.update)
 
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",width=10,fg_bg=style.label}
-    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=s_field}
+    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_in.register(fac.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",width=15,fg_bg=style.label}
-    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=s_field}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_rate.register(fac.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 
