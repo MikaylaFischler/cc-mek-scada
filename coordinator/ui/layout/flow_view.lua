@@ -51,6 +51,8 @@ local function init(main)
     local tank_list  = fac.tank_list
     local tank_types = fac.tank_fluid_types
 
+    local fac_waste = false
+
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
@@ -267,7 +269,7 @@ local function init(main)
 
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
-        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, i)
+        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, fac_waste, i)
         table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
         util.nop()
     end

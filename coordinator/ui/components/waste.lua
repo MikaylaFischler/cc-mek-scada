@@ -31,10 +31,11 @@ local wh_gray = style.wh_gray
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version
+---@param fac_waste boolean true if using facility waste
 ---@param v_fields string[] valve ps field suffixes
 ---@param v_names string[] valve names
 ---@param ps psil unit ps
-local function make(parent, x, y, wide, v_fields, v_names, ps)
+local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -51,7 +52,7 @@ local function make(parent, x, y, wide, v_fields, v_names, ps)
     local waste_c = style.theme.fuel_color
 
     local waste_pipes = {
-        pipe(0, 0, _wide(19, 16), 1, colors.brown, true),
+        pipe(_wide(13, 12), 1, _wide(19, 16), 1, colors.brown, true),
         pipe(_wide(14, 13), 1, _wide(19, 17), 5, colors.brown, true),
         pipe(_wide(22, 19), 1, _wide(49, 45), 1, colors.brown, true),
         pipe(_wide(22, 19), 5, _wide(28, 24), 5, colors.brown, true),
@@ -84,14 +85,12 @@ local function make(parent, x, y, wide, v_fields, v_names, ps)
         TextBox{parent=root,x=mx,y=my+1,text=name,alignment=ALIGN.CENTER,fg_bg=style.theme.header,width=l}
     end
 
-    local waste_rate = DataIndicator{parent=root,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local pu_rate = DataIndicator{parent=root,x=_wide(82,70),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.3f",value=0,width=12,fg_bg=s_field}
     local po_rate = DataIndicator{parent=root,x=_wide(52,45),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local popl_rate = DataIndicator{parent=root,x=_wide(82,70),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local poam_rate = DataIndicator{parent=root,x=_wide(82,70),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     local spent_rate = DataIndicator{parent=root,x=_wide(117,98),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
 
-    waste_rate.register(ps, "act_burn_rate", waste_rate.update)
     pu_rate.register(ps, "pu_rate", pu_rate.update)
     po_rate.register(ps, "po_rate", po_rate.update)
     popl_rate.register(ps, "po_pl_rate", popl_rate.update)
