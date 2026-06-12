@@ -9,7 +9,7 @@ local ioctl             = require("coordinator.ioctl")
 
 local style             = require("coordinator.ui.style")
 
-local waste_view        = require("coordinator.ui.components.waste")
+local waste_flow        = require("coordinator.ui.components.waste_flow")
 
 local core              = require("graphics.core")
 
@@ -177,7 +177,7 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
     if fac_waste then
         TextBox{parent=waste,x=16,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
     else
-        waste_view(waste, 13, 1, wide, fac_waste, v_fields, v_names, unit.unit_ps)
+        waste_flow(waste, 13, 1, wide, fac_waste, v_fields, v_names, unit.unit_ps)
     end
 
     return root
