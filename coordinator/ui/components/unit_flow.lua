@@ -49,8 +49,6 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
     local text_c = style.text_colors
     local lu_c = style.lu_colors
 
-    local height = 16
-
     local fac  = ioctl.get_db().facility
     local unit = ioctl.get_db().units[unit_id]
 
@@ -70,12 +68,12 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
         sprintf("PRV%02d", prv_start + 2)
     }
 
-    assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())
+    -- assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())
 
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
     -- bounding box div
-    local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=height}
+    local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=util.trinary(fac_waste,8,16)}
 
     ------------------
     -- COOLING LOOP --

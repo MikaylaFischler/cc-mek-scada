@@ -64,9 +64,22 @@ local function init(main)
     local po_pipes = {}
     local emcool_pipes = {}
 
+    local no_tanks, only_top_tank, num_tanks = true, true, 0
+
+    for i = 1, #fac.tank_list do
+        if fac.tank_list[i] > 0 then
+            no_tanks = false
+            num_tanks = num_tanks + 1
+
+            if i > 1 then only_top_tank = false end
+        end
+    end
+
+    local compressed_view = no_tanks or only_top_tank or (fac.tank_mode == 1 and num_tanks == 1)
+
     -- get the y offset for this unit index
     ---@param idx integer unit index
-    local function y_ofs(idx) return ((idx - 1) * util.trinary(fac_waste, 19, 20)) end
+    local function y_ofs(idx) return ((idx - 1) * util.trinary(fac_waste, util.trinary(compressed_view, 11, 19), 20)) end
 
     -- get the coolant color
     ---@param idx integer tank index
@@ -127,9 +140,16 @@ local function init(main)
                 local y = y_ofs(i)
 
                 if i == first_fdef then
-                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
+                    if compressed_view then
+                        y = y_ofs(5) - 7
+                        table.insert(emcool_pipes, pipe(0, y - 3, 1, y + 5, c_clr(i), true))
+                    else
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
+                    end
                 elseif i > first_fdef then
-                    if i == last_fdef then
+                    if compressed_view then
+                        table.insert(emcool_pipes, pipe(0, y - y_ofs(i), 0, y, c_clr(first_fdef), true))
+                    elseif i == last_fdef then
                         table.insert(emcool_pipes, pipe(0, y - 14, 0, y, c_clr(first_fdef), true))
                     elseif i < last_fdef then
                         table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, c_clr(first_fdef), true))
@@ -271,7 +291,7 @@ local function init(main)
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
 
-        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, fac_waste, i)
+        unit_flow(main, flow_x, 5 + y_offset, no_tanks, fac_waste, i)
 
         if not fac_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
@@ -285,9 +305,9 @@ local function init(main)
     ---------------------------------
 
     if fac_waste then
-        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)-6}
+        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+util.trinary(compressed_view,3,-6)}
 
-        waste_flow(waste, 18, 1, #emcool_pipes == 0, fac_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
+        waste_flow(waste, 18, 1, no_tanks, fac_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
         local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
         waste_rate.register(fac.ps, "burn_sum", waste_rate.update)
@@ -296,7 +316,7 @@ local function init(main)
 
         TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
 
-        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-13,2,0,colors.green,true,true)},bg=style.theme.bg}
+        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-util.trinary(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
     else
         PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
     end
@@ -313,7 +333,9 @@ local function init(main)
 
             TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
 
-            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", (i * 6) - 1),colors=style.ind_grn}
+            local v_idx = util.trinary(fac_waste, 4 + ((i * 2) - 1), (i * 6) - 1)
+
+            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
@@ -330,7 +352,7 @@ local function init(main)
             local vx
             local vy = 3 + y_ofs(i)
 
-            if #emcool_pipes == 0 then
+            if no_tanks then
                 vx = util.trinary(units[i].num_boilers == 0, 36, 79)
             else
                 local em_water = tank_types[tank_conns[i]] == COOLANT_TYPE.WATER
@@ -342,7 +364,9 @@ local function init(main)
             TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
             TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
 
-            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", i * 6),colors=style.ind_grn}
+            local v_idx = util.trinary(fac_waste, 4 + (i * 2), i * 6)
+
+            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_aux_conn", conn.update)
@@ -364,6 +388,11 @@ local function init(main)
             end
 
             local y_offset = y_ofs(i)
+
+            if tank_list[i] == 2 and compressed_view then
+                -- this only is possible with tank mode 1, so assume that and send the tank to the bottom
+                y_offset = y_ofs(5) - 7
+            end
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
