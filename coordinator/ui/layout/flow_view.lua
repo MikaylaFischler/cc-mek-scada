@@ -64,6 +64,8 @@ local function init(main)
     local po_pipes = {}
     local emcool_pipes = {}
 
+    -- determine display characteristics
+
     local no_tanks, only_top_tank, num_tanks = true, true, 0
 
     for i = 1, #fac.tank_list do
@@ -76,6 +78,15 @@ local function init(main)
     end
 
     local compressed_view = no_tanks or only_top_tank or (fac.tank_mode == 1 and num_tanks == 1)
+
+    -- size check
+
+    local req_height = 20 * #units
+    if fac_waste then
+        req_height = util.trinary(compressed_view, (11 * #units) + 13, (19 * #units) + 4)
+    end
+
+    assert(main.get_height() >= req_height, "flow display not of sufficient vertical resolution (add an additional row of monitors)")
 
     -- get the y offset for this unit index
     ---@param idx integer unit index

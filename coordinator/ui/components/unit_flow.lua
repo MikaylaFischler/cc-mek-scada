@@ -68,8 +68,6 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
         sprintf("PRV%02d", prv_start + 2)
     }
 
-    -- assert(parent.get_height() >= (y + height), "flow display not of sufficient vertical resolution (add an additional row of monitors) " .. y .. "," .. parent.get_height())
-
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
     -- bounding box div
