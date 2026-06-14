@@ -36,7 +36,10 @@ local changes = {
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.6.0", { "Added sodium emergency coolant option" } },
     { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } },
-    { "v1.9.5", { "Added Mekanism Generators configuration options" } }
+    { "v1.9.5", { "Added Mekanism Generators configuration options" } },
+    { "v1.9.9", { "Added waste ratio configuration options" } },
+    { "v1.10.4", { "Added option for using SNAs for polonium statistics (default)" } },
+    { "v1.11.0", { "Added option for combined facility waste" } }
 }
 
 ---@class svr_configurator
@@ -82,6 +85,7 @@ local tool_ctl = {
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
     ext_idling = {},      ---@type Checkbox
     sna_stats = {},       ---@type Checkbox
+    com_waste = {},       ---@type Checkbox
 
     mek_profile = nil,    ---@type RadioButton
     custom_configs = {},  ---@type NumberField[]
@@ -102,6 +106,7 @@ local tmp_cfg = {
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
     UseSNAStatistics = true,
+    CombinedWaste = false,
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
     MekanismWasteToPu = { 10, 1 },
@@ -148,6 +153,7 @@ local fields = {
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "UseSNAStatistics", "Use SNA Statistics", true },
+    { "CombinedWaste", "Combined Facility Waste", false },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },

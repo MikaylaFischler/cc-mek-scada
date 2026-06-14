@@ -53,6 +53,7 @@ function supervisor.load_config()
     config.AuxiliaryCoolant = settings.get("AuxiliaryCoolant")
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
     config.UseSNAStatistics = settings.get("UseSNAStatistics")
+    config.CombinedWaste = settings.get("CombinedWaste")
 
     config.MekanismConfig = settings.get("MekanismConfig")
     config.MekanismWasteToPu = settings.get("MekanismWasteToPu")
@@ -103,6 +104,7 @@ function supervisor.load_config()
     cfv.assert_type_table(config.AuxiliaryCoolant)
     cfv.assert_type_bool(config.ExtChargeIdling)
     cfv.assert_type_bool(config.UseSNAStatistics)
+    cfv.assert_type_bool(config.CombinedWaste)
 
     if cfv.valid() then
         cfv.assert_range(config.FacilityTankMode, 0, 8)
