@@ -58,6 +58,27 @@ function rsctl.new(redstone_rtus, bank)
         end
     end
 
+    -- create a generic valve interface for the specified port
+    ---@nodiscard
+    ---@param port IO_PORT
+    function public.as_valve(port)
+        ---@class rs_valve
+        local iface = {
+            open = function () public.digital_write(port, true) end,
+            close = function () public.digital_write(port, false) end,
+            -- check valve state
+            ---@nodiscard
+            ---@return 0|1|2 0 for not connected, 1 for inactive, 2 for active
+            check = function ()
+                if public.is_connected(port) then
+                    if public.digital_read(port) then return 2 else return 1 end
+                else return 0 end
+            end
+        }
+
+        return iface
+    end
+
     return public
 end
 
