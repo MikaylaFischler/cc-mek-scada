@@ -658,6 +658,7 @@ function ioctl.update_facility_status(status)
         valid = false
     else
         local fac = io.facility
+        local f_ps = fac.ps
 
         -- auto control status information
 
@@ -688,21 +689,21 @@ function ioctl.update_facility_status(status)
             fac.status_lines[1] = ctl_status[14]
             fac.status_lines[2] = ctl_status[15]
 
-            fac.ps.publish("all_sys_ok", fac.all_sys_ok)
-            fac.ps.publish("auto_ready", fac.auto_ready)
-            fac.ps.publish("auto_active", fac.auto_active)
-            fac.ps.publish("auto_ramping", fac.auto_ramping)
-            fac.ps.publish("auto_saturated", fac.auto_saturated)
-            fac.ps.publish("auto_gen_rate", fac.auto_gen_rate)
-            fac.ps.publish("auto_scram", fac.auto_scram)
-            fac.ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-            fac.ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
-            fac.ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
-            fac.ps.publish("as_radiation", fac.ascram_status.radiation)
-            fac.ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
-            fac.ps.publish("config_warning", ctl_status[13])
-            fac.ps.publish("status_line_1", fac.status_lines[1])
-            fac.ps.publish("status_line_2", fac.status_lines[2])
+            f_ps.publish("all_sys_ok", fac.all_sys_ok)
+            f_ps.publish("auto_ready", fac.auto_ready)
+            f_ps.publish("auto_active", fac.auto_active)
+            f_ps.publish("auto_ramping", fac.auto_ramping)
+            f_ps.publish("auto_saturated", fac.auto_saturated)
+            f_ps.publish("auto_gen_rate", fac.auto_gen_rate)
+            f_ps.publish("auto_scram", fac.auto_scram)
+            f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
+            f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+            f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+            f_ps.publish("as_radiation", fac.ascram_status.radiation)
+            f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+            f_ps.publish("config_warning", ctl_status[13])
+            f_ps.publish("status_line_1", fac.status_lines[1])
+            f_ps.publish("status_line_2", fac.status_lines[2])
 
             local group_map = ctl_status[16]
 
@@ -718,9 +719,9 @@ function ioctl.update_facility_status(status)
             fac.auto_pu_fallback_active = ctl_status[18]
             fac.auto_sps_disabled = ctl_status[19]
 
-            fac.ps.publish("current_waste_product", fac.auto_current_waste_product)
-            fac.ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
-            fac.ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
+            f_ps.publish("current_waste_product", fac.auto_current_waste_product)
+            f_ps.publish("pu_fallback_active", fac.auto_pu_fallback_active)
+            f_ps.publish("sps_disabled_low_power", fac.auto_sps_disabled)
         else
             log.debug(log_header .. "control status not a table or length mismatch")
             valid = false
@@ -926,13 +927,13 @@ function ioctl.update_facility_status(status)
 
                 if any_conn then
                     fac.radiation = max_reading
-                    fac.ps.publish("rad_computed_status", util.trinary(any_faulted, 2, 3))
+                    f_ps.publish("rad_computed_status", util.trinary(any_faulted, 2, 3))
                 else
                     fac.radiation = types.new_zero_radiation_reading()
-                    fac.ps.publish("rad_computed_status", 1)
+                    f_ps.publish("rad_computed_status", 1)
                 end
 
-                fac.ps.publish("radiation", fac.radiation)
+                f_ps.publish("radiation", fac.radiation)
             else
                 log.debug(log_header .. "environment detector list not a table")
                 valid = false
@@ -942,7 +943,7 @@ function ioctl.update_facility_status(status)
             valid = false
         end
 
-        fac.ps.publish("rtu_count", fac.rtu_count)
+        f_ps.publish("rtu_count", fac.rtu_count)
 
         -- alarm tone commands
 
@@ -974,6 +975,8 @@ function ioctl.update_unit_statuses(statuses)
         local burn_rate_sum = 0.0
         local sna_count_sum = 0
         local pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate = 0.0, 0.0, 0.0, 0.0, 0.0
+
+        local fac = io.facility
 
         -- get all unit statuses
         for i = 1, #statuses do
@@ -1397,15 +1400,18 @@ function ioctl.update_unit_statuses(statuses)
             end
         end
 
-        io.facility.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
+        fac.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
 
-        io.facility.ps.publish("burn_sum", burn_rate_sum)
-        io.facility.ps.publish("sna_count", sna_count_sum)
-        io.facility.ps.publish("pu_rate", pu_rate)
-        io.facility.ps.publish("po_rate", po_rate)
-        io.facility.ps.publish("po_pl_rate", po_pl_rate)
-        io.facility.ps.publish("po_am_rate", po_am_rate)
-        io.facility.ps.publish("spent_waste_rate", spent_rate)
+        local f_ps = fac.ps
+
+        f_ps.publish("burn_sum", burn_rate_sum)
+        f_ps.publish("sna_count", sna_count_sum)
+        f_ps.publish("sna_in", util.trinary(fac.auto_current_waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate_sum))
+        f_ps.publish("pu_rate", pu_rate)
+        f_ps.publish("po_rate", po_rate)
+        f_ps.publish("po_pl_rate", po_pl_rate)
+        f_ps.publish("po_am_rate", po_am_rate)
+        f_ps.publish("spent_waste_rate", spent_rate)
     end
 
     return valid
