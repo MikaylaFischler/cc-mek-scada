@@ -52,7 +52,7 @@ local function init(main)
     local tank_list  = fac.tank_list
     local tank_types = fac.tank_fluid_types
 
-    local fac_waste = false
+    local fac_waste = fac.combined_waste
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}

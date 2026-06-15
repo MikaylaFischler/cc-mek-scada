@@ -65,6 +65,8 @@ local function init(parent, id)
     local unit = db.units[id]
     local f_ps = db.facility.ps
 
+    local fac_waste = db.facility.combined_waste
+
     local main = Div{parent=parent,y=1}
 
     if unit == nil then return main end
@@ -235,12 +237,15 @@ local function init(parent, id)
     -- cooling annunciator panel
 
     TextBox{parent=main,text="REACTOR COOLANT SYSTEM",fg_bg=cpair(colors.black,colors.blue),alignment=ALIGN.CENTER,width=33,x=46,y=22}
-    local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=24,x=46,y=23}
-    local rcs_annunc = Div{parent=rcs,width=27,height=22,x=3,y=1}
-    local rcs_tags = Div{parent=rcs,width=2,height=16,y=7}
+    local rcs = Rectangle{parent=main,border=border(1,colors.blue,true),thin=true,width=33,height=util.trinary(fac_waste,29,24),x=46,y=23}
+    local rcs_annunc = Div{parent=rcs,width=27,height=util.trinary(fac_waste,27,22),x=3,y=1}
+    local rcs_tags = Div{parent=rcs,width=2,height=util.trinary(fac_waste,20,16),y=util.trinary(fac_waste,8,7)}
 
     local c_flt  = IndicatorLight{parent=rcs_annunc,label="RCS Hardware Fault",colors=ind_yel}
     local c_emg  = TriIndicatorLight{parent=rcs_annunc,label="Emergency Coolant",c1=ind_bkg,c2=ind_wht.fgd,c3=ind_grn.fgd}
+
+    if fac_waste then rcs_annunc.line_break() end
+
     local c_cfm  = IndicatorLight{parent=rcs_annunc,label="Coolant Feed Mismatch",colors=ind_yel}
     local c_brm  = IndicatorLight{parent=rcs_annunc,label="Boil Rate Mismatch",colors=ind_yel}
     local c_sfm  = IndicatorLight{parent=rcs_annunc,label="Steam Feed Mismatch",colors=ind_yel}
@@ -253,7 +258,7 @@ local function init(parent, id)
     c_sfm.register(u_ps, "SteamFeedMismatch", c_sfm.update)
     c_mwrf.register(u_ps, "MaxWaterReturnFeed", c_mwrf.update)
 
-    local available_space = 16 - (unit.num_boilers * 2 + unit.num_turbines * 4)
+    local available_space = util.trinary(fac_waste, 20, 16) - (unit.num_boilers * 2 + unit.num_turbines * 4)
 
     local function _add_space()
         -- if we have some extra space, add padding
@@ -393,13 +398,15 @@ local function init(parent, id)
 
     reset.register(u_ps, "rps_tripped", function (active) if active then reset.enable() else reset.disable() end end)
 
-    TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,x=46,y=48}
-    local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
-    local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
+    if not fac_waste then
+        TextBox{parent=main,text="WASTE PROCESSING",fg_bg=cpair(colors.black,colors.brown),alignment=ALIGN.CENTER,width=33,x=46,y=48}
+        local waste_proc = Rectangle{parent=main,border=border(1,colors.brown,true),thin=true,width=33,height=3,x=46,y=49}
+        local waste_div = Div{parent=waste_proc,x=2,y=1,width=31,height=1}
 
-    local waste_mode = MultiButton{parent=waste_div,y=1,options=style.get_waste().unit_opts,callback=unit.set_waste,min_width=6}
+        local waste_mode = MultiButton{parent=waste_div,y=1,options=style.get_waste().unit_opts,callback=unit.set_waste,min_width=6}
 
-    waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
+        waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
+    end
 
     ----------------------
     -- alarm management --
