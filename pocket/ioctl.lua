@@ -144,6 +144,7 @@ function ioctl.init_fac(conf)
         tank_list = conf.cooling.fac_tank_list,
         tank_conns = conf.cooling.fac_tank_conns,
         tank_fluid_types = conf.cooling.tank_fluid_types,
+        combined_waste = conf.com_waste,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -169,6 +170,14 @@ function ioctl.init_fac(conf)
         auto_pu_fallback_active = false,
         auto_sps_disabled = false,
         waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
+
+        num_snas = 0,
+        sna_peak_rate_in = 0.0,
+        sna_peak_rate_out = 0.0,
+        sna_max_rate_in = 0.0,
+        sna_max_rate_out = 0.0,
+        sna_in_rate = 0.0,
+        sna_out_rate = 0.0,
 
         radiation = types.new_zero_radiation_reading(),
 
