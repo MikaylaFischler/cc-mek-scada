@@ -369,7 +369,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                 log.info(util.c("CRD_ESTABLISH: [@", src_addr, "] CRD (", firmware_v, ") connected with session ID ", s_id, " on ", nic.phy_name()))
 
-                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf(), { config.MekanismWasteToPu, config.MekanismWasteToPo } })
+                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf(), { config.MekanismWasteToPu, config.MekanismWasteToPo }, config.CombinedWaste })
             else
                 if last_ack ~= ESTABLISH_ACK.COLLISION then
                     log.info("CRD_ESTABLISH: [@" .. src_addr .. "] denied new coordinator due to already being connected to another coordinator")

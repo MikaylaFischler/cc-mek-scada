@@ -93,6 +93,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         tank_list = conf.cooling.fac_tank_list,
         tank_conns = conf.cooling.fac_tank_conns,
         tank_fluid_types = conf.cooling.tank_fluid_types,
+        combined_waste = conf.com_waste,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -954,6 +955,26 @@ function ioctl.update_facility_status(status)
             log.debug(log_header .. "alarm tones not a table or length mismatch")
             valid = false
         end
+
+        -- valves and combined waste
+
+        if fac.combined_waste then
+            if (type(status[4]) == "table") and (#status[4] == 4) then
+                local ps, valve_states = f_ps, status[4]
+
+                ps.publish("V_pu_conn", valve_states[1] > 0)
+                ps.publish("V_pu_state", valve_states[1] == 2)
+                ps.publish("V_po_conn", valve_states[2] > 0)
+                ps.publish("V_po_state", valve_states[2] == 2)
+                ps.publish("V_pl_conn", valve_states[3] > 0)
+                ps.publish("V_pl_state", valve_states[3] == 2)
+                ps.publish("V_am_conn", valve_states[4] > 0)
+                ps.publish("V_am_state", valve_states[4] == 2)
+            else
+                log.debug(log_header .. "valve states not a table or length mismatch")
+                valid = false
+            end
+        end
     end
 
     return valid
@@ -1367,14 +1388,16 @@ function ioctl.update_unit_statuses(statuses)
                 local u_spent_rate
                 local u_pu_rate, u_po_rate, u_po_pl_rate, u_po_am_rate = 0, unit.sna_out_rate, 0, 0
 
-                unit.unit_ps.publish("sna_in", util.trinary(unit.waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
+                local product = util.trinary(fac.combined_waste, fac.auto_current_waste_product, unit.waste_product)
 
-                if unit.waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+                unit.unit_ps.publish("sna_in", util.trinary(product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
+
+                if product == types.WASTE_PRODUCT.ANTI_MATTER then
                     u_po_am_rate = u_po_rate
                     po_am_rate   = po_am_rate + u_po_am_rate
 
                     u_spent_rate = 0
-                elseif unit.waste_product == types.WASTE_PRODUCT.POLONIUM then
+                elseif product == types.WASTE_PRODUCT.POLONIUM then
                     u_po_pl_rate = u_po_rate
                     po_pl_rate   = po_pl_rate + u_po_rate
 

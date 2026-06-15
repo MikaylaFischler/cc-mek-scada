@@ -1,5 +1,6 @@
 local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
+local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
@@ -10,7 +11,7 @@ local fac_update = require("supervisor.facility_update")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
-local AISTATE       = alarm_ctl.AISTATE
+local AISTATE = alarm_ctl.AISTATE
 
 local ALARM         = types.ALARM
 local ALARM_STATE   = types.ALARM_STATE
@@ -20,6 +21,8 @@ local PROCESS       = types.PROCESS
 local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local WASTE         = types.WASTE_PRODUCT
+
+local IO = rsio.IO
 
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
@@ -46,8 +49,8 @@ local RCV_STATE = {
     STOPPED = 3
 }
 
-local CHARGE_SCALER = 1000000   -- convert MFE to FE
-local GEN_SCALER    = 1000      -- convert kFE to FE
+local CHARGE_SCALER = 1000000 -- convert MFE to FE
+local GEN_SCALER    = 1000    -- convert kFE to FE
 
 ---@class facility_management
 local facility = {}
@@ -207,6 +210,24 @@ function facility.new(config)
     if not settings.save("/supervisor.settings") then
         log.warning("FAC: failed to save initial control state into supervisor settings file")
     end
+
+    --#endregion
+
+    --#region Redstone I/O
+
+    -- valves
+    local waste_pu  = self.io_ctl.as_valve(IO.WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.WASTE_AM)
+
+    ---@class fac_valves
+    self.valves = {
+        waste_pu = waste_pu,
+        waste_sna = waste_sna,
+        waste_po = waste_po,
+        waste_sps = waste_sps
+    }
 
     --#endregion
 
@@ -379,8 +400,11 @@ function facility.new(config)
         -- handle redstone I/O
         f_update.redstone(public.ack_all)
 
+        -- facility waste management
+        f_update.waste_mgmt(config.CombinedWaste, public)
+
         -- unit tasks
-        f_update.unit_mgmt()
+        f_update.unit_mgmt(config.CombinedWaste)
 
         -- update alarm states right before updating the audio
         f_update.update_alarms()
@@ -788,6 +812,20 @@ function facility.new(config)
         end
 
         return total_avail_rate, near_full, low_fill
+    end
+
+    -- get valve states (there are only valves if using combined waste)
+    ---@nodiscard
+    function public.get_valves()
+        if not config.CombinedWaste then return nil end
+
+        local v = self.valves
+        return {
+            v.waste_pu.check(),
+            v.waste_sna.check(),
+            v.waste_po.check(),
+            v.waste_sps.check()
+        }
     end
 
     --#endregion
