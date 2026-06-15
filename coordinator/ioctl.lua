@@ -114,11 +114,16 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
             gen_fault = false
         },
 
-        ---@type WASTE_PRODUCT
-        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM, ---@type WASTE_PRODUCT
         auto_pu_fallback_active = false,
         auto_sps_disabled = false,
         waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
+
+        -- fields when using combined waste
+        num_snas = 0,
+        sna_peak_rate = 0.0,
+        sna_max_rate = 0.0,
+        sna_out_rate = 0.0,
 
         radiation = types.new_zero_radiation_reading(),
 
@@ -798,6 +803,23 @@ function ioctl.update_facility_status(status)
                 end
             else
                 log.debug(log_header .. "induction matrix list not a table")
+                valid = false
+            end
+
+            -- solar neutron activator status info
+            if type(rtu_statuses.sna) == "table" then
+                fac.num_snas      = rtu_statuses.sna[1] ---@type integer
+                fac.sna_peak_rate = rtu_statuses.sna[2] ---@type number
+                fac.sna_max_rate  = rtu_statuses.sna[3] ---@type number
+                fac.sna_out_rate  = rtu_statuses.sna[4] ---@type number
+
+                f_ps.publish("sna_count", fac.num_snas)
+                f_ps.publish("sna_peak_rate", fac.sna_peak_rate)
+                f_ps.publish("sna_max_rate_out", fac.sna_max_rate)
+                f_ps.publish("sna_max_rate_in", (fac.sna_max_rate * io.mek.po_ratio[1]) / io.mek.po_ratio[2])
+                f_ps.publish("sna_out_rate", fac.sna_out_rate)
+            elseif fac.combined_waste then
+                log.debug(log_header .. "sna statistic list not a table")
                 valid = false
             end
 
