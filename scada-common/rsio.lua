@@ -55,11 +55,20 @@ local IO_PORT = {
     F_MATRIX_LOW  = 27, -- active high, induction matrix charge low
     F_MATRIX_HIGH = 28, -- active high, induction matrix charge high
 
-    -- waste
-    WASTE_PU      = 9,  -- active low, waste -> plutonium -> pellets route
-    WASTE_PO      = 10, -- active low, waste -> polonium route
-    WASTE_POPL    = 11, -- active low, polonium -> pellets route
-    WASTE_AM      = 12, -- active low, polonium -> anti-matter route
+    F_WASTE_PU    = 31, -- active low, waste -> plutonium -> pellets route
+    F_WASTE_PO    = 32, -- active low, waste -> polonium route
+    F_WASTE_POPL  = 33, -- active low, polonium -> pellets route
+    F_WASTE_AM    = 34, -- active low, polonium -> anti-matter route
+
+    -- unit outputs
+    U_ALARM       = 25, -- active high, unit alarm
+    U_EMER_COOL   = 26, -- active low, emergency coolant control
+    U_AUX_COOL    = 30, -- active low, auxiliary coolant control
+
+    U_WASTE_PU    = 9,  -- active low, waste -> plutonium -> pellets route
+    U_WASTE_PO    = 10, -- active low, waste -> polonium route
+    U_WASTE_POPL  = 11, -- active low, polonium -> pellets route
+    U_WASTE_AM    = 12, -- active low, polonium -> anti-matter route
 
     -- reactor
     R_ACTIVE      = 13, -- active high, reactor is active
@@ -75,11 +84,6 @@ local IO_PORT = {
     R_PLC_FAULT   = 23, -- active high, reactor PLC reports a device access fault
     R_PLC_TIMEOUT = 24, -- active high, reactor PLC has not been heard from
 
-    -- unit outputs
-    U_ALARM       = 25, -- active high, unit alarm
-    U_EMER_COOL   = 26, -- active low, emergency coolant control
-    U_AUX_COOL    = 30, -- active low, auxiliary coolant control
-
     -- analog outputs --
 
     -- facility
@@ -91,8 +95,8 @@ rsio.IO_DIR = IO_DIR
 rsio.IO_MODE = IO_MODE
 rsio.IO = IO_PORT
 
-rsio.NUM_PORTS = 30
-rsio.NUM_DIG_PORTS = 29
+rsio.NUM_PORTS = 34
+rsio.NUM_DIG_PORTS = 33
 rsio.NUM_ANA_PORTS = 1
 
 -- self checks
@@ -132,10 +136,17 @@ local MODES = {
     [IO.F_ALARM_ANY]   = IO_MODE.DIGITAL_OUT,
     [IO.F_MATRIX_LOW]  = IO_MODE.DIGITAL_OUT,
     [IO.F_MATRIX_HIGH] = IO_MODE.DIGITAL_OUT,
-    [IO.WASTE_PU]      = IO_MODE.DIGITAL_OUT,
-    [IO.WASTE_PO]      = IO_MODE.DIGITAL_OUT,
-    [IO.WASTE_POPL]    = IO_MODE.DIGITAL_OUT,
-    [IO.WASTE_AM]      = IO_MODE.DIGITAL_OUT,
+    [IO.F_WASTE_PU]    = IO_MODE.DIGITAL_OUT,
+    [IO.F_WASTE_PO]    = IO_MODE.DIGITAL_OUT,
+    [IO.F_WASTE_POPL]  = IO_MODE.DIGITAL_OUT,
+    [IO.F_WASTE_AM]    = IO_MODE.DIGITAL_OUT,
+    [IO.U_ALARM]       = IO_MODE.DIGITAL_OUT,
+    [IO.U_EMER_COOL]   = IO_MODE.DIGITAL_OUT,
+    [IO.U_AUX_COOL]    = IO_MODE.DIGITAL_OUT,
+    [IO.U_WASTE_PU]    = IO_MODE.DIGITAL_OUT,
+    [IO.U_WASTE_PO]    = IO_MODE.DIGITAL_OUT,
+    [IO.U_WASTE_POPL]  = IO_MODE.DIGITAL_OUT,
+    [IO.U_WASTE_AM]    = IO_MODE.DIGITAL_OUT,
     [IO.R_ACTIVE]      = IO_MODE.DIGITAL_OUT,
     [IO.R_AUTO_CTRL]   = IO_MODE.DIGITAL_OUT,
     [IO.R_SCRAMMED]    = IO_MODE.DIGITAL_OUT,
@@ -148,9 +159,6 @@ local MODES = {
     [IO.R_INSUFF_FUEL] = IO_MODE.DIGITAL_OUT,
     [IO.R_PLC_FAULT]   = IO_MODE.DIGITAL_OUT,
     [IO.R_PLC_TIMEOUT] = IO_MODE.DIGITAL_OUT,
-    [IO.U_ALARM]       = IO_MODE.DIGITAL_OUT,
-    [IO.U_EMER_COOL]   = IO_MODE.DIGITAL_OUT,
-    [IO.U_AUX_COOL]    = IO_MODE.DIGITAL_OUT,
     [IO.F_MATRIX_CHG]  = IO_MODE.ANALOG_OUT
 }
 
@@ -163,9 +171,7 @@ assert(rsio.NUM_PORTS == #MODES, "modes length incorrect")
 function rsio.to_string(port)
     if util.is_int(port) and port > 0 and port <= #PORT_NAMES then
         return PORT_NAMES[port]
-    else
-        return "UNKNOWN"
-    end
+    else return "UNKNOWN" end
 end
 
 local _B_AND = bit.band
@@ -191,10 +197,19 @@ local RS_DIO_MAP = {
     [IO.F_MATRIX_LOW]  = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     [IO.F_MATRIX_HIGH] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
-    [IO.WASTE_PU]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    [IO.WASTE_PO]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    [IO.WASTE_POPL]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    [IO.WASTE_AM]      = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.F_WASTE_PU]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.F_WASTE_PO]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.F_WASTE_POPL]  = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.F_WASTE_AM]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+
+    [IO.U_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.U_EMER_COOL]   = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.U_AUX_COOL]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+
+    [IO.U_WASTE_PU]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.U_WASTE_PO]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.U_WASTE_POPL]  = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
+    [IO.U_WASTE_AM]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
 
     [IO.R_ACTIVE]      = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     [IO.R_AUTO_CTRL]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
@@ -207,11 +222,7 @@ local RS_DIO_MAP = {
     [IO.R_EXCESS_WS]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     [IO.R_INSUFF_FUEL] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     [IO.R_PLC_FAULT]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    [IO.R_PLC_TIMEOUT] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-
-    [IO.U_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    [IO.U_EMER_COOL]   = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
-    [IO.U_AUX_COOL]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT }
+    [IO.R_PLC_TIMEOUT] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT }
 }
 
 assert(rsio.NUM_DIG_PORTS == util.table_len(RS_DIO_MAP), "RS_DIO_MAP length incorrect")
@@ -260,6 +271,7 @@ function rsio.is_valid_side(side)
             if RS_SIDES[i] == side then return true end
         end
     end
+
     return false
 end
 

@@ -354,10 +354,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
     --#region Redstone I/O
 
     -- valves
-    local waste_pu  = self.io_ctl.as_valve(IO.WASTE_PU)
-    local waste_sna = self.io_ctl.as_valve(IO.WASTE_PO)
-    local waste_po  = self.io_ctl.as_valve(IO.WASTE_POPL)
-    local waste_sps = self.io_ctl.as_valve(IO.WASTE_AM)
+    local waste_pu  = self.io_ctl.as_valve(IO.U_WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.U_WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.U_WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.U_WASTE_AM)
     local emer_cool = self.io_ctl.as_valve(IO.U_EMER_COOL)
     local aux_cool  = self.io_ctl.as_valve(IO.U_AUX_COOL)
 

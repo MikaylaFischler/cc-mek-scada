@@ -216,10 +216,10 @@ function facility.new(config)
     --#region Redstone I/O
 
     -- valves
-    local waste_pu  = self.io_ctl.as_valve(IO.WASTE_PU)
-    local waste_sna = self.io_ctl.as_valve(IO.WASTE_PO)
-    local waste_po  = self.io_ctl.as_valve(IO.WASTE_POPL)
-    local waste_sps = self.io_ctl.as_valve(IO.WASTE_AM)
+    local waste_pu  = self.io_ctl.as_valve(IO.F_WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.F_WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.F_WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.F_WASTE_AM)
 
     ---@class fac_valves
     self.valves = {
