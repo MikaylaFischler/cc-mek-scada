@@ -27,6 +27,8 @@ local TNK_STATE = types.TANK_STATE
 local MTX_STATE = types.IMATRIX_STATE
 local SPS_STATE = types.SPS_STATE
 
+local WASTE_PRODUCT = types.WASTE_PRODUCT
+
 -- nominal RTT is ping (0ms to 10ms usually) + 500ms for CRD main loop tick
 local WARN_RTT = 1000   -- 2x as long as expected w/ 0 ping
 local HIGH_RTT = 1500   -- 3.33x as long as expected w/ 0 ping
@@ -115,7 +117,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
             gen_fault = false
         },
 
-        auto_current_waste_product = types.WASTE_PRODUCT.PLUTONIUM, ---@type WASTE_PRODUCT
+        auto_current_waste_product = WASTE_PRODUCT.PLUTONIUM, ---@type WASTE_PRODUCT
         auto_pu_fallback_active = false,
         auto_sps_disabled = false,
         waste_stats = { 0, 0, 0, 0, 0, 0 }, -- waste in, pu, po, po pellets, am, spent waste
@@ -192,7 +194,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
             sna_out_rate = 0.0,
 
             waste_mode = types.WASTE_MODE.MANUAL_PLUTONIUM,
-            waste_product = types.WASTE_PRODUCT.PLUTONIUM,
+            waste_product = WASTE_PRODUCT.PLUTONIUM,
             waste_stats = { 0, 0, 0 },  -- plutonium, polonium, po pellets
 
             last_rate_change_ms = 0,
@@ -1390,14 +1392,14 @@ function ioctl.update_unit_statuses(statuses)
 
                 local product = util.trinary(fac.combined_waste, fac.auto_current_waste_product, unit.waste_product)
 
-                unit.unit_ps.publish("sna_in", util.trinary(product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
+                unit.unit_ps.publish("sna_in", util.trinary(product == WASTE_PRODUCT.PLUTONIUM, 0, burn_rate))
 
-                if product == types.WASTE_PRODUCT.ANTI_MATTER then
+                if product == WASTE_PRODUCT.ANTI_MATTER then
                     u_po_am_rate = u_po_rate
                     po_am_rate   = po_am_rate + u_po_am_rate
 
                     u_spent_rate = 0
-                elseif product == types.WASTE_PRODUCT.POLONIUM then
+                elseif product == WASTE_PRODUCT.POLONIUM then
                     u_po_pl_rate = u_po_rate
                     po_pl_rate   = po_pl_rate + u_po_rate
 
@@ -1431,10 +1433,10 @@ function ioctl.update_unit_statuses(statuses)
         if fac.combined_waste then
             po_rate = fac.sna_out_rate
 
-            if fac.auto_current_waste_product == types.WASTE_PRODUCT.POLONIUM then
+            if fac.auto_current_waste_product == WASTE_PRODUCT.POLONIUM then
                 po_pl_rate = po_rate
                 spent_rate = po_rate
-            elseif fac.auto_current_waste_product == types.WASTE_PRODUCT.ANTI_MATTER then
+            elseif fac.auto_current_waste_product == WASTE_PRODUCT.ANTI_MATTER then
                 po_am_rate = po_rate
             end
         else
@@ -1442,7 +1444,7 @@ function ioctl.update_unit_statuses(statuses)
         end
 
         f_ps.publish("burn_sum", burn_rate_sum)
-        f_ps.publish("sna_in", util.trinary(fac.auto_current_waste_product == types.WASTE_PRODUCT.PLUTONIUM, 0, burn_rate_sum))
+        f_ps.publish("sna_in", util.trinary(fac.auto_current_waste_product == WASTE_PRODUCT.PLUTONIUM, 0, burn_rate_sum))
         f_ps.publish("pu_rate", pu_rate)
         f_ps.publish("po_rate", po_rate)
         f_ps.publish("po_pl_rate", po_pl_rate)
