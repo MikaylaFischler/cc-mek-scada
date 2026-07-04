@@ -31,11 +31,11 @@ local wh_gray = style.wh_gray
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version
----@param fac_waste boolean true if using facility waste
+---@param com_waste boolean true if using facility waste
 ---@param v_fields string[] valve ps field suffixes
 ---@param v_names string[] valve names
 ---@param ps psil unit ps
-local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
+local function make(parent, x, y, wide, com_waste, v_fields, v_names, ps)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -95,7 +95,7 @@ local function make(parent, x, y, wide, fac_waste, v_fields, v_names, ps)
     po_rate.register(ps, "po_rate", po_rate.update)
     popl_rate.register(ps, "po_pl_rate", popl_rate.update)
     poam_rate.register(ps, "po_am_rate", poam_rate.update)
-    spent_rate.register(ps, util.trinary(fac_waste, "spent_waste_rate", "ws_rate"), spent_rate.update)
+    spent_rate.register(ps, util.trinary(com_waste, "spent_waste_rate", "ws_rate"), spent_rate.update)
 
     _valve(_wide(9, 6), 2, 1)
     _valve(_wide(9, 6), 6, 2)

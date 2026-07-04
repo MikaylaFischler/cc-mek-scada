@@ -41,9 +41,9 @@ local lg_gray = style.lg_gray
 ---@param x integer top left x
 ---@param y integer top left y
 ---@param wide boolean whether to render wide version
----@param fac_waste boolean true if using facility waste
+---@param com_waste boolean true if using facility waste
 ---@param unit_id integer unit index
-local function make(parent, x, y, wide, fac_waste, unit_id)
+local function make(parent, x, y, wide, com_waste, unit_id)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -71,7 +71,7 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
     local function _wide(a, b) return util.trinary(wide, a, b) end
 
     -- bounding box div
-    local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=util.trinary(fac_waste,8,16)}
+    local root = Div{parent=parent,x=x,y=y,width=_wide(136, 114),height=util.trinary(com_waste,8,16)}
 
     ------------------
     -- COOLING LOOP --
@@ -167,13 +167,13 @@ local function make(parent, x, y, wide, fac_waste, unit_id)
 
     PipeNetwork{parent=waste,y=1,pipes={pipe(0,0,13,1,colors.brown,true)},bg=style.theme.bg}
 
-    local waste_rate = DataIndicator{parent=waste,x=util.trinary(fac_waste,2,1),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local waste_rate = DataIndicator{parent=waste,x=util.trinary(com_waste,2,1),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     waste_rate.register(unit.unit_ps, "act_burn_rate", waste_rate.update)
 
-    if fac_waste then
+    if com_waste then
         TextBox{parent=waste,x=16,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
     else
-        waste_flow(waste, 13, 1, wide, fac_waste, v_fields, v_names, unit.unit_ps)
+        waste_flow(waste, 13, 1, wide, com_waste, v_fields, v_names, unit.unit_ps)
     end
 
     return root

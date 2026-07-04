@@ -54,7 +54,7 @@ local function init(main)
     local tank_list  = fac.tank_list
     local tank_types = fac.tank_fluid_types
 
-    local fac_waste = fac.combined_waste
+    local com_waste = fac.combined_waste
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
@@ -84,7 +84,7 @@ local function init(main)
     -- size check
 
     local req_height = 20 * #units
-    if fac_waste then
+    if com_waste then
         req_height = tri(compressed_view, (11 * #units) + 13, (19 * #units) + 4)
     end
 
@@ -92,7 +92,7 @@ local function init(main)
 
     -- get the y offset for this unit index
     ---@param idx integer unit index
-    local function y_ofs(idx) return ((idx - 1) * tri(fac_waste, tri(compressed_view, 11, 19), 20)) end
+    local function y_ofs(idx) return ((idx - 1) * tri(com_waste, tri(compressed_view, 11, 19), 20)) end
 
     -- get the coolant color
     ---@param idx integer tank index
@@ -304,9 +304,9 @@ local function init(main)
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
 
-        unit_flow(main, flow_x, 5 + y_offset, no_tanks, fac_waste, i)
+        unit_flow(main, flow_x, 5 + y_offset, no_tanks, com_waste, i)
 
-        if not fac_waste then
+        if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
         end
 
@@ -317,10 +317,10 @@ local function init(main)
     -- facility waste and SPS pipe --
     ---------------------------------
 
-    if fac_waste then
+    if com_waste then
         local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
 
-        waste_flow(waste, 18, 1, no_tanks, fac_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
+        waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
         local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
         waste_rate.register(fac.ps, "burn_sum", waste_rate.update)
@@ -346,7 +346,7 @@ local function init(main)
 
             TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
 
-            local v_idx = tri(fac_waste, 4 + ((i * 2) - 1), (i * 6) - 1)
+            local v_idx = tri(com_waste, 4 + ((i * 2) - 1), (i * 6) - 1)
 
             local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
@@ -377,7 +377,7 @@ local function init(main)
             TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
             TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
 
-            local v_idx = tri(fac_waste, 4 + (i * 2), i * 6)
+            local v_idx = tri(com_waste, 4 + (i * 2), i * 6)
 
             local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
