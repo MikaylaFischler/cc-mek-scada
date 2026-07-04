@@ -143,7 +143,7 @@ function facility.new(config)
         po_prod_ratio = config.MekanismWasteToPo[1] / config.MekanismWasteToPo[2],
         pu_fallback = false,
         pu_fallback_active = false,
-        pu_fallback_times = {}, ---@type integer[]
+        pu_fallback_times = { [0] = 0 }, ---@type integer[]
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
