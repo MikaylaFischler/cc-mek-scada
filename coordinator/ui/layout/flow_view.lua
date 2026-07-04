@@ -316,7 +316,7 @@ local function init(main)
     ---------------------------------
 
     if fac_waste then
-        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+util.trinary(compressed_view,3,-6)}
+        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+util.trinary(compressed_view,3,-6),width=util.trinary(no_tanks,139,117),height=11}
 
         waste_flow(waste, 18, 1, no_tanks, fac_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
