@@ -9,7 +9,6 @@ local ListBox     = require("graphics.elements.ListBox")
 local MultiPane   = require("graphics.elements.MultiPane")
 local TextBox     = require("graphics.elements.TextBox")
 
-local Checkbox    = require("graphics.elements.controls.Checkbox")
 local PushButton  = require("graphics.elements.controls.PushButton")
 local RadioButton = require("graphics.elements.controls.RadioButton")
 
@@ -50,9 +49,8 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local mon_c_1 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_2 = Div{parent=mon_cfg,x=2,y=4,width=49}
     local mon_c_3 = Div{parent=mon_cfg,x=2,y=4,width=49}
-    local mon_c_4 = Div{parent=mon_cfg,x=2,y=4,width=49}
 
-    local mon_pane = MultiPane{parent=mon_cfg,y=4,panes={mon_c_1,mon_c_2,mon_c_3,mon_c_4}}
+    local mon_pane = MultiPane{parent=mon_cfg,y=4,panes={mon_c_1,mon_c_2,mon_c_3}}
 
     TextBox{parent=mon_cfg,y=2,text=" Monitor Configuration",fg_bg=cpair(colors.black,colors.blue)}
 
@@ -68,7 +66,6 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     end
 
     PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=mon_c_1,x=8,y=14,text="Legacy Options",min_width=16,callback=function()mon_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
@@ -80,7 +77,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local function submit_monitors()
         if tmp_cfg.MainDisplay == nil then
             assign_err.set_value("Please assign the main monitor.")
-        elseif tmp_cfg.FlowDisplay == nil and not tmp_cfg.DisableFlowView then
+        elseif tmp_cfg.FlowDisplay == nil then
             assign_err.set_value("Please assign the flow monitor.")
         elseif util.table_len(tmp_cfg.UnitDisplays) ~= tmp_cfg.UnitCount then
             for i = 1, tmp_cfg.UnitCount do
@@ -109,11 +106,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     ---@param val integer assignment type
     local function on_assign_mon(val)
-        if val == 2 and tmp_cfg.DisableFlowView then
-            self.apply_mon.disable()
-            mon_warn.set_value("You disabled having a flow view monitor. It can't be set unless you go back and enable it.")
-            mon_warn.show()
-        elseif not util.table_contains(self.mon_expect, val) then
+        if not util.table_contains(self.mon_expect, val) then
             self.apply_mon.disable()
             mon_warn.set_value("That assignment doesn't fit monitor dimensions. You'll need to resize the monitor for it to work.")
             mon_warn.show()
@@ -183,19 +176,6 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     PushButton{parent=mon_c_3,y=14,text="\x1b Back",callback=function()mon_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     self.apply_mon = PushButton{parent=mon_c_3,x=43,y=14,min_width=7,text="Apply",callback=apply_monitor,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
-
-    TextBox{parent=mon_c_4,y=1,height=3,text="For legacy compatibility with facilities built without space for a flow monitor, you can disable the flow monitor requirement here."}
-    TextBox{parent=mon_c_4,y=5,height=3,text="Please be aware that THIS OPTION WILL BE REMOVED ON RELEASE. Disabling it will only be available for the remainder of the beta."}
-
-    tool_ctl.dis_flow_view = Checkbox{parent=mon_c_4,y=9,default=ini_cfg.DisableFlowView,label="Disable Flow View Monitor",box_fg_bg=cpair(colors.blue,colors.black)}
-
-    local function back_from_legacy()
-        tmp_cfg.DisableFlowView = tool_ctl.dis_flow_view.get_value()
-        tool_ctl.update_mon_reqs()
-        mon_pane.set_value(1)
-    end
-
-    PushButton{parent=mon_c_4,x=44,y=14,min_width=6,text="Done",callback=back_from_legacy,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -299,10 +279,8 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         TextBox{parent=mon_reqs,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
         TextBox{parent=mon_reqs,y=1,text="\x1a 1 Main View Monitor"}
         TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        if not tmp_cfg.DisableFlowView then
-            TextBox{parent=mon_reqs,y=1,text="\x1a 1 Flow View Monitor"}
-            TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        end
+        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Flow View Monitor"}
+        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
     end
 
     -- set/edit a monitor's assignment

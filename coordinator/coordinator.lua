@@ -43,7 +43,6 @@ function coordinator.load_config()
     config.TempScale = settings.get("TempScale")
     config.EnergyScale = settings.get("EnergyScale")
 
-    config.DisableFlowView = settings.get("DisableFlowView")
     config.MainDisplay = settings.get("MainDisplay")
     config.FlowDisplay = settings.get("FlowDisplay")
     config.UnitDisplays = settings.get("UnitDisplays")
@@ -79,7 +78,6 @@ function coordinator.load_config()
     cfv.assert_type_int(config.EnergyScale)
     cfv.assert_range(config.EnergyScale, 1, 3)
 
-    cfv.assert_type_bool(config.DisableFlowView)
     cfv.assert_type_table(config.UnitDisplays)
 
     cfv.assert_type_num(config.SpeakerVolume)
