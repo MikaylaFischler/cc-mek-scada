@@ -92,7 +92,12 @@ local tool_ctl = {
     update_mon_reqs = nil,    ---@type function
 
     gen_mon_list = function () end,
-    gen_modem_list = function () end
+    gen_modem_list = function () end,
+
+    dw_free_space = nil,      ---@type TextBox
+    dw_log_size = nil,        ---@type TextBox
+    dw_del_log_btn = nil,     ---@type PushButton
+    dw_continue = nil         ---@type PushButton
 }
 
 ---@class crd_config
@@ -211,8 +216,12 @@ local function config_view(display)
     local clr_cfg = Div{parent=root_pane_div,y=1}
     local summary = Div{parent=root_pane_div,y=1}
     local changelog = Div{parent=root_pane_div,y=1}
+    local disk_warn = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,clr_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,clr_cfg,summary,changelog,disk_warn}}
+
+    -- show disk space warning if needed
+    if fs.getFreeSpace("/") < log.MIN_SPACE then main_pane.set_value(11) end
 
     --#region Main Page
 
@@ -273,6 +282,47 @@ local function config_view(display)
     end
 
     --#endregion
+
+    -- #region Disk Space Warning
+
+    TextBox{parent=disk_warn,y=2,text=" Insufficent Disk Space",fg_bg=cpair(colors.white,colors.black)}
+
+    local disk_page = Div{parent=disk_warn,x=2,y=4,width=49}
+
+    local function delete_log()
+        fs.delete(ini_cfg.LogPath)
+
+        local space = fs.getFreeSpace("/")
+        tool_ctl.dw_free_space.set_value("Available Free Space: "..space.." bytes")
+
+        if not fs.exists(ini_cfg.LogPath) then
+            tool_ctl.dw_log_size.set_value("Log File Size: 0 bytes")
+            tool_ctl.dw_del_log_btn.disable()
+        end
+
+        if space >= log.MIN_SPACE then tool_ctl.dw_continue.enable() end
+    end
+
+    TextBox{parent=disk_page,height=3,text="There is not enough disk space to safely configure this device. Saving the configuration may fail and cause loss of configuration data."}
+
+    TextBox{parent=disk_page,y=5,height=1,text="Capacity:             "..fs.getCapacity("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    tool_ctl.dw_free_space = TextBox{parent=disk_page,height=1,text="Available Free Space: "..fs.getFreeSpace("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=disk_page,height=1,text="Required Free Space:  "..log.MIN_SPACE.." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+    if fs.exists(ini_cfg.LogPath) then
+        TextBox{parent=disk_page,y=9,height=2,text="If your log file is on this computer and not an external disk, deleting it may help."}
+        tool_ctl.dw_log_size = TextBox{parent=disk_page,y=12,height=1,text="Log File Size: "..fs.getSize(ini_cfg.LogPath).." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+        tool_ctl.dw_del_log_btn = PushButton{parent=disk_page,x=33,y=12,min_width=17,text="Delete Log File",callback=delete_log,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    else
+        TextBox{parent=disk_page,y=9,height=4,text="The log file wasn't found, so you'll need to manually make space. Please remove any files unrelated to this application that you may have manually created."}
+    end
+
+    PushButton{parent=disk_page,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.dw_continue = PushButton{parent=disk_page,x=40,y=14,min_width=10,text="Continue",callback=function()main_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    tool_ctl.dw_continue.disable()
+
+    -- #endregion
 
     local settings = { settings_cfg, ini_cfg, tmp_cfg, fields, load_settings }
 
