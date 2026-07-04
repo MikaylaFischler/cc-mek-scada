@@ -122,6 +122,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         new_peri_attrs = { name, type }
         self.peri_cfg_editing = false
 
+        self.p_fac_warn.hide(true)
         self.p_err.hide(true)
         self.p_name_msg.set_value("Configuring peripheral on '" .. name .. "':")
 
@@ -153,7 +154,10 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
 
             self.p_assign_btn.show()
             self.p_assign_btn.redraw()
-            self.p_assign_btn.set_value(2)
+
+            if self.p_assign_btn.get_value() == 1 then
+                self.p_fac_warn.show()
+            else self.p_fac_warn.hide(true) end
 
             self.p_desc.set_value("Too many devices (e.g. excess SNAs) can cause lag. During a clear day, \"\x1aMAX\" rate on the flow monitor shows the max amount of waste the SNA(s) can process. Enough SNAs to provide 2x-3x of that unit's max burn rate should be enough to catch up after night or cloudy weather.")
         elseif type == "dynamicValve" then

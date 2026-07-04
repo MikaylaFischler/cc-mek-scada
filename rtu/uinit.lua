@@ -353,7 +353,7 @@ return function(config, __shared_memory)
             end
         elseif type == "solarNeutronActivator" or type == "largeSolarNeutronActivator" then
             -- SNA (normal or large)
-            if not validate_assign() then return false end
+            if not validate_assign(entry.unit == nil) then return false end
 
             rtu_type = RTU_UNIT_TYPE.SNA
             rtu_iface, faulted = sna_rtu.new(device)
