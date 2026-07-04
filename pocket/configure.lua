@@ -201,10 +201,10 @@ local function config_view(display)
         fs.delete(ini_cfg.LogPath)
 
         local space = fs.getFreeSpace("/")
-        tool_ctl.dw_free_space.set_value("Available Free Space: "..space.." bytes")
+        tool_ctl.dw_free_space.set_value(space.." bytes free")
 
         if not fs.exists(ini_cfg.LogPath) then
-            tool_ctl.dw_log_size.set_value("Log File Size: 0 bytes")
+            tool_ctl.dw_log_size.set_value("0 byte log file")
             tool_ctl.dw_del_log_btn.disable()
         end
 
