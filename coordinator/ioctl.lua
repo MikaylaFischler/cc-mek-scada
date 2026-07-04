@@ -1425,8 +1425,6 @@ function ioctl.update_unit_statuses(statuses)
             end
         end
 
-        fac.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
-
         local f_ps = fac.ps
 
         -- overrides needed when using facility SNAs
@@ -1442,6 +1440,8 @@ function ioctl.update_unit_statuses(statuses)
         else
             f_ps.publish("sna_count", sna_count_sum)
         end
+
+        fac.waste_stats = { burn_rate_sum, pu_rate, po_rate, po_pl_rate, po_am_rate, spent_rate }
 
         f_ps.publish("burn_sum", burn_rate_sum)
         f_ps.publish("sna_in", util.trinary(fac.auto_current_waste_product == WASTE_PRODUCT.PLUTONIUM, 0, burn_rate_sum))
