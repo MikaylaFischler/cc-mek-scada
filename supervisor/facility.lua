@@ -192,7 +192,7 @@ function facility.new(config)
     end
 
     -- list for RTU session management
-    self.rtu_list = { self.redstone, self.induction, self.sps, self.tanks, self.envd }
+    self.rtu_list = { self.redstone, self.induction, self.snas, self.sps, self.tanks, self.envd }
 
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone, 0)
