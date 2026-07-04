@@ -187,8 +187,9 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local fac_c_8 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_9 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_10 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_11 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9,fac_c_10}}
+    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9,fac_c_10,fac_c_11}}
 
     TextBox{parent=fac_cfg,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -747,11 +748,28 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     local function submit_sna_stats()
         tmp_cfg.UseSNAStatistics = tool_ctl.sna_stats.get_value()
-        main_pane.set_value(3)
+        fac_pane.set_value(11)
     end
 
     PushButton{parent=fac_c_10,y=14,text="\x1b Back",callback=function()fac_pane.set_value(9)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_10,x=44,y=14,text="Next \x1a",callback=submit_sna_stats,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+    --#region Combined Facility Waste
+
+    TextBox{parent=fac_c_11,height=3,text="The standard setup expects waste processing (SNAs and PRCs) to be per-unit for statistics and individual Pu fallback management."}
+    TextBox{parent=fac_c_11,y=5,height=3,text="If your setup combines all raw waste before processing, please select combined facility waste management below."}
+    TextBox{parent=fac_c_11,y=9,text="Both options expect one combined facility SPS.",fg_bg=g_lg_fg_bg}
+
+    tool_ctl.com_waste = Checkbox{parent=fac_c_11,y=11,label="Combined Facility Waste",default=ini_cfg.CombinedWaste,box_fg_bg=cpair(colors.yellow,colors.black)}
+
+    local function submit_com_waste()
+        tmp_cfg.CombinedWaste = tool_ctl.com_waste.get_value()
+        main_pane.set_value(3)
+    end
+
+    PushButton{parent=fac_c_11,y=14,text="\x1b Back",callback=function()fac_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_11,x=44,y=14,text="Next \x1a",callback=submit_com_waste,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

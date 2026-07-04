@@ -47,26 +47,35 @@ local self = {
     rs_cfg_color = nil,     ---@type Radio2D
     rs_cfg_inverted = nil,  ---@type Checkbox
     rs_cfg_shortcut = nil,  ---@type TextBox
-    rs_cfg_advanced = nil   ---@type PushButton
+    rs_cfg_advanced = nil,  ---@type PushButton
+
+    whats_that = nil        ---@type PushButton
 }
 
 -- rsio port descriptions
 local PORT_DESC_MAP = {
     { IO.F_SCRAM, "Facility SCRAM" },
     { IO.F_ACK, "Facility Acknowledge" },
+    { IO.U_ACK, "Unit Acknowledge" },
     { IO.R_SCRAM, "Reactor SCRAM" },
     { IO.R_RESET, "Reactor RPS Reset" },
     { IO.R_ENABLE, "Reactor Enable" },
-    { IO.U_ACK, "Unit Acknowledge" },
-    { IO.F_ALARM, "Facility Alarm (high prio)" },
+    { IO.F_ALARM, "Facility Alarm (high priority)" },
     { IO.F_ALARM_ANY, "Facility Alarm (any)" },
     { IO.F_MATRIX_LOW, "Induction Matrix < " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_LOW) .. "%" },
     { IO.F_MATRIX_HIGH, "Induction Matrix > " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH) .. "%" },
     { IO.F_MATRIX_CHG, "Induction Matrix Charge %" },
-    { IO.WASTE_PU, "Waste Plutonium Valve" },
-    { IO.WASTE_PO, "Waste Polonium Valve" },
-    { IO.WASTE_POPL, "Waste Po Pellets Valve" },
-    { IO.WASTE_AM, "Waste Antimatter Valve" },
+    { IO.F_WASTE_PU, "Combined Waste Pu Valve" },
+    { IO.F_WASTE_PO, "Combined Waste Po Valve" },
+    { IO.F_WASTE_POPL, "Com. Waste Po Pellets Valve" },
+    { IO.F_WASTE_AM, "Com. Waste Antimatter Valve" },
+    { IO.U_ALARM, "Unit Alarm" },
+    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" },
+    { IO.U_AUX_COOL, "Unit Auxiliary Cool. Valve" },
+    { IO.U_WASTE_PU, "Unit Waste Plutonium Valve" },
+    { IO.U_WASTE_PO, "Unit Waste Polonium Valve" },
+    { IO.U_WASTE_POPL, "Unit Waste Po Pellets Valve" },
+    { IO.U_WASTE_AM, "Unit Waste Antimatter Valve" },
     { IO.R_ACTIVE, "Reactor Active" },
     { IO.R_AUTO_CTRL, "Reactor in Auto Control" },
     { IO.R_SCRAMMED, "RPS Tripped" },
@@ -78,14 +87,11 @@ local PORT_DESC_MAP = {
     { IO.R_EXCESS_WS, "RPS Excess Waste" },
     { IO.R_INSUFF_FUEL, "RPS Insufficient Fuel" },
     { IO.R_PLC_FAULT, "RPS PLC Fault" },
-    { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" },
-    { IO.U_ALARM, "Unit Alarm" },
-    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" },
-    { IO.U_AUX_COOL, "Unit Auxiliary Cool. Valve" }
+    { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" }
 }
 
 -- designation (0 = facility, 1 = unit)
-local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1 }
+local PORT_DSGN = { [-2] = 0, [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0 }
 
 assert(#PORT_DESC_MAP == rsio.NUM_PORTS)
 assert(#PORT_DSGN == rsio.NUM_PORTS)
@@ -167,8 +173,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_c_8  = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_9  = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_10 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_11 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10}}
+    local rs_pane = MultiPane{parent=rs_cfg,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10,rs_c_11}}
 
     local header = TextBox{parent=rs_cfg,y=2,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
@@ -292,15 +299,19 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
         local text
 
-        if port == -1 then
+        if port == -1 or port == -2 then
+            self.whats_that.hide(true)
+
             self.rs_cfg_color.hide(true)
             self.rs_cfg_shortcut.show()
             self.rs_cfg_side_l.set_value("Output Side")
             self.rs_cfg_bundled.enable()
             self.rs_cfg_advanced.disable()
 
-            text = "You selected the ALL_WASTE shortcut."
+            text = "You selected the ALL_" .. tri(port == -1, "U", "F") .. "_WASTE shortcut."
         else
+            self.whats_that.show()
+
             self.rs_cfg_shortcut.hide(true)
             self.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
             self.rs_cfg_color.show()
@@ -347,31 +358,37 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     end
 
     -- add entries to redstone option list
-    local all_w_macro = Div{parent=rs_ports,height=1}
-    PushButton{parent=all_w_macro,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
-    TextBox{parent=all_w_macro,x=16,y=1,width=5,text="[n/a]",fg_bg=cpair(colors.lightGray,colors.white)}
-    TextBox{parent=all_w_macro,x=22,y=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
+    local all_u_w_macro = Div{parent=rs_ports,height=1}
+    PushButton{parent=all_u_w_macro,y=1,min_width=13,alignment=LEFT,height=1,text="ALL_U_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    TextBox{parent=all_u_w_macro,x=15,y=1,width=5,text="n/a",fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=all_u_w_macro,x=19,y=1,text="All 4 unit waste entries",fg_bg=cpair(colors.gray,colors.white)}
+
+    local all_f_w_macro = Div{parent=rs_ports,height=1}
+    PushButton{parent=all_f_w_macro,y=1,min_width=13,alignment=LEFT,height=1,text="ALL_F_WASTE",callback=function()new_rs(-2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    TextBox{parent=all_f_w_macro,x=15,y=1,width=5,text="n/a",fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=all_f_w_macro,x=19,y=1,text="All 4 combined waste entries",fg_bg=cpair(colors.gray,colors.white)}
 
     for i = 1, rsio.NUM_PORTS do
         local p = PORT_DESC_MAP[i][1]
         local name = rsio.to_string(p)
-        local io_dir = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local io_dir = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "in", "out")
         local btn_color = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
 
         local entry = Div{parent=rs_ports,height=1}
-        PushButton{parent=entry,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
-        TextBox{parent=entry,x=16,y=1,width=5,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
-        TextBox{parent=entry,x=22,y=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
+        PushButton{parent=entry,y=1,min_width=13,alignment=LEFT,height=1,text=name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
+        TextBox{parent=entry,x=15,y=1,width=3,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+        TextBox{parent=entry,x=19,y=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
     end
 
     PushButton{parent=rs_c_3,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,x=30,y=14,min_width=20,text="U_WASTE vs F_WASTE",callback=function()rs_pane.set_value(11)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
     --#region Port Configuration
 
     self.rs_cfg_selection = TextBox{parent=rs_c_4,y=1,height=2,text=""}
 
-    PushButton{parent=rs_c_4,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    self.whats_that = PushButton{parent=rs_c_4,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     self.rs_cfg_side_l = TextBox{parent=rs_c_4,y=4,width=11,text="Output Side"}
     local side = Radio2D{parent=rs_c_4,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
@@ -434,13 +451,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                     def.port = tmp_cfg.Redstone[self.rs_cfg_editing].port
                     tmp_cfg.Redstone[self.rs_cfg_editing] = def
                 end
-            elseif port == -1 then
+            elseif port == -1 or port == -2 then
                 local default_sides = { "left", "back", "right", "front" }
                 local default_colors = { colors.red, colors.orange, colors.yellow, colors.lime }
+                local base_port = tri(port == -1, IO.U_WASTE_PU, IO.F_WASTE_PU)
+
                 for i = 0, 3 do
                     table.insert(tmp_cfg.Redstone, {
-                        unit = tri(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
-                        port = IO.WASTE_PU + i,
+                        unit = tri(PORT_DSGN[base_port + i] == 1, u, nil),
+                        port = base_port + i,
                         relay = self.rs_cfg_phy,
                         side = tri(self.rs_cfg_bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
                         color = tri(self.rs_cfg_bundled.get_value(), default_colors[i + 1], nil)
@@ -489,6 +508,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     TextBox{parent=rs_c_10,y=1,height=10,text="Make sure your relay is either touching the RTU gateway or connected via wired modems. There should be a wired modem on a side of the RTU gateway then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
     PushButton{parent=rs_c_10,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_11,y=1,height=10,text="Both Unit Waste (U_WASTE_) and Combined Facility Waste (F_WASTE_) redstone outputs are available.\n\nIf you select Combined Facility Waste on the Supervisor, only F_WASTE_ outputs will be supported. Otherwise, you should only use U_WASTE_ outputs.\n\nMismatched outputs will be ignored and show up as disconnected."}
+    PushButton{parent=rs_c_11,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

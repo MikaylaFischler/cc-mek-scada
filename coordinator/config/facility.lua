@@ -74,7 +74,7 @@ local function handle_packet(packet)
                 local config = packet.data[2]
 
                 if est_ack == ESTABLISH_ACK.ALLOW then
-                    if type(config) == "table" and #config == 3 then
+                    if type(config) == "table" and #config == 4 then
                         local count_ok = is_int_min_max(config[1], 1, 4)
                         local cool_ok = type(config[2]) == "table" and type(config[2].r_cool) == "table" and #config[2].r_cool == config[1]
 

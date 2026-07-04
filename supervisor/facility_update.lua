@@ -1061,11 +1061,10 @@ function update.redstone(ack_all)
     end
 end
 
--- update unit tasks
-function update.unit_mgmt()
-    local need_emcool = false
-    local write_state = false
-
+-- update overall waste state and apply combined waste commands if active
+---@param combined_waste boolean
+---@param public facility
+function update.waste_mgmt(combined_waste, public)
     -- update waste product
 
     self.current_waste_product = self.waste_product
@@ -1083,13 +1082,65 @@ function update.unit_mgmt()
         self.disabled_sps = false
     end
 
+    if combined_waste then
+        if self.pu_fallback then
+            local f_t = self.pu_fallback_times[0]
+            local avail, near_full, low_fill = public.get_sna_status()
+            local burn_sum = 0
+
+            for i = 1, #self.units do
+                burn_sum = burn_sum + self.units[i].get_burn_rate()
+            end
+
+            if ((avail * self.po_prod_ratio) < burn_sum) and near_full then
+                -- enter fallback if we can't keep up and nearly filled the input buffers
+                f_t = util.time_ms()
+            elseif (f_t > 0) and ((util.time_ms() - f_t) > const.PU_FALLBACK_MIN_TIME_MS) and low_fill then
+                -- exit fallback after no less than min period and at least one SNA has mostly emptied
+                f_t = 0
+            end
+
+            self.pu_fallback_active = f_t > 0
+            if self.pu_fallback_active then
+                self.current_waste_product = WASTE.PLUTONIUM
+            end
+
+            self.pu_fallback_times[0] = f_t
+        end
+
+        -- set combined waste valves
+        local prod, v = self.current_waste_product, self.valves
+        if prod == WASTE.PLUTONIUM then
+            v.waste_pu.open()
+            v.waste_sna.close()
+            v.waste_po.close()
+            v.waste_sps.close()
+        elseif prod == WASTE.POLONIUM then
+            v.waste_pu.close()
+            v.waste_sna.open()
+            v.waste_po.open()
+            v.waste_sps.close()
+        elseif prod == WASTE.ANTI_MATTER then
+            v.waste_pu.close()
+            v.waste_sna.open()
+            v.waste_po.close()
+            v.waste_sps.open()
+        end
+    end
+end
+
+-- update unit tasks
+function update.unit_mgmt(combined_waste)
+    local need_emcool = false
+    local write_state = false
+
     local fallback_count = 0
 
     for i = 1, #self.units do
         local u = self.units[i]
 
         -- update auto waste processing
-        if u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
+        if (not combined_waste) and u.get_control_inf().waste_mode == WASTE_MODE.AUTO then
             local waste_mode = self.current_waste_product
 
             if self.pu_fallback then
@@ -1127,9 +1178,11 @@ function update.unit_mgmt()
         end
     end
 
-    self.pu_fallback_active = fallback_count > 0
-    if fallback_count == #self.units then
-        self.current_waste_product = WASTE.PLUTONIUM
+    if not combined_waste then
+        self.pu_fallback_active = fallback_count > 0
+        if fallback_count == #self.units then
+            self.current_waste_product = WASTE.PLUTONIUM
+        end
     end
 
     -- record unit control states

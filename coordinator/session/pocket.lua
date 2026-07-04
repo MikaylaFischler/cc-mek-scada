@@ -400,18 +400,16 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 for i = 1, #db.units do
                     local u = db.units[i]
 
-                    data[i] = {
-                        u.waste_mode,
-                        u.waste_product,
-                        u.num_snas,
-                        (u.sna_peak_rate * po_ratio[1]) / po_ratio[2],
-                        u.sna_peak_rate,
-                        (u.sna_max_rate * po_ratio[1]) / po_ratio[2],
-                        u.sna_max_rate,
-                        u.unit_ps.get("sna_in"),
-                        u.sna_out_rate,
-                        u.waste_stats
-                    }
+                    if fac.combined_waste then
+                        data[i] = {}
+                    else
+                        data[i] = {
+                            u.waste_mode, u.waste_product, u.num_snas,
+                            (u.sna_peak_rate * po_ratio[1]) / po_ratio[2], u.sna_peak_rate,
+                            (u.sna_max_rate * po_ratio[1]) / po_ratio[2], u.sna_max_rate,
+                            u.unit_ps.get("sna_in"), u.sna_out_rate, u.waste_stats
+                        }
+                    end
                 end
 
                 local process_rate = 0
@@ -432,6 +430,15 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     fac.sps_ps_tbl[1].get("computed_status") or types.SPS_STATE.OFFLINE,
                     process_rate
                 }
+
+                if fac.combined_waste then
+                    table.insert(data[#db.units + 1], {
+                        fac.num_snas,
+                        (fac.sna_peak_rate * po_ratio[1]) / po_ratio[2], fac.sna_peak_rate,
+                        (fac.sna_max_rate * po_ratio[1]) / po_ratio[2], fac.sna_max_rate,
+                        fac.ps.get("sna_in"), fac.sna_out_rate
+                    })
+                end
 
                 _send(CRDN_TYPE.API_GET_WASTE, data)
             elseif pkt.type == CRDN_TYPE.API_GET_RAD then

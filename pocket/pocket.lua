@@ -807,9 +807,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if packet.length == 2 then
                                     local fac_config = packet.data[2]
 
-                                    if type(fac_config) == "table" and #fac_config == 2 then
+                                    if type(fac_config) == "table" and #fac_config == 3 then
                                         -- get configuration
-                                        local conf = { num_units = fac_config[1], cooling = fac_config[2] }
+                                        local conf = { num_units = fac_config[1], cooling = fac_config[2], com_waste = fac_config[3] }
 
                                         ioctl.init_fac(conf)
 

@@ -1,5 +1,6 @@
 local const      = require("scada-common.constants")
 local log        = require("scada-common.log")
+local rsio       = require("scada-common.rsio")
 local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
@@ -10,7 +11,7 @@ local fac_update = require("supervisor.facility_update")
 local rsctl      = require("supervisor.session.rsctl")
 local svsessions = require("supervisor.session.svsessions")
 
-local AISTATE       = alarm_ctl.AISTATE
+local AISTATE = alarm_ctl.AISTATE
 
 local ALARM         = types.ALARM
 local ALARM_STATE   = types.ALARM_STATE
@@ -20,6 +21,8 @@ local PROCESS       = types.PROCESS
 local RTU_ID_FAIL   = types.RTU_ID_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local WASTE         = types.WASTE_PRODUCT
+
+local IO = rsio.IO
 
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
@@ -46,8 +49,8 @@ local RCV_STATE = {
     STOPPED = 3
 }
 
-local CHARGE_SCALER = 1000000   -- convert MFE to FE
-local GEN_SCALER    = 1000      -- convert kFE to FE
+local CHARGE_SCALER = 1000000 -- convert MFE to FE
+local GEN_SCALER    = 1000    -- convert kFE to FE
 
 ---@class facility_management
 local facility = {}
@@ -79,6 +82,7 @@ function facility.new(config)
         rtu_list = {},  ---@type unit_session[][]
         redstone = {},  ---@type redstone_session[]
         induction = {}, ---@type imatrix_session[]
+        snas = {},      ---@type sna_session[]
         sps = {},       ---@type sps_session[]
         tanks = {},     ---@type dynamicv_session[]
         envd = {},      ---@type envd_session[]
@@ -139,7 +143,7 @@ function facility.new(config)
         po_prod_ratio = config.MekanismWasteToPo[1] / config.MekanismWasteToPo[2],
         pu_fallback = false,
         pu_fallback_active = false,
-        pu_fallback_times = {}, ---@type integer[]
+        pu_fallback_times = { [0] = 0 }, ---@type integer[]
         sps_low_power = false,
         disabled_sps = false,
         -- alarm tones
@@ -206,6 +210,24 @@ function facility.new(config)
     if not settings.save("/supervisor.settings") then
         log.warning("FAC: failed to save initial control state into supervisor settings file")
     end
+
+    --#endregion
+
+    --#region Redstone I/O
+
+    -- valves
+    local waste_pu  = self.io_ctl.as_valve(IO.F_WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.F_WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.F_WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.F_WASTE_AM)
+
+    ---@class fac_valves
+    self.valves = {
+        waste_pu = waste_pu,
+        waste_sna = waste_sna,
+        waste_po = waste_po,
+        waste_sps = waste_sps
+    }
 
     --#endregion
 
@@ -294,6 +316,16 @@ function facility.new(config)
         return ok
     end
 
+    -- link a solar neutron activator RTU session
+    ---@param sna unit_session
+    ---@return boolean linked SNA accepted (must be using combined waste)
+    function public.add_sna(sna)
+        if config.CombinedWaste then
+            table.insert(self.snas, sna)
+            return true
+        else return false end
+    end
+
     -- link an SPS RTU session
     ---@param sps unit_session
     ---@return boolean linked SPS accepted (max 1)
@@ -368,8 +400,11 @@ function facility.new(config)
         -- handle redstone I/O
         f_update.redstone(public.ack_all)
 
+        -- facility waste management
+        f_update.waste_mgmt(config.CombinedWaste, public)
+
         -- unit tasks
-        f_update.unit_mgmt()
+        f_update.unit_mgmt(config.CombinedWaste)
 
         -- update alarm states right before updating the audio
         f_update.update_alarms()
@@ -704,6 +739,35 @@ function facility.new(config)
             status.power[4] = remaining / fe_per_ms
         end
 
+        -- SNA/Po statistical information
+
+        if config.CombinedWaste then
+            local total_peak, total_avail, total_out = 0, 0, 0
+            for i = 1, #self.snas do
+                local db = self.snas[i].get_db()
+                local in_a, out_a, prod = db.tanks.input.amount, db.tanks.output.amount, db.state.production_rate
+
+                total_peak = total_peak + db.state.peak_production
+                total_avail = total_avail + prod
+
+                local out_from_in = util.trinary(in_a >= self.po_prod_ratio, in_a / self.po_prod_ratio, 0)
+                local out_rate_appx = util.trinary(out_a > 0, math.min(out_from_in, out_a), out_from_in)
+
+                total_out = total_out + math.min(out_rate_appx, prod)
+            end
+
+            if not config.UseSNAStatistics then
+                local burn_sum = 0
+                for i = 1, #self.units do
+                    burn_sum = burn_sum + self.units[i].get_burn_rate()
+                end
+
+                total_out = util.trinary(self.waste_product == WASTE.PLUTONIUM, 0, burn_sum / self.po_prod_ratio)
+            end
+
+            status.sna = { #self.snas, total_peak, total_avail, total_out }
+        end
+
         -- status of sps
         status.sps = {}
         for i = 1, #self.sps do
@@ -729,6 +793,39 @@ function facility.new(config)
         end
 
         return status
+    end
+
+    -- get SNA production status
+    -- - total available production rate
+    -- - if all SNAs have <= their production rate of remaining input capacity
+    -- - if any SNAs are less than 15% full
+    ---@nodiscard
+    ---@return number total_avail_rate, boolean near_full, boolean low_fill
+    function public.get_sna_status()
+        local total_avail_rate, near_full, low_fill = 0, true, false
+
+        for i = 1, #self.snas do
+            local db = self.snas[i].get_db()
+            total_avail_rate = total_avail_rate + db.state.production_rate
+            near_full = near_full and (db.tanks.input_need <= db.state.production_rate)
+            low_fill = low_fill or (db.tanks.input_fill < 0.15)
+        end
+
+        return total_avail_rate, near_full, low_fill
+    end
+
+    -- get valve states (there are only valves if using combined waste)
+    ---@nodiscard
+    function public.get_valves()
+        if not config.CombinedWaste then return nil end
+
+        local v = self.valves
+        return {
+            v.waste_pu.check(),
+            v.waste_sna.check(),
+            v.waste_po.check(),
+            v.waste_sps.check()
+        }
     end
 
     --#endregion

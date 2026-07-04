@@ -353,29 +353,13 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
 
     --#region Redstone I/O
 
-    -- create a generic valve interface
-    ---@nodiscard
-    ---@param port IO_PORT
-    local function _make_valve_iface(port)
-        ---@class unit_valve_iface
-        local iface = {
-            open = function () self.io_ctl.digital_write(port, true) end,
-            close = function () self.io_ctl.digital_write(port, false) end,
-            -- check valve state
-            ---@nodiscard
-            ---@return 0|1|2 0 for not connected, 1 for inactive, 2 for active
-            check = function () return util.trinary(self.io_ctl.is_connected(port), util.trinary(self.io_ctl.digital_read(port), 2, 1), 0) end
-        }
-        return iface
-    end
-
     -- valves
-    local waste_pu  = _make_valve_iface(IO.WASTE_PU)
-    local waste_sna = _make_valve_iface(IO.WASTE_PO)
-    local waste_po  = _make_valve_iface(IO.WASTE_POPL)
-    local waste_sps = _make_valve_iface(IO.WASTE_AM)
-    local emer_cool = _make_valve_iface(IO.U_EMER_COOL)
-    local aux_cool  = _make_valve_iface(IO.U_AUX_COOL)
+    local waste_pu  = self.io_ctl.as_valve(IO.U_WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.U_WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.U_WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.U_WASTE_AM)
+    local emer_cool = self.io_ctl.as_valve(IO.U_EMER_COOL)
+    local aux_cool  = self.io_ctl.as_valve(IO.U_AUX_COOL)
 
     ---@class unit_valves
     self.valves = {
