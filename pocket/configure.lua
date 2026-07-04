@@ -56,11 +56,16 @@ local tool_ctl = {
     has_config = false,
     viewing_config = false,
 
-    view_cfg = nil,         ---@type PushButton
-    settings_apply = nil,   ---@type PushButton
+    view_cfg = nil,       ---@type PushButton
+    settings_apply = nil, ---@type PushButton
 
-    gen_summary = nil,      ---@type function
-    load_legacy = nil       ---@type function
+    gen_summary = nil,    ---@type function
+    load_legacy = nil,    ---@type function
+
+    dw_free_space = nil,  ---@type TextBox
+    dw_log_size = nil,    ---@type TextBox
+    dw_del_log_btn = nil, ---@type PushButton
+    dw_continue = nil     ---@type PushButton
 }
 
 ---@class pkt_config
@@ -134,8 +139,12 @@ local function config_view(display)
     local log_cfg = Div{parent=root_pane_div,y=1}
     local summary = Div{parent=root_pane_div,y=1}
     local changelog = Div{parent=root_pane_div,y=1}
+    local disk_warn = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,ui_cfg,net_cfg,log_cfg,summary,changelog}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,ui_cfg,net_cfg,log_cfg,summary,changelog,disk_warn}}
+
+    -- show disk space warning if needed
+    if fs.getFreeSpace("/") < log.MIN_SPACE then main_pane.set_value(7) end
 
     --#region Main Page
 
@@ -170,20 +179,64 @@ local function config_view(display)
         exit()
     end
 
-    PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    local start_btn = PushButton{parent=main_page,x=17,y=18,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=main_page,x=2,y=y_start+4,min_width=12,text="Change Log",callback=function()main_pane.set_value(6)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    if tool_ctl.ask_config then start_btn.disable() end
+    if tool_ctl.ask_config then
+        PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,dis_fg_bg=btn_dis_fg_bg}.disable()
+        PushButton{parent=main_page,x=18,y=18,min_width=8,text="Resume",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=main_page,x=2,y=18,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+        PushButton{parent=main_page,x=17,y=18,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    end
 
     --#endregion
+
+    -- #region Disk Space Warning
+
+    TextBox{parent=disk_warn,y=2,text=" Insufficent Disk Space",fg_bg=cpair(colors.white,colors.black)}
+
+    local disk_page = Div{parent=disk_warn,x=2,y=4,width=24}
+
+    local function delete_log()
+        fs.delete(ini_cfg.LogPath)
+
+        local space = fs.getFreeSpace("/")
+        tool_ctl.dw_free_space.set_value(space.." bytes free")
+
+        if not fs.exists(ini_cfg.LogPath) then
+            tool_ctl.dw_log_size.set_value("0 byte log file")
+            tool_ctl.dw_del_log_btn.disable()
+        end
+
+        if space >= log.MIN_SPACE then tool_ctl.dw_continue.enable() end
+    end
+
+    TextBox{parent=disk_page,height=5,text="There is not enough space to safely configure. Saving the configuration may fail."}
+
+    tool_ctl.dw_free_space = TextBox{parent=disk_page,height=1,text=fs.getFreeSpace("/").." bytes free",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=disk_page,height=1,text=log.MIN_SPACE.." bytes required",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+    if fs.exists(ini_cfg.LogPath) then
+        tool_ctl.dw_log_size = TextBox{parent=disk_page,y=8,height=1,text=fs.getSize(ini_cfg.LogPath).." byte log file",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+        TextBox{parent=disk_page,y=10,height=2,text="You may delete the log file to free up space."}
+        tool_ctl.dw_del_log_btn = PushButton{parent=disk_page,y=13,min_width=17,text="Delete Log File",callback=delete_log,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    else
+        TextBox{parent=disk_page,y=9,height=5,text="The log file wasn't found, so you'll need to manually make space. Please remove any unrelated files."}
+    end
+
+    PushButton{parent=disk_page,y=15,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.dw_continue = PushButton{parent=disk_page,x=15,y=15,min_width=10,text="Continue",callback=function()main_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    tool_ctl.dw_continue.disable()
+
+    -- #endregion
 
     --#region System Configuration
 
     local settings = { settings_cfg, ini_cfg, tmp_cfg, fields, load_settings }
     local divs     = { ui_cfg, net_cfg, log_cfg, summary }
 
-    system.create(tool_ctl, main_pane, settings, divs, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, style, startup, exit)
 
     --#endregion
 

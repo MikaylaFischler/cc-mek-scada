@@ -386,17 +386,19 @@ local function new_view(root, x, y)
     -- waste production control --
     ------------------------------
 
-    local waste_status = Div{parent=proc,width=24,height=4,x=57,y=1,}
+    if not facility.combined_waste then
+        local waste_status = Div{parent=proc,width=24,height=4,x=57,y=1,}
 
-    for i = 1, facility.num_units do
-        local unit = units[i]
+        for i = 1, facility.num_units do
+            local unit = units[i]
 
-        TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8}
-        local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
-        local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.get_waste().states_abbrv,value=1,min_width=6}
+            TextBox{parent=waste_status,y=i,text="U"..i.." Waste",width=8}
+            local a_waste = IndicatorLight{parent=waste_status,x=10,y=i,label="Auto",colors=ind_wht}
+            local waste_m = StateIndicator{parent=waste_status,x=17,y=i,states=style.get_waste().states_abbrv,value=1,min_width=6}
 
-        a_waste.register(unit.unit_ps, "U_AutoWaste", a_waste.update)
-        waste_m.register(unit.unit_ps, "U_WasteProduct", waste_m.update)
+            a_waste.register(unit.unit_ps, "U_AutoWaste", a_waste.update)
+            waste_m.register(unit.unit_ps, "U_WasteProduct", waste_m.update)
+        end
     end
 
     local waste_sel = Div{parent=proc,width=21,height=24,x=81,y=1}

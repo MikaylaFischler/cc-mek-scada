@@ -76,52 +76,10 @@ local function new_view(root)
             end
         end
 
-        --#region unit waste options/statistics
-
-        for i = 1, db.facility.num_units do
-            local u_pane = Div{parent=page_div}
-            local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
-            local unit = db.units[i]
-            local u_ps = unit.unit_ps
-
-            table.insert(panes, u_div)
-
-            local u_page = app.new_page(nil, #panes)
-            u_page.tasks = { update }
-
-            table.insert(u_pages, u_page)
-
-            TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
-
-            local function set_waste(mode) process.set_unit_waste(i, mode) end
-
-            local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.get_waste().states_abbrv,value=1,min_width=6}
-            local waste_mode = RadioButton{parent=u_div,y=3,options=style.get_waste().unit_opts,callback=set_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
-
-            waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
-            waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
-
-            TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=label_fg_bg}
-            local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-            TextBox{parent=u_div,y=11,text="Polonium",fg_bg=label_fg_bg}
-            local po = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-            TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=label_fg_bg}
-            local popl = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
-
-            pu.register(u_ps, "pu_rate", pu.update)
-            po.register(u_ps, "po_rate", po.update)
-            popl.register(u_ps, "po_pl_rate", popl.update)
-
-            local sna_div = Div{parent=u_pane,x=2,width=page_div.get_width()-2}
-            table.insert(panes, sna_div)
-
-            local sps_page = app.new_page(u_page, #panes)
-            sps_page.tasks = { update }
-
-            PushButton{parent=u_div,x=6,y=18,text="SNA DATA",min_width=12,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=sps_page.nav_to}
-            PushButton{parent=sna_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=u_page.nav_to}
-
-            TextBox{parent=sna_div,y=1,text="Unit "..i.." SNAs",alignment=ALIGN.CENTER}
+        -- make an SNA stats page view
+        ---@param sna_div Div
+        ---@param ps psil
+        local function make_sna_view(sna_div, ps)
             TextBox{parent=sna_div,y=3,text="Connected",fg_bg=label_fg_bg}
             local count = DataIndicator{parent=sna_div,x=20,y=3,label="",format="%2d",value=0,unit="",lu_colors=lu_col,width=2,fg_bg=text_fg}
 
@@ -137,13 +95,64 @@ local function new_view(root)
             local cur_i = DataIndicator{parent=sna_div,x=6,y=14,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
             local cur_o = DataIndicator{parent=sna_div,x=6,label="",format="%11.2f",value=0,unit="mB/t",lu_colors=lu_col,width=17,fg_bg=text_fg}
 
-            count.register(u_ps, "sna_count", count.update)
-            peak_i.register(u_ps, "sna_peak_rate", function (x) peak_i.update(x * 10) end)
-            peak_o.register(u_ps, "sna_peak_rate", peak_o.update)
-            max_i.register(u_ps, "sna_max_rate", function (x) max_i.update(x * 10) end)
-            max_o.register(u_ps, "sna_max_rate", max_o.update)
-            cur_i.register(u_ps, "sna_out_rate", function (x) cur_i.update(x * 10) end)
-            cur_o.register(u_ps, "sna_out_rate", cur_o.update)
+            count.register(ps, "sna_count", count.update)
+            peak_i.register(ps, "sna_peak_rate_in", peak_i.update)
+            peak_o.register(ps, "sna_peak_rate_out", peak_o.update)
+            max_i.register(ps, "sna_max_rate_in", max_i.update)
+            max_o.register(ps, "sna_max_rate_out", max_o.update)
+            cur_i.register(ps, "sna_in_rate", cur_i.update)
+            cur_o.register(ps, "sna_out_rate", cur_o.update)
+        end
+
+        --#region unit waste options/statistics
+
+        if not db.facility.combined_waste then
+            for i = 1, db.facility.num_units do
+                local u_pane = Div{parent=page_div}
+                local u_div = Div{parent=u_pane,x=2,width=main.get_width()-2}
+                local unit = db.units[i]
+                local u_ps = unit.unit_ps
+
+                table.insert(panes, u_div)
+
+                local u_page = app.new_page(nil, #panes)
+                u_page.tasks = { update }
+
+                table.insert(u_pages, u_page)
+
+                TextBox{parent=u_div,y=1,text="Reactor Unit #"..i,alignment=ALIGN.CENTER}
+
+                local function set_waste(mode) process.set_unit_waste(i, mode) end
+
+                local waste_prod = StateIndicator{parent=u_div,x=16,y=3,states=style.get_waste().states_abbrv,value=1,min_width=6}
+                local waste_mode = RadioButton{parent=u_div,y=3,options=style.get_waste().unit_opts,callback=set_waste,radio_colors=cpair(colors.lightGray,colors.gray),select_color=colors.white}
+
+                waste_prod.register(u_ps, "U_WasteProduct", waste_prod.update)
+                waste_mode.register(u_ps, "U_WasteMode", waste_mode.set_value)
+
+                TextBox{parent=u_div,y=8,text="Plutonium (Pellets)",fg_bg=label_fg_bg}
+                local pu = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+                TextBox{parent=u_div,y=11,text="Polonium",fg_bg=label_fg_bg}
+                local po = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+                TextBox{parent=u_div,y=14,text="Polonium (Pellets)",fg_bg=label_fg_bg}
+                local popl = DataIndicator{parent=u_div,label="",format="%16.3f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+
+                pu.register(u_ps, "pu_rate", pu.update)
+                po.register(u_ps, "po_rate", po.update)
+                popl.register(u_ps, "po_pl_rate", popl.update)
+
+                local sna_div = Div{parent=u_pane,x=2,width=page_div.get_width()-2}
+                table.insert(panes, sna_div)
+
+                local sps_page = app.new_page(u_page, #panes)
+                sps_page.tasks = { update }
+
+                PushButton{parent=u_div,x=6,y=18,text="SNA DATA",min_width=12,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=sps_page.nav_to}
+                PushButton{parent=sna_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=u_page.nav_to}
+
+                TextBox{parent=sna_div,y=1,text="Unit "..i.." SNAs",alignment=ALIGN.CENTER}
+                make_sna_view(sna_div, u_ps)
+            end
         end
 
         --#endregion
@@ -261,6 +270,20 @@ local function new_view(root)
 
         --#endregion
 
+        --#region facility SNA page
+
+        local sna_pane = Div{parent=page_div}
+        local sna_div = Div{parent=sna_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, sna_pane)
+
+        local sna_page = app.new_page(nil, #panes)
+        sna_page.tasks = { update }
+
+        TextBox{parent=sna_div,y=1,text="Facility SNAs",alignment=ALIGN.CENTER}
+        make_sna_view(sna_div, f_ps)
+
+        --#endregion
+
         -- setup multipane
         local w_pane = MultiPane{parent=page_div,y=1,panes=panes}
         app.set_root_pane(w_pane)
@@ -274,8 +297,12 @@ local function new_view(root)
             { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page.nav_to }
         }
 
-        for i = 1, db.facility.num_units do
-            table.insert(list, { label = "U-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = u_pages[i].nav_to })
+        if db.facility.combined_waste then
+            table.insert(list, { label = "SNA", color = core.cpair(colors.black, colors.cyan), callback = sna_page.nav_to })
+        else
+            for i = 1, db.facility.num_units do
+                table.insert(list, { label = "U-" .. i, color = core.cpair(colors.black, colors.lightGray), callback = u_pages[i].nav_to })
+            end
         end
 
         app.set_sidebar(list)

@@ -404,7 +404,7 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                 end
             elseif pkt.type == RPLC_TYPE.RPS_ALARM then
                 -- RPS alarm
-                if pkt.length == 13 then
+                if pkt.length == 12 then
                     local status = pcall(_copy_rps_status, { true, table.unpack(pkt.data) })
                     if status then
                         -- copied in RPS status data OK

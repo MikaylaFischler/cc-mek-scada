@@ -10,6 +10,7 @@ local ioctl          = require("coordinator.ioctl")
 local style          = require("coordinator.ui.style")
 
 local unit_flow      = require("coordinator.ui.components.unit_flow")
+local waste_flow     = require("coordinator.ui.components.waste_flow")
 
 local core           = require("graphics.core")
 
@@ -32,6 +33,8 @@ local cpair = core.cpair
 local border = core.border
 local pipe = core.pipe
 
+local tri = util.trinary
+
 local wh_gray = style.wh_gray
 
 -- create new flow view
@@ -39,8 +42,8 @@ local wh_gray = style.wh_gray
 local function init(main)
     local s_hi_bright = style.theme.highlight_box_bright
     local s_field = style.theme.field_box
-    local text_col = style.text_colors
-    local lu_col = style.lu_colors
+    local text_c = style.text_colors
+    local lu_c = style.lu_colors
     local lu_c_d = style.lu_colors_dark
 
     local fac   = ioctl.get_db().facility
@@ -50,6 +53,8 @@ local function init(main)
     local tank_conns = fac.tank_conns
     local tank_list  = fac.tank_list
     local tank_types = fac.tank_fluid_types
+
+    local com_waste = fac.combined_waste
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
@@ -61,13 +66,37 @@ local function init(main)
     local po_pipes = {}
     local emcool_pipes = {}
 
+    -- determine display characteristics
+
+    local no_tanks, only_top_tank, num_tanks = true, true, 0
+
+    for i = 1, #fac.tank_list do
+        if fac.tank_list[i] > 0 then
+            no_tanks = false
+            num_tanks = num_tanks + 1
+
+            if i > 1 then only_top_tank = false end
+        end
+    end
+
+    local compressed_view = no_tanks or only_top_tank or (fac.tank_mode == 1 and num_tanks == 1)
+
+    -- size check
+
+    local req_height = 20 * #units
+    if com_waste then
+        req_height = tri(compressed_view, (11 * #units) + 13, (19 * #units) + 4)
+    end
+
+    assert(main.get_height() >= req_height, "flow display not of sufficient vertical resolution (add an additional row of monitors)")
+
     -- get the y offset for this unit index
     ---@param idx integer unit index
-    local function y_ofs(idx) return ((idx - 1) * 20) end
+    local function y_ofs(idx) return ((idx - 1) * tri(com_waste, tri(compressed_view, 11, 19), 20)) end
 
     -- get the coolant color
     ---@param idx integer tank index
-    local function c_clr(idx) return util.trinary(tank_types[tank_conns[idx]] == COOLANT_TYPE.WATER, colors.blue, colors.lightBlue) end
+    local function c_clr(idx) return tri(tank_types[tank_conns[idx]] == COOLANT_TYPE.WATER, colors.blue, colors.lightBlue) end
 
     -- determinte facility tank start/end from the definitions list
     ---@param start_idx integer start index of table iteration
@@ -93,7 +122,7 @@ local function init(main)
                 table.insert(emcool_pipes, pipe(2, y, 2, y + 3, color, true))
                 table.insert(emcool_pipes, pipe(2, y, 21, y, color, true))
 
-                local x = util.trinary((tank_types[tank_conns[i]] == COOLANT_TYPE.SODIUM) or (units[i].num_boilers == 0), 45, 84)
+                local x = tri((tank_types[tank_conns[i]] == COOLANT_TYPE.SODIUM) or (units[i].num_boilers == 0), 45, 84)
                 table.insert(emcool_pipes, pipe(21, y, x, y + 2, color, true, true))
             end
         end
@@ -111,7 +140,7 @@ local function init(main)
                     table.insert(emcool_pipes, pipe(2, y, 21, y, color, true))
                 end
 
-                local x = util.trinary((tank_types[tank_conns[i]] == COOLANT_TYPE.SODIUM) or (units[i].num_boilers == 0), 45, 84)
+                local x = tri((tank_types[tank_conns[i]] == COOLANT_TYPE.SODIUM) or (units[i].num_boilers == 0), 45, 84)
                 table.insert(emcool_pipes, pipe(21, y, x, y + 2, color, true, true))
             end
         end
@@ -124,9 +153,16 @@ local function init(main)
                 local y = y_ofs(i)
 
                 if i == first_fdef then
-                    table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
+                    if compressed_view then
+                        y = y_ofs(5) - 7
+                        table.insert(emcool_pipes, pipe(0, y - 3, 1, y + 5, c_clr(i), true))
+                    else
+                        table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
+                    end
                 elseif i > first_fdef then
-                    if i == last_fdef then
+                    if compressed_view then
+                        table.insert(emcool_pipes, pipe(0, y - y_ofs(i), 0, y, c_clr(first_fdef), true))
+                    elseif i == last_fdef then
                         table.insert(emcool_pipes, pipe(0, y - 14, 0, y, c_clr(first_fdef), true))
                     elseif i < last_fdef then
                         table.insert(emcool_pipes, pipe(0, y - 14, 0, y + 5, c_clr(first_fdef), true))
@@ -267,12 +303,36 @@ local function init(main)
 
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
-        unit_flow(main, flow_x, 5 + y_offset, #emcool_pipes == 0, i)
-        table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
+
+        unit_flow(main, flow_x, 5 + y_offset, no_tanks, com_waste, i)
+
+        if not com_waste then
+            table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
+        end
+
         util.nop()
     end
 
-    PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
+    ---------------------------------
+    -- facility waste and SPS pipe --
+    ---------------------------------
+
+    if com_waste then
+        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
+
+        waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
+
+        local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
+        waste_rate.register(fac.ps, "burn_sum", waste_rate.update)
+
+        PipeNetwork{parent=waste,x=3,y=2,pipes={pipe(0,0,14,0,colors.brown,true)},bg=style.theme.bg}
+
+        TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
+
+        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
+    else
+        PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
+    end
 
     -----------------
     -- tank valves --
@@ -284,9 +344,11 @@ local function init(main)
         if tank_defs[i] > 0 then
             local vy = 3 + y_ofs(i)
 
-            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
+            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
 
-            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", (i * 6) - 1),colors=style.ind_grn}
+            local v_idx = tri(com_waste, 4 + ((i * 2) - 1), (i * 6) - 1)
+
+            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
@@ -303,19 +365,21 @@ local function init(main)
             local vx
             local vy = 3 + y_ofs(i)
 
-            if #emcool_pipes == 0 then
-                vx = util.trinary(units[i].num_boilers == 0, 36, 79)
+            if no_tanks then
+                vx = tri(units[i].num_boilers == 0, 36, 79)
             else
                 local em_water = tank_types[tank_conns[i]] == COOLANT_TYPE.WATER
-                vx = util.trinary(units[i].num_boilers == 0, 58, util.trinary(units[i].has_tank and em_water, 94, 91))
+                vx = tri(units[i].num_boilers == 0, 58, tri(units[i].has_tank and em_water, 94, 91))
             end
 
             PipeNetwork{parent=main,x=vx-6,y=vy,pipes={pipe(0,1,9,0,colors.blue,true)},bg=style.theme.bg}
 
-            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_col,width=2}
-            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_col.bkg),width=1}
+            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
+            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
 
-            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", i * 6),colors=style.ind_grn}
+            local v_idx = tri(com_waste, 4 + (i * 2), i * 6)
+
+            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", v_idx),colors=style.ind_grn}
             local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_aux_conn", conn.update)
@@ -338,6 +402,11 @@ local function init(main)
 
             local y_offset = y_ofs(i)
 
+            if tank_list[i] == 2 and compressed_view then
+                -- this only is possible with tank mode 1, so assume that and send the tank to the bottom
+                y_offset = y_ofs(5) - 7
+            end
+
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
 
             TextBox{parent=tank,text=" ",y=1,fg_bg=style.lg_gray}
@@ -348,13 +417,13 @@ local function init(main)
             local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
 
             TextBox{parent=tank_box,x=2,y=3,text="Fill",width=10,fg_bg=style.label}
-            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_col}
-            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=16,fg_bg=s_field}
+            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_c,width=8,fg_bg=text_c}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_c,width=16,fg_bg=s_field}
 
             local is_water = tank_types[i] == COOLANT_TYPE.WATER
 
-            TextBox{parent=tank_box,x=2,y=6,text=util.trinary(is_water,"Water","Sodium").." Level",width=12,fg_bg=style.label}
-            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(util.trinary(is_water,colors.blue,colors.lightBlue),colors.gray),height=1,width=16}
+            TextBox{parent=tank_box,x=2,y=6,text=tri(is_water,"Water","Sodium").." Level",width=12,fg_bg=style.label}
+            local level = HorizontalBar{parent=tank_box,x=2,y=7,bar_fg_bg=cpair(tri(is_water,colors.blue,colors.lightBlue),colors.gray),height=1,width=16}
 
             TextBox{parent=tank_box,x=2,y=9,text="In/Out Mode",width=11,fg_bg=style.label}
             local can_fill = IndicatorLight{parent=tank_box,x=2,y=10,label="FILL",colors=style.ind_wht}
@@ -404,12 +473,12 @@ local function init(main)
     status.register(fac.sps_ps_tbl[1], "computed_status", status.update)
 
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",width=10,fg_bg=style.label}
-    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_col,width=20,fg_bg=s_field}
+    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_in.register(fac.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",width=15,fg_bg=style.label}
-    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=20,fg_bg=s_field}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_rate.register(fac.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 

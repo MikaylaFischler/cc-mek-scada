@@ -18,15 +18,15 @@ local pocket      = require("supervisor.session.pocket")
 local rtu         = require("supervisor.session.rtu")
 local svqtypes    = require("supervisor.session.svqtypes")
 
-local RTU_ID_FAIL = types.RTU_ID_FAIL
-local RTU_TYPES   = types.RTU_UNIT_TYPE
+local RTU_LINK_FAIL = types.RTU_LINK_FAIL
+local RTU_TYPES     = types.RTU_UNIT_TYPE
 
-local SV_Q_DATA   = svqtypes.SV_Q_DATA
+local SV_Q_DATA     = svqtypes.SV_Q_DATA
 
-local PLC_S_CMDS  = plc.PLC_S_CMDS
-local PLC_S_DATA  = plc.PLC_S_DATA
+local PLC_S_CMDS    = plc.PLC_S_CMDS
+local PLC_S_DATA    = plc.PLC_S_DATA
 
-local CRD_S_DATA  = coordinator.CRD_S_DATA
+local CRD_S_DATA    = coordinator.CRD_S_DATA
 
 local svsessions = {}
 
@@ -61,6 +61,7 @@ local self = {
     dev_dbg = {
         duplicate = {},     ---@type unit_session[]
         out_of_range = {},  ---@type unit_session[]
+        mismatch = {},      ---@type unit_session[]
         connected = {}      ---@type { induction: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
     }
 }
@@ -225,6 +226,7 @@ local function _update_dev_dbg()
 
     util.filter_table(self.dev_dbg.duplicate, f, pgi.delete_chk_entry)
     util.filter_table(self.dev_dbg.out_of_range, f, pgi.delete_chk_entry)
+    util.filter_table(self.dev_dbg.mismatch, f, pgi.delete_chk_entry)
 
     -- update missing list
 
@@ -293,19 +295,19 @@ end
 ---@param unit unit_session RTU session
 ---@param list unit_session[] table of RTU sessions
 ---@param max integer max of this type of RTU
----@return RTU_ID_FAIL fail_code, string fail_str
+---@return RTU_LINK_FAIL fail_code, string fail_str
 function svsessions.check_rtu_id(unit, list, max)
-    local fail_code, fail_str = RTU_ID_FAIL.OK, "OK"
+    local fail_code, fail_str = RTU_LINK_FAIL.OK, "OK"
 
     if (unit.get_device_idx() < 1 and max ~= 1) or unit.get_device_idx() > max then
         -- out-of-range
-        fail_code, fail_str = RTU_ID_FAIL.OUT_OF_RANGE, "index out of range"
+        fail_code, fail_str = RTU_LINK_FAIL.OUT_OF_RANGE, "index out of range"
         table.insert(self.dev_dbg.out_of_range, unit)
     else
         for _, u in ipairs(list) do
             if u.get_device_idx() == unit.get_device_idx() then
                 -- duplicate
-                fail_code, fail_str = RTU_ID_FAIL.DUPLICATE, "duplicate index"
+                fail_code, fail_str = RTU_LINK_FAIL.DUPLICATE, "duplicate index"
                 table.insert(self.dev_dbg.duplicate, unit)
                 break
             end
@@ -313,12 +315,12 @@ function svsessions.check_rtu_id(unit, list, max)
     end
 
     -- make sure this won't exceed the maximum allowable devices
-    if fail_code == RTU_ID_FAIL.OK and #list >= max then
-        fail_code, fail_str = RTU_ID_FAIL.MAX_DEVICES, "too many of this type"
+    if fail_code == RTU_LINK_FAIL.OK and #list >= max then
+        fail_code, fail_str = RTU_LINK_FAIL.MAX_DEVICES, "too many of this type"
     end
 
     -- add to the list for the user
-    if fail_code ~= RTU_ID_FAIL.OK and fail_code ~= RTU_ID_FAIL.MAX_DEVICES then
+    if fail_code ~= RTU_LINK_FAIL.OK and fail_code ~= RTU_LINK_FAIL.MAX_DEVICES then
         local r_id, idx, type = unit.get_reactor(), unit.get_device_idx(), unit.get_unit_type()
         local msg
 
@@ -356,6 +358,35 @@ function svsessions.check_rtu_id(unit, list, max)
     end
 
     return fail_code, fail_str
+end
+
+-- on attempted link of an RTU to a facility or unit object that it shouldn't be connected to, report that
+---@param unit unit_session RTU session
+function svsessions.report_rtu_mismatch(unit)
+    local r_id, type = unit.get_reactor(), unit.get_unit_type()
+    local msg
+
+    table.insert(self.dev_dbg.mismatch, unit)
+
+    if r_id == 0 then
+        msg = "a facility's "
+
+        if type == RTU_TYPES.SNA then
+            msg = msg .. "SNA (must be for unit)"
+        else
+            msg = msg .. " ? (error)"
+        end
+    else
+        msg = util.c("unit ", r_id, "'s ")
+
+        if type == RTU_TYPES.SNA then
+            msg = msg .. "SNA (must be for facility)"
+        else
+            msg = msg .. " ? (error)"
+        end
+    end
+
+    pgi.create_chk_entry(unit, RTU_LINK_FAIL.MISMATCH, msg)
 end
 
 -- initialize svsessions

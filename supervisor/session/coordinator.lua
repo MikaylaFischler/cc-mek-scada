@@ -155,7 +155,8 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
         local status = {
             facility.get_control_status(),
             facility.get_rtu_statuses(),
-            facility.get_alarm_tones()
+            facility.get_alarm_tones(),
+            facility.get_valves()
         }
 
         _send(CRDN_TYPE.FAC_STATUS, status)

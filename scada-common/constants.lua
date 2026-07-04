@@ -82,6 +82,9 @@ constants.RS_THRESHOLDS = rs
 
 constants.ENERGY_MISMATCH_TOL = 0.01
 
+-- minimum 3 seconds of falling back to Pu production
+constants.PU_FALLBACK_MIN_TIME_MS = 3000
+
 -- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks
 constants.FLOW_STABILITY_DELAY_MS = 10000
 

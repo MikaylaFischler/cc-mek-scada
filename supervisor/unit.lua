@@ -16,7 +16,7 @@ local AISTATE       = alarm_ctl.AISTATE
 local ALARM         = types.ALARM
 local ALARM_STATE   = types.ALARM_STATE
 local PRIO          = types.ALARM_PRIORITY
-local RTU_ID_FAIL   = types.RTU_ID_FAIL
+local RTU_LINK_FAIL = types.RTU_LINK_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local TRI_FAIL      = types.TRI_FAIL
 local WASTE_MODE    = types.WASTE_MODE
@@ -55,11 +55,12 @@ local unit = {}
 ---@param reactor_id integer reactor unit number
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
----@param ext_idle boolean extended idling mode
 ---@param aux_coolant boolean if this unit has auxiliary coolant
-function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
+---@param po_prod_ratio number waste to polonium ratio
+---@param config svr_config supervisor configuration
+function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ratio, config)
     -- time (ms) to idle for auto idling
-    local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
+    local IDLE_TIME = util.trinary(config.ExtChargeIdling, 60000, 10000)
 
     local log_tag = "UNIT " .. reactor_id .. ": "
 
@@ -351,29 +352,13 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
     --#region Redstone I/O
 
-    -- create a generic valve interface
-    ---@nodiscard
-    ---@param port IO_PORT
-    local function _make_valve_iface(port)
-        ---@class unit_valve_iface
-        local iface = {
-            open = function () self.io_ctl.digital_write(port, true) end,
-            close = function () self.io_ctl.digital_write(port, false) end,
-            -- check valve state
-            ---@nodiscard
-            ---@return 0|1|2 0 for not connected, 1 for inactive, 2 for active
-            check = function () return util.trinary(self.io_ctl.is_connected(port), util.trinary(self.io_ctl.digital_read(port), 2, 1), 0) end
-        }
-        return iface
-    end
-
     -- valves
-    local waste_pu  = _make_valve_iface(IO.WASTE_PU)
-    local waste_sna = _make_valve_iface(IO.WASTE_PO)
-    local waste_po  = _make_valve_iface(IO.WASTE_POPL)
-    local waste_sps = _make_valve_iface(IO.WASTE_AM)
-    local emer_cool = _make_valve_iface(IO.U_EMER_COOL)
-    local aux_cool  = _make_valve_iface(IO.U_AUX_COOL)
+    local waste_pu  = self.io_ctl.as_valve(IO.U_WASTE_PU)
+    local waste_sna = self.io_ctl.as_valve(IO.U_WASTE_PO)
+    local waste_po  = self.io_ctl.as_valve(IO.U_WASTE_POPL)
+    local waste_sps = self.io_ctl.as_valve(IO.U_WASTE_AM)
+    local emer_cool = self.io_ctl.as_valve(IO.U_EMER_COOL)
+    local aux_cool  = self.io_ctl.as_valve(IO.U_AUX_COOL)
 
     ---@class unit_valves
     self.valves = {
@@ -452,7 +437,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
         local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, num_turbines)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.turbines, turbine)
@@ -473,7 +458,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
         local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, num_boilers)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.boilers, boiler)
@@ -496,7 +481,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
     ---@return boolean linked dynamic tank accepted (max 1)
     function public.add_tank(dynamic_tank)
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, 1)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.tanks, dynamic_tank)
@@ -510,14 +495,25 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
 
     -- link a solar neutron activator RTU session
     ---@param sna unit_session
-    function public.add_sna(sna) table.insert(self.snas, sna) end
+    ---@return boolean linked SNA accepted (must NOT be using combined waste)
+    function public.add_sna(sna)
+        if config.CombinedWaste then
+            svsessions.report_rtu_mismatch(sna)
+            log.warning(util.c(log_tag, "rejected SNA linking due to being configured for combined facility waste"))
+        else
+            table.insert(self.snas, sna)
+            log.debug(util.c(log_tag, "linked SNA [", sna.get_unit_id(), "@", sna.get_session_id(), "]"))
+        end
+
+        return not config.CombinedWaste
+    end
 
     -- link an environment detector RTU session
     ---@param envd unit_session
     ---@return boolean linked environment detector accepted
     function public.add_envd(envd)
         local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.envd, envd)
@@ -1042,15 +1038,26 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
             status.tanks[tank.get_device_idx()] = { tank.is_faulted(), db.formed, db.state, db.tanks }
         end
 
-        -- SNA statistical information
+        -- SNA/Po statistical information
+
         local total_peak, total_avail, total_out = 0, 0, 0
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()
+            local in_a, out_a, prod = db.tanks.input.amount, db.tanks.output.amount, db.state.production_rate
+
             total_peak = total_peak + db.state.peak_production
-            total_avail = total_avail + db.state.production_rate
-            local out_from_in = util.trinary(db.tanks.input.amount >= 10, db.tanks.input.amount / 10, 0)
-            total_out = total_out + math.min(out_from_in, db.state.production_rate)
+            total_avail = total_avail + prod
+
+            local out_from_in = util.trinary(in_a >= po_prod_ratio, in_a / po_prod_ratio, 0)
+            local out_rate_appx = util.trinary(out_a > 0, math.min(out_from_in, out_a), out_from_in)
+
+            total_out = total_out + math.min(out_rate_appx, prod)
         end
+
+        if not config.UseSNAStatistics then
+            total_out = util.trinary(self.waste_product == WASTE.PLUTONIUM, 0, public.get_burn_rate() / po_prod_ratio)
+        end
+
         status.sna = { #self.snas, total_peak, total_avail, total_out }
 
         -- radiation monitors (environment detectors)
@@ -1064,18 +1071,23 @@ function unit.new(reactor_id, num_boilers, num_turbines, ext_idle, aux_coolant)
         return status
     end
 
-    -- get the current total max production rate
+    -- get SNA production status
+    -- - total available production rate
+    -- - if all SNAs have <= their production rate of remaining input capacity
+    -- - if any SNAs are less than 15% full
     ---@nodiscard
-    ---@return number total_avail_rate
-    function public.get_sna_rate()
-        local total_avail_rate = 0
+    ---@return number total_avail_rate, boolean near_full, boolean low_fill
+    function public.get_sna_status()
+        local total_avail_rate, near_full, low_fill = 0, true, false
 
         for i = 1, #self.snas do
             local db = self.snas[i].get_db()
             total_avail_rate = total_avail_rate + db.state.production_rate
+            near_full = near_full and (db.tanks.input_need <= db.state.production_rate)
+            low_fill = low_fill or (db.tanks.input_fill < 0.15)
         end
 
-        return total_avail_rate
+        return total_avail_rate, near_full, low_fill
     end
 
     -- get the energy generation rate of this unit (sum of all turbine generators)

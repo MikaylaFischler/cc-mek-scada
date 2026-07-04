@@ -496,7 +496,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 coordinator.log_comms(util.c("API_ESTABLISH: pocket (", firmware_v, ") [@", src_addr, "] connected with session ID ", id))
 
                                 local conf = ioctl.get_db().facility.conf
-                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW, { conf.num_units, conf.cooling })
+                                _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.ALLOW, { conf.num_units, conf.cooling, conf.com_waste })
                             else
                                 log.debug(util.c("API_ESTABLISH: illegal establish packet for device ", dev_type, " on pocket channel"))
                                 _send_api_establish_ack(packet.scada_frame, ESTABLISH_ACK.DENY)
@@ -684,13 +684,14 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 -- reset to disconnected before validating
                                 ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if type(sv_config) == "table" and #sv_config == 3 then
+                                if type(sv_config) == "table" and #sv_config == 4 then
                                     -- get configuration
 
                                     ---@class facility_conf
                                     local conf = {
                                         num_units = sv_config[1], ---@type integer
-                                        cooling = sv_config[2]    ---@type sv_cooling_conf
+                                        cooling = sv_config[2],   ---@type sv_cooling_conf
+                                        com_waste = sv_config[4]  ---@type boolean
                                     }
 
                                     if not ioctl.set_mek_config(sv_config[3]) then

@@ -84,7 +84,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
                 if unit.reactor ~= 0 then fail(util.c("SPS '", unit.name, "' cannot init, not assigned to facility")) end
 
                 unit.type = RTU_UNIT_TYPE.SPS
-            elseif type == "solarNeutronActivator" then
+            elseif type == "solarNeutronActivator" or type == "largeSolarNeutronActivator" then
                 -- SNA
                 if unit.reactor < 1 or unit.reactor > 4 then fail(util.c("SNA '", unit.name, "' cannot init, not assigned to a valid unit")) end
 

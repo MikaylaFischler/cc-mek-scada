@@ -200,9 +200,7 @@ local function self_check()
                 valid = is_int_min_max(entry.index, 1, 2) and is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "turbineValve" then
                 valid = is_int_min_max(entry.index, 1, 3) and is_int_min_max(entry.unit, 1, 4)
-            elseif p_type == "solarNeutronActivator" then
-                valid = is_int_min_max(entry.unit, 1, 4)
-            elseif p_type == "dynamicValve" then
+            elseif p_type == "solarNeutronActivator" or p_type == "largeSolarNeutronActivator" or p_type == "dynamicValve" then
                 valid = (entry.unit == nil and is_int_min_max(entry.index, 1, 4)) or is_int_min_max(entry.unit, 1, 4)
             elseif p_type == "environmentDetector" or p_type == "environment_detector"  then
                 valid = (entry.unit == nil or is_int_min_max(entry.unit, 1, 4)) and util.is_int(entry.index)
@@ -289,20 +287,21 @@ function check.create(main_pane, settings_cfg, check_sys, style)
 
     self.sc_log = ListBox{parent=sc,y=1,height=12,width=49,scroll_height=1000,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
-    local last_check = { nil, nil }
+    local last_check = { nil, nil } ---@type [ Div?, integer? ]
 
     function self.self_check_msg(msg, success, fail_msg)
         if type(msg) == "string" then
-            last_check[1] = Div{parent=self.sc_log,height=1}
+            local lines = util.strwrap(msg, 48)
+            last_check[1] = Div{parent=self.sc_log,height=#lines}
             local e = TextBox{parent=last_check[1],text=msg,fg_bg=bw_fg_bg}
-            last_check[2] = e.get_x()+string.len(msg)
+            last_check[2] = e.get_x() + string.len(lines[#lines])
         end
 
         if type(fail_msg) == "string" then
-            TextBox{parent=last_check[1],x=last_check[2],y=1,text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
+            TextBox{parent=last_check[1],x=last_check[2],y=last_check[1].get_height(),text=tri(success,"PASS","FAIL"),fg_bg=tri(success,cpair(colors.green,colors._INHERIT),cpair(colors.red,colors._INHERIT))}
 
             if not success then
-                local fail = Div{parent=self.sc_log,height=#util.strwrap(fail_msg, 46)}
+                local fail = Div{parent=self.sc_log,height=#util.strwrap(fail_msg,46)}
                 TextBox{parent=fail,x=3,text=fail_msg,fg_bg=cpair(colors.gray,colors.white)}
             end
 

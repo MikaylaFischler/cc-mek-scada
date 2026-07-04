@@ -48,12 +48,12 @@ local system = {}
 ---@param main_pane MultiPane
 ---@param cfg_sys [ crd_config, crd_config, crd_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
----@param ext [ MultiPane, MultiPane, function, function ]
+---@param ext [ MultiPane, MultiPane, function, function, function ]
 ---@param style { [string]: cpair }
 function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4]
-    local fac_pane, mon_pane, preset_monitor_fields, exit = ext[1], ext[2], ext[3], ext[4]
+    local fac_pane, mon_pane, preset_monitor_fields, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
@@ -537,7 +537,12 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     end
 
     PushButton{parent=sum_c_2,y=14,min_width=6,text="Home",callback=go_home,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=sum_c_2,x=44,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=cpair(colors.white,colors.gray)}
+
+    if tool_ctl.start_fail ~= 0 then
+        PushButton{parent=sum_c_2,x=34,y=14,min_width=16,text="Resume Startup",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=sum_c_2,x=41,y=14,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    end
 
     TextBox{parent=sum_c_3,y=1,height=2,text="The old config.lua and coord.settings files will now be deleted, then the configurator will exit."}
 

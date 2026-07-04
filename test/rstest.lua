@@ -17,10 +17,10 @@ local println = util.println
 local DIG_INV = {
     [IO.F_SCRAM] = 0,
     [IO.R_SCRAM] = 0,
-    [IO.WASTE_PU] = 0,
-    [IO.WASTE_PO] = 0,
-    [IO.WASTE_POPL] = 0,
-    [IO.WASTE_AM] = 0,
+    [IO.U_WASTE_PU] = 0,
+    [IO.U_WASTE_PO] = 0,
+    [IO.U_WASTE_POPL] = 0,
+    [IO.U_WASTE_AM] = 0,
     [IO.U_EMER_COOL] = 0
 }
 

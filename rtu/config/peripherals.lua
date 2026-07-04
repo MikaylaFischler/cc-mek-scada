@@ -24,27 +24,28 @@ local tri = util.trinary
 
 local cpair = core.cpair
 
-local LEFT = core.ALIGN.LEFT
+local ALIGN = core.ALIGN
 
 local self = {
     peri_cfg_editing = false, ---@type integer|false
 
-    p_assign = nil,           ---@type function
+    p_assign = nil,   ---@type function
 
-    ppm_devs = nil,           ---@type ListBox
-    p_name_msg = nil,         ---@type TextBox
-    p_prompt = nil,           ---@type TextBox
-    p_idx = nil,              ---@type NumberField
-    p_unit = nil,             ---@type NumberField
-    p_desc = nil,             ---@type TextBox
-    p_desc_ext = nil,         ---@type TextBox
-    p_err = nil               ---@type TextBox
+    ppm_devs = nil,   ---@type ListBox
+    p_name_msg = nil, ---@type TextBox
+    p_prompt = nil,   ---@type TextBox
+    p_idx = nil,      ---@type NumberField
+    p_unit = nil,     ---@type NumberField
+    p_desc = nil,     ---@type TextBox
+    p_fac_warn = nil, ---@type TextBox
+    p_err = nil       ---@type TextBox
 }
 
 local peripherals = {}
 
-local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "reinforcedInductionPort", "spsPort", "solarNeutronActivator", "environmentDetector", "environment_detector" }
-local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "environmentDetector", "environment_detector" }
+local RTU_DEV_TYPES = { "boilerValve", "turbineValve", "dynamicValve", "inductionPort", "spsPort", "solarNeutronActivator", "largeSolarNeutronActivator", "reinforcedInductionPort", "environmentDetector", "environment_detector" }
+local NEEDS_UNIT = { "boilerValve", "turbineValve", "dynamicValve", "solarNeutronActivator", "largeSolarNeutronActivator", "environmentDetector", "environment_detector" }
+local UNIT_OR_FACILITY = { "dynamicValve", "solarNeutronActivator", "largeSolarNeutronActivator", "environmentDetector", "environment_detector" }
 
 -- create the peripherals configuration view
 ---@param tool_ctl _rtu_cfg_tool_ctl
@@ -121,20 +122,22 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         new_peri_attrs = { name, type }
         self.peri_cfg_editing = false
 
+        self.p_fac_warn.hide(true)
         self.p_err.hide(true)
         self.p_name_msg.set_value("Configuring peripheral on '" .. name .. "':")
-        self.p_desc_ext.set_value("")
 
         local function reposition(prompt, idx_x, idx_max, unit_x, unit_y, desc_y)
             self.p_prompt.set_value(prompt)
+            self.p_desc.reposition(1, desc_y)
+
             self.p_idx.reposition(idx_x, 4)
             self.p_idx.enable()
             self.p_idx.set_max(idx_max)
             self.p_idx.show()
+
             self.p_unit.reposition(unit_x, unit_y)
             self.p_unit.enable()
             self.p_unit.show()
-            self.p_desc.reposition(1, desc_y)
         end
 
         if type == "boilerValve" then
@@ -145,11 +148,18 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
             reposition("This is reactor unit #    's #     turbine.", 31, 3, 23, 4, 7)
             self.p_assign_btn.hide(true)
             self.p_desc.set_value("Each unit can have at most 3 turbines. Turbine #1 shows up first on the main display, followed by #2 then #3 below it. The numberings are per unit (unit 1 and unit 2 would both have a turbine #1) and can be split amongst multiple RTUs (one has #1, another has #2).")
-        elseif type == "solarNeutronActivator" then
-            reposition("This SNA is for reactor unit #    .", 46, 1, 31, 4, 7)
-            self.p_idx.hide()
-            self.p_assign_btn.hide(true)
-            self.p_desc_ext.set_value("Warning: too many devices on one RTU Gateway can cause lag. Note that 10x the \"PEAK\x1a\" rate on the flow monitor gives you the mB/t of waste that the SNA(s) can process. Enough SNAs to provide 2x to 3x of that unit's max burn rate should be a good margin to catch up after night or cloudy weather.")
+        elseif type == "solarNeutronActivator" or type == "largeSolarNeutronActivator" then
+            reposition("This SNA is for the below system.", 1, 1, 17, 6, 8)
+            self.p_idx.hide(true)
+
+            self.p_assign_btn.show()
+            self.p_assign_btn.redraw()
+
+            if self.p_assign_btn.get_value() == 1 then
+                self.p_fac_warn.show()
+            else self.p_fac_warn.hide(true) end
+
+            self.p_desc.set_value("Too many devices (e.g. excess SNAs) can cause lag. During a clear day, \"\x1aMAX\" rate on the flow monitor shows the max amount of waste the SNA(s) can process. Enough SNAs to provide 2x-3x of that unit's max burn rate should be enough to catch up after night or cloudy weather.")
         elseif type == "dynamicValve" then
             reposition("This is the below system's #     dynamic tank.", 29, 4, 17, 6, 8)
             self.p_assign_btn.show()
@@ -201,7 +211,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
 
                 ---@cast entry ppm_entry
                 local line = Div{parent=self.ppm_devs,height=2,fg_bg=cpair(colors.black,bkg)}
-                PushButton{parent=line,y=1,min_width=9,alignment=LEFT,height=1,text="> SELECT",callback=function()new_peri(name,entry.type)end,fg_bg=cpair(colors.black,colors.purple),active_fg_bg=cpair(colors.white,colors.black)}
+                PushButton{parent=line,y=1,min_width=9,alignment=ALIGN.LEFT,height=1,text="> SELECT",callback=function()new_peri(name,entry.type)end,fg_bg=cpair(colors.black,colors.purple),active_fg_bg=cpair(colors.white,colors.black)}
                 TextBox{parent=line,x=11,y=1,text=name,fg_bg=cpair(colors.black,bkg)}
                 TextBox{parent=line,x=11,y=2,text=entry.type,fg_bg=cpair(colors.gray,bkg)}
 
@@ -235,6 +245,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
     self.p_prompt = TextBox{parent=peri_c_4,y=4,height=2,text=""}
     self.p_idx = NumberField{parent=peri_c_4,x=31,y=4,width=4,max_chars=2,min=1,max=2,default=1,fg_bg=bw_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     self.p_assign_btn = RadioButton{parent=peri_c_4,y=5,default=1,options={"the facility","reactor unit #"},callback=function(v)self.p_assign(v)end,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.purple}
+    self.p_fac_warn = TextBox{parent=peri_c_4,y=5,x=22,height=2,alignment=ALIGN.CENTER,text="requires Supervisor 'Combined Facility Waste'",fg_bg=cpair(colors.red,colors._INHERIT),hidden=true}
 
     self.p_unit = NumberField{parent=peri_c_4,x=23,y=4,width=4,max_chars=2,min=1,max=4,default=1,fg_bg=bw_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     self.p_unit.disable()
@@ -242,18 +253,23 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
     function self.p_assign(opt)
         if opt == 1 then
             self.p_unit.disable()
-            if new_peri_attrs[2] == "dynamicValve" then self.p_idx.enable() end
+            if new_peri_attrs[2] == "dynamicValve" then
+                self.p_idx.enable()
+            elseif new_peri_attrs[2] == "solarNeutronActivator" or new_peri_attrs[2] == "largeSolarNeutronActivator" then
+                self.p_fac_warn.show()
+            end
         else
             self.p_unit.enable()
             if new_peri_attrs[2] == "dynamicValve" then
                 self.p_idx.set_value(1)
                 self.p_idx.disable()
+            elseif new_peri_attrs[2] == "solarNeutronActivator" or new_peri_attrs[2] == "largeSolarNeutronActivator" then
+                self.p_fac_warn.hide(true)
             end
         end
     end
 
     self.p_desc = TextBox{parent=peri_c_4,y=7,height=6,text="",fg_bg=g_lg_fg_bg}
-    self.p_desc_ext = TextBox{parent=peri_c_4,y=6,height=7,text="",fg_bg=g_lg_fg_bg}
 
     self.p_err = TextBox{parent=peri_c_4,x=8,y=14,width=32,text="",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     self.p_err.hide(true)
@@ -281,7 +297,7 @@ function peripherals.create(tool_ctl, main_pane, cfg_sys, peri_cfg, style)
         local idx = tonumber(self.p_idx.get_value())
 
         if util.table_contains(NEEDS_UNIT, peri_type) then
-            if (peri_type == "dynamicValve" or peri_type == "environmentDetector" or peri_type == "environment_detector") and for_facility then
+            if util.table_contains(UNIT_OR_FACILITY, peri_type) and for_facility then
                 -- skip
             elseif not (util.is_int(u) and u > 0 and u < 5) then
                 self.p_err.set_value("Unit ID must be within 1 to 4.")

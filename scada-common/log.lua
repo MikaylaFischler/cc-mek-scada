@@ -8,7 +8,7 @@ local util = require("scada-common.util")
 local DBG_TAG, INF_TAG, WRN_TAG, ERR_TAG, FTL_TAG = "[DBG] ", "[INF] ", "[WRN] ", "[ERR] ", "[FTL] "
 local COLON, FUNC, ARROW = ":", "():", " > "
 
-local MIN_SPACE    = 512
+local MIN_SPACE    = 2048
 local OUT_OF_SPACE = "Out of space"
 local TIME_FMT     = "%F %T "
 
@@ -19,6 +19,8 @@ local log = {}
 local MODE = { APPEND = 0, NEW = 1 }
 
 log.MODE = MODE
+
+log.MIN_SPACE = MIN_SPACE
 
 local _log = {
     not_ready = true,

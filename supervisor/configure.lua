@@ -36,7 +36,10 @@ local changes = {
     { "v1.3.2", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.6.0", { "Added sodium emergency coolant option" } },
     { "v1.8.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections", "Added option for allowing Pocket test commands" } },
-    { "v1.9.5", { "Added Mekanism Generators configuration options" } }
+    { "v1.9.5", { "Added Mekanism Generators configuration options" } },
+    { "v1.9.9", { "Added waste ratio configuration options" } },
+    { "v1.10.4", { "Added option for using SNAs for polonium statistics (default)" } },
+    { "v1.11.0", { "Added option for combined facility waste" } }
 }
 
 ---@class svr_configurator
@@ -80,12 +83,20 @@ local tool_ctl = {
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
+    ext_idling = {},      ---@type Checkbox
+    sna_stats = {},       ---@type Checkbox
+    com_waste = {},       ---@type Checkbox
 
-    mek_profile = nil,     ---@type RadioButton
-    custom_configs = {},   ---@type NumberField[]
-    waste_ratios = {},     ---@type NumberField[]
+    mek_profile = nil,    ---@type RadioButton
+    custom_configs = {},  ---@type NumberField[]
+    waste_ratios = {},    ---@type NumberField[]
 
-    gen_modem_list = function () end
+    gen_modem_list = function () end,
+
+    dw_free_space = nil,  ---@type TextBox
+    dw_log_size = nil,    ---@type TextBox
+    dw_del_log_btn = nil, ---@type PushButton
+    dw_continue = nil     ---@type PushButton
 }
 
 ---@class svr_config
@@ -99,6 +110,8 @@ local tmp_cfg = {
     TankFluidTypes = {},    ---@type integer[] which type of fluid each tank in the tank list should be containing
     AuxiliaryCoolant = {},  ---@type boolean[] if a unit has auxiliary coolant
     ExtChargeIdling = false,
+    UseSNAStatistics = true,
+    CombinedWaste = false,
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
     MekanismWasteToPu = { 10, 1 },
@@ -144,6 +157,8 @@ local fields = {
     { "TankFluidTypes", "Tank Fluid Types", {} },
     { "AuxiliaryCoolant", "Auxiliary Water Coolant", {} },
     { "ExtChargeIdling", "Extended Charge Idling", false },
+    { "UseSNAStatistics", "Use SNA Statistics", true },
+    { "CombinedWaste", "Combined Facility Waste", false },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },
@@ -210,8 +225,12 @@ local function config_view(display)
     local summary = Div{parent=root_pane_div,y=1}
     local changelog = Div{parent=root_pane_div,y=1}
     local import_err = Div{parent=root_pane_div,y=1}
+    local disk_warn = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,mek_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,mek_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err,disk_warn}}
+
+    -- show disk space warning if needed
+    if fs.getFreeSpace("/") < log.MIN_SPACE then main_pane.set_value(10) end
 
     --#region Main Page
 
@@ -251,12 +270,16 @@ local function config_view(display)
         exit()
     end
 
-    PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
-    local start_btn = PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     tool_ctl.color_cfg = PushButton{parent=main_page,x=36,y=y_start,min_width=15,text="Color Options",callback=jump_color,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=main_page,x=39,y=y_start+2,min_width=12,text="Change Log",callback=function()main_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    if tool_ctl.ask_config then start_btn.disable() end
+    if tool_ctl.ask_config then
+        PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,dis_fg_bg=btn_dis_fg_bg}.disable()
+        PushButton{parent=main_page,x=35,y=17,min_width=16,text="Resume Startup",callback=exit,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg}
+    else
+        PushButton{parent=main_page,x=2,y=17,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+        PushButton{parent=main_page,x=42,y=17,min_width=9,text="Startup",callback=startup,fg_bg=cpair(colors.black,colors.green),active_fg_bg=btn_act_fg_bg}
+    end
 
     if not tool_ctl.has_config then
         tool_ctl.view_cfg.disable()
@@ -264,6 +287,47 @@ local function config_view(display)
     end
 
     --#endregion
+
+    -- #region Disk Space Warning
+
+    TextBox{parent=disk_warn,y=2,text=" Insufficent Disk Space",fg_bg=cpair(colors.white,colors.black)}
+
+    local disk_page = Div{parent=disk_warn,x=2,y=4,width=49}
+
+    local function delete_log()
+        fs.delete(ini_cfg.LogPath)
+
+        local space = fs.getFreeSpace("/")
+        tool_ctl.dw_free_space.set_value("Available Free Space: "..space.." bytes")
+
+        if not fs.exists(ini_cfg.LogPath) then
+            tool_ctl.dw_log_size.set_value("Log File Size: 0 bytes")
+            tool_ctl.dw_del_log_btn.disable()
+        end
+
+        if space >= log.MIN_SPACE then tool_ctl.dw_continue.enable() end
+    end
+
+    TextBox{parent=disk_page,height=3,text="There is not enough disk space to safely configure this device. Saving the configuration may fail and cause loss of configuration data."}
+
+    TextBox{parent=disk_page,y=5,height=1,text="Capacity:             "..fs.getCapacity("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    tool_ctl.dw_free_space = TextBox{parent=disk_page,height=1,text="Available Free Space: "..fs.getFreeSpace("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=disk_page,height=1,text="Required Free Space:  "..log.MIN_SPACE.." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+    if fs.exists(ini_cfg.LogPath) then
+        TextBox{parent=disk_page,y=9,height=2,text="If your log file is on this computer and not an external disk, deleting it may help."}
+        tool_ctl.dw_log_size = TextBox{parent=disk_page,y=12,height=1,text="Log File Size: "..fs.getSize(ini_cfg.LogPath).." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+
+        tool_ctl.dw_del_log_btn = PushButton{parent=disk_page,x=33,y=12,min_width=17,text="Delete Log File",callback=delete_log,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    else
+        TextBox{parent=disk_page,y=9,height=4,text="The log file wasn't found, so you'll need to manually make space. Please remove any files unrelated to this application that you may have manually created."}
+    end
+
+    PushButton{parent=disk_page,y=14,min_width=6,text="Exit",callback=exit,fg_bg=cpair(colors.black,colors.red),active_fg_bg=btn_act_fg_bg}
+    tool_ctl.dw_continue = PushButton{parent=disk_page,x=40,y=14,min_width=10,text="Continue",callback=function()main_pane.set_value(1)end,fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    tool_ctl.dw_continue.disable()
+
+    -- #endregion
 
     local settings = { settings_cfg, ini_cfg, tmp_cfg, fields, load_settings }
 
@@ -283,7 +347,7 @@ local function config_view(display)
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary, import_err }
 
-    system.create(tool_ctl, main_pane, settings, divs, fac_pane, mek_pane, style, exit)
+    system.create(tool_ctl, main_pane, settings, divs, fac_pane, mek_pane, style, startup, exit)
 
     --#endregion
 

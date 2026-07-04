@@ -35,38 +35,47 @@ local IO_MODE = rsio.IO_MODE
 local LEFT = core.ALIGN.LEFT
 
 local self = {
-    rs_cfg_phy = false,     ---@type string|nil|false
-    rs_cfg_port = 1,        ---@type IO_PORT
-    rs_cfg_editing = false, ---@type integer|false
+    cur_phy = false,    ---@type string|nil|false
+    cur_port = 1,       ---@type IO_PORT
+    editing = false,    ---@type integer|false
 
-    rs_cfg_selection = nil, ---@type TextBox
-    rs_cfg_unit_l = nil,    ---@type TextBox
-    rs_cfg_unit = nil,      ---@type NumberField
-    rs_cfg_side_l = nil,    ---@type TextBox
-    rs_cfg_bundled = nil,   ---@type Checkbox
-    rs_cfg_color = nil,     ---@type Radio2D
-    rs_cfg_inverted = nil,  ---@type Checkbox
-    rs_cfg_shortcut = nil,  ---@type TextBox
-    rs_cfg_advanced = nil   ---@type PushButton
+    r_selection = nil,  ---@type TextBox
+    r_unit_l = nil,     ---@type TextBox
+    r_unit = nil,       ---@type NumberField
+    r_side_l = nil,     ---@type TextBox
+    r_bundled = nil,    ---@type Checkbox
+    r_color = nil,      ---@type Radio2D
+    r_inverted = nil,   ---@type Checkbox
+    r_shortcut = nil,   ---@type TextBox
+    r_advanced = nil,   ---@type PushButton
+
+    r_whats_that = nil  ---@type PushButton
 }
 
 -- rsio port descriptions
 local PORT_DESC_MAP = {
     { IO.F_SCRAM, "Facility SCRAM" },
     { IO.F_ACK, "Facility Acknowledge" },
+    { IO.U_ACK, "Unit Acknowledge" },
     { IO.R_SCRAM, "Reactor SCRAM" },
     { IO.R_RESET, "Reactor RPS Reset" },
     { IO.R_ENABLE, "Reactor Enable" },
-    { IO.U_ACK, "Unit Acknowledge" },
-    { IO.F_ALARM, "Facility Alarm (high prio)" },
+    { IO.F_ALARM, "Facility Alarm (high priority)" },
     { IO.F_ALARM_ANY, "Facility Alarm (any)" },
     { IO.F_MATRIX_LOW, "Induction Matrix < " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_LOW) .. "%" },
     { IO.F_MATRIX_HIGH, "Induction Matrix > " .. (100 * constants.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH) .. "%" },
     { IO.F_MATRIX_CHG, "Induction Matrix Charge %" },
-    { IO.WASTE_PU, "Waste Plutonium Valve" },
-    { IO.WASTE_PO, "Waste Polonium Valve" },
-    { IO.WASTE_POPL, "Waste Po Pellets Valve" },
-    { IO.WASTE_AM, "Waste Antimatter Valve" },
+    { IO.F_WASTE_PU, "Combined Waste Pu Valve" },
+    { IO.F_WASTE_PO, "Combined Waste Po Valve" },
+    { IO.F_WASTE_POPL, "Com. Waste Po Pellets Valve" },
+    { IO.F_WASTE_AM, "Com. Waste Antimatter Valve" },
+    { IO.U_ALARM, "Unit Alarm" },
+    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" },
+    { IO.U_AUX_COOL, "Unit Auxiliary Cool. Valve" },
+    { IO.U_WASTE_PU, "Unit Waste Plutonium Valve" },
+    { IO.U_WASTE_PO, "Unit Waste Polonium Valve" },
+    { IO.U_WASTE_POPL, "Unit Waste Po Pellets Valve" },
+    { IO.U_WASTE_AM, "Unit Waste Antimatter Valve" },
     { IO.R_ACTIVE, "Reactor Active" },
     { IO.R_AUTO_CTRL, "Reactor in Auto Control" },
     { IO.R_SCRAMMED, "RPS Tripped" },
@@ -78,14 +87,11 @@ local PORT_DESC_MAP = {
     { IO.R_EXCESS_WS, "RPS Excess Waste" },
     { IO.R_INSUFF_FUEL, "RPS Insufficient Fuel" },
     { IO.R_PLC_FAULT, "RPS PLC Fault" },
-    { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" },
-    { IO.U_ALARM, "Unit Alarm" },
-    { IO.U_EMER_COOL, "Unit Emergency Cool. Valve" },
-    { IO.U_AUX_COOL, "Unit Auxiliary Cool. Valve" }
+    { IO.R_PLC_TIMEOUT, "RPS Supervisor Timeout" }
 }
 
 -- designation (0 = facility, 1 = unit)
-local PORT_DSGN = { [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1 }
+local PORT_DSGN = { [-2] = 0, [-1] = 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0 }
 
 assert(#PORT_DESC_MAP == rsio.NUM_PORTS)
 assert(#PORT_DSGN == rsio.NUM_PORTS)
@@ -167,8 +173,9 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_c_8  = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_9  = Div{parent=rs_cfg,x=2,y=4,width=49}
     local rs_c_10 = Div{parent=rs_cfg,x=2,y=4,width=49}
+    local rs_c_11 = Div{parent=rs_cfg,x=2,y=4,width=49}
 
-    local rs_pane = MultiPane{parent=rs_cfg,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10}}
+    local rs_pane = MultiPane{parent=rs_cfg,y=4,panes={rs_c_1,rs_c_2,rs_c_3,rs_c_4,rs_c_5,rs_c_6,rs_c_7,rs_c_8,rs_c_9,rs_c_10,rs_c_11}}
 
     local header = TextBox{parent=rs_cfg,y=2,text=" Redstone Connections",fg_bg=cpair(colors.black,colors.red)}
 
@@ -202,7 +209,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         local function config_rs(name)
             header.set_value(" Redstone Connections (" .. name .. ")")
 
-            self.rs_cfg_phy = tri(name == "local", nil, name)
+            self.cur_phy = tri(name == "local", nil, name)
 
             tool_ctl.gen_rs_summary()
             rs_pane.set_value(2)
@@ -248,8 +255,8 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     local function rs_apply()
         -- add the changed data to the existing saved data
-        local new_data = redstone_subset(tmp_cfg.Redstone, self.rs_cfg_phy)
-        local new_save = redstone_subset(ini_cfg.Redstone, self.rs_cfg_phy, true)
+        local new_data = redstone_subset(tmp_cfg.Redstone, self.cur_phy)
+        local new_save = redstone_subset(ini_cfg.Redstone, self.cur_phy, true)
         for i = 1, #new_data do table.insert(new_save, new_data[i]) end
 
         settings.set("Redstone", new_save)
@@ -270,7 +277,7 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     end
 
     local function rs_back()
-        self.rs_cfg_phy = false
+        self.cur_phy = false
         rs_pane.set_value(1)
         header.set_value(" Redstone Connections")
     end
@@ -288,38 +295,42 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local rs_ports = ListBox{parent=rs_c_3,y=3,height=10,width=49,scroll_height=200,fg_bg=bw_fg_bg,nav_fg_bg=g_lg_fg_bg,nav_active=cpair(colors.black,colors.gray)}
 
     local function new_rs(port)
-        self.rs_cfg_editing = false
+        self.editing = false
 
         local text
 
-        if port == -1 then
-            self.rs_cfg_color.hide(true)
-            self.rs_cfg_shortcut.show()
-            self.rs_cfg_side_l.set_value("Output Side")
-            self.rs_cfg_bundled.enable()
-            self.rs_cfg_advanced.disable()
+        if port == -1 or port == -2 then
+            self.r_whats_that.hide(true)
 
-            text = "You selected the ALL_WASTE shortcut."
+            self.r_color.hide(true)
+            self.r_shortcut.show()
+            self.r_side_l.set_value("Output Side")
+            self.r_bundled.enable()
+            self.r_advanced.disable()
+
+            text = "You selected the ALL_" .. tri(port == -1, "U", "F") .. "_WASTE shortcut."
         else
-            self.rs_cfg_shortcut.hide(true)
-            self.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
-            self.rs_cfg_color.show()
+            self.r_whats_that.show()
+
+            self.r_shortcut.hide(true)
+            self.r_side_l.set_value(tri(rsio.get_io_dir(port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
+            self.r_color.show()
 
             local io_type = "analog input "
             local io_mode = rsio.get_io_mode(port)
             local inv = tri(rsio.digital_is_active(port, IO_LVL.LOW) == true, "inverted ", "")
 
             if rsio.is_analog(port) then
-                self.rs_cfg_bundled.set_value(false)
-                self.rs_cfg_bundled.disable()
-                self.rs_cfg_color.disable()
-                self.rs_cfg_inverted.set_value(false)
-                self.rs_cfg_advanced.disable()
+                self.r_bundled.set_value(false)
+                self.r_bundled.disable()
+                self.r_color.disable()
+                self.r_inverted.set_value(false)
+                self.r_advanced.disable()
             else
-                self.rs_cfg_bundled.enable()
-                if self.rs_cfg_bundled.get_value() then self.rs_cfg_color.enable() else self.rs_cfg_color.disable() end
-                self.rs_cfg_inverted.set_value(false)
-                self.rs_cfg_advanced.enable()
+                self.r_bundled.enable()
+                if self.r_bundled.get_value() then self.r_color.enable() else self.r_color.disable() end
+                self.r_inverted.set_value(false)
+                self.r_advanced.enable()
             end
 
             if io_mode == IO_MODE.DIGITAL_IN then
@@ -334,75 +345,81 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
         end
 
         if PORT_DSGN[port] == 1 then
-            self.rs_cfg_unit_l.show()
-            self.rs_cfg_unit.show()
+            self.r_unit_l.show()
+            self.r_unit.show()
         else
-            self.rs_cfg_unit_l.hide(true)
-            self.rs_cfg_unit.hide(true)
+            self.r_unit_l.hide(true)
+            self.r_unit.hide(true)
         end
 
-        self.rs_cfg_selection.set_value(text)
-        self.rs_cfg_port = port
+        self.r_selection.set_value(text)
+        self.cur_port = port
         rs_pane.set_value(4)
     end
 
     -- add entries to redstone option list
-    local all_w_macro = Div{parent=rs_ports,height=1}
-    PushButton{parent=all_w_macro,y=1,min_width=14,alignment=LEFT,height=1,text=">ALL_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
-    TextBox{parent=all_w_macro,x=16,y=1,width=5,text="[n/a]",fg_bg=cpair(colors.lightGray,colors.white)}
-    TextBox{parent=all_w_macro,x=22,y=1,text="Create all 4 waste entries",fg_bg=cpair(colors.gray,colors.white)}
+    local all_u_w_macro = Div{parent=rs_ports,height=1}
+    PushButton{parent=all_u_w_macro,y=1,min_width=13,alignment=LEFT,height=1,text="ALL_U_WASTE",callback=function()new_rs(-1)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    TextBox{parent=all_u_w_macro,x=15,y=1,width=5,text="n/a",fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=all_u_w_macro,x=19,y=1,text="All 4 unit waste entries",fg_bg=cpair(colors.gray,colors.white)}
+
+    local all_f_w_macro = Div{parent=rs_ports,height=1}
+    PushButton{parent=all_f_w_macro,y=1,min_width=13,alignment=LEFT,height=1,text="ALL_F_WASTE",callback=function()new_rs(-2)end,fg_bg=cpair(colors.black,colors.green),active_fg_bg=cpair(colors.white,colors.black)}
+    TextBox{parent=all_f_w_macro,x=15,y=1,width=5,text="n/a",fg_bg=cpair(colors.lightGray,colors.white)}
+    TextBox{parent=all_f_w_macro,x=19,y=1,text="All 4 combined waste entries",fg_bg=cpair(colors.gray,colors.white)}
 
     for i = 1, rsio.NUM_PORTS do
         local p = PORT_DESC_MAP[i][1]
         local name = rsio.to_string(p)
-        local io_dir = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "[in]", "[out]")
+        local io_dir = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, "in", "out")
         local btn_color = tri(rsio.get_io_dir(p) == rsio.IO_DIR.IN, colors.yellow, colors.lightBlue)
 
         local entry = Div{parent=rs_ports,height=1}
-        PushButton{parent=entry,y=1,min_width=14,alignment=LEFT,height=1,text=">"..name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
-        TextBox{parent=entry,x=16,y=1,width=5,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
-        TextBox{parent=entry,x=22,y=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
+        PushButton{parent=entry,y=1,min_width=13,alignment=LEFT,height=1,text=name,callback=function()new_rs(p)end,fg_bg=cpair(colors.black,btn_color),active_fg_bg=cpair(colors.white,colors.black)}
+        TextBox{parent=entry,x=15,y=1,width=3,text=io_dir,fg_bg=cpair(colors.lightGray,colors.white)}
+        TextBox{parent=entry,x=19,y=1,text=PORT_DESC_MAP[i][2],fg_bg=cpair(colors.gray,colors.white)}
     end
 
     PushButton{parent=rs_c_3,y=14,text="\x1b Back",callback=function()rs_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=rs_c_3,x=30,y=14,min_width=20,text="U_WASTE vs F_WASTE",callback=function()rs_pane.set_value(11)end,fg_bg=cpair(colors.black,colors.orange),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
     --#region Port Configuration
 
-    self.rs_cfg_selection = TextBox{parent=rs_c_4,y=1,height=2,text=""}
+    self.r_selection = TextBox{parent=rs_c_4,y=1,height=2,text=""}
 
-    PushButton{parent=rs_c_4,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    self.r_whats_that = PushButton{parent=rs_c_4,x=36,y=3,text="What's that?",min_width=14,callback=function()rs_pane.set_value(8)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    self.rs_cfg_side_l = TextBox{parent=rs_c_4,y=4,width=11,text="Output Side"}
+    self.r_side_l = TextBox{parent=rs_c_4,y=4,width=11,text="Output Side"}
     local side = Radio2D{parent=rs_c_4,y=5,rows=1,columns=6,default=1,options=side_options,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.red}
 
-    self.rs_cfg_unit_l = TextBox{parent=rs_c_4,x=25,y=7,width=7,text="Unit ID"}
-    self.rs_cfg_unit = NumberField{parent=rs_c_4,x=33,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
+    self.r_unit_l = TextBox{parent=rs_c_4,x=25,y=7,width=7,text="Unit ID"}
+    self.r_unit = NumberField{parent=rs_c_4,x=33,y=7,width=10,max_chars=2,min=1,max=4,fg_bg=bw_fg_bg}
 
     local function set_bundled(bundled)
-        if bundled then self.rs_cfg_color.enable() else self.rs_cfg_color.disable() end
+        if bundled then self.r_color.enable() else self.r_color.disable() end
     end
 
-    self.rs_cfg_shortcut = TextBox{parent=rs_c_4,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
-    self.rs_cfg_shortcut.hide(true)
+    self.r_shortcut = TextBox{parent=rs_c_4,y=9,height=4,text="This shortcut will add entries for each of the 4 waste outputs. If you select bundled, 4 colors will be assigned to the selected side. Otherwise, 4 default sides will be used."}
+    self.r_shortcut.hide(true)
 
-    self.rs_cfg_bundled = Checkbox{parent=rs_c_4,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled,disable_fg_bg=g_lg_fg_bg}
-    self.rs_cfg_color = Radio2D{parent=rs_c_4,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
-    self.rs_cfg_color.disable()
+    self.r_bundled = Checkbox{parent=rs_c_4,y=7,label="Is Bundled?",default=false,box_fg_bg=cpair(colors.red,colors.black),callback=set_bundled,disable_fg_bg=g_lg_fg_bg}
+    self.r_color = Radio2D{parent=rs_c_4,y=9,rows=4,columns=4,default=1,options=color_options,radio_colors=cpair(colors.lightGray,colors.black),color_map=color_options_map,disable_color=colors.gray,disable_fg_bg=g_lg_fg_bg}
+    self.r_color.disable()
 
     local rs_err = TextBox{parent=rs_c_4,x=8,y=14,width=30,text="Unit ID invalid.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
     rs_err.hide(true)
 
     local function back_from_rs_opts()
         rs_err.hide(true)
-        if self.rs_cfg_editing ~= false then rs_pane.set_value(2) else rs_pane.set_value(3) end
+        if self.editing ~= false then rs_pane.set_value(2) else rs_pane.set_value(3) end
     end
 
     local function save_rs_entry()
-        assert(self.rs_cfg_phy ~= false, "tried to save a redstone entry without a phy")
+        assert(self.cur_phy ~= false, "tried to save a redstone entry without a phy")
 
-        local port = self.rs_cfg_port
-        local u = tonumber(self.rs_cfg_unit.get_value())
+        local port = self.cur_port
+        local u = tonumber(self.r_unit.get_value())
 
         if PORT_DSGN[port] == 0 or (util.is_int(u) and u > 0 and u < 5) then
             rs_err.hide(true)
@@ -412,13 +429,13 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
                 local def = {
                     unit = tri(PORT_DSGN[port] == 1, u, nil),
                     port = port,
-                    relay = self.rs_cfg_phy,
+                    relay = self.cur_phy,
                     side = side_options_map[side.get_value()],
-                    color = tri(self.rs_cfg_bundled.get_value() and rsio.is_digital(port), color_options_map[self.rs_cfg_color.get_value()], nil),
-                    invert = self.rs_cfg_inverted.get_value() or nil
+                    color = tri(self.r_bundled.get_value() and rsio.is_digital(port), color_options_map[self.r_color.get_value()], nil),
+                    invert = self.r_inverted.get_value() or nil
                 }
 
-                if self.rs_cfg_editing == false then
+                if self.editing == false then
                     -- check for duplicate inputs for this unit/facility
                     if (rsio.get_io_dir(port) == rsio.IO_DIR.IN) then
                         for i = 1, #tmp_cfg.Redstone do
@@ -431,19 +448,21 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
                     table.insert(tmp_cfg.Redstone, def)
                 else
-                    def.port = tmp_cfg.Redstone[self.rs_cfg_editing].port
-                    tmp_cfg.Redstone[self.rs_cfg_editing] = def
+                    def.port = tmp_cfg.Redstone[self.editing].port
+                    tmp_cfg.Redstone[self.editing] = def
                 end
-            elseif port == -1 then
+            elseif port == -1 or port == -2 then
                 local default_sides = { "left", "back", "right", "front" }
                 local default_colors = { colors.red, colors.orange, colors.yellow, colors.lime }
+                local base_port = tri(port == -1, IO.U_WASTE_PU, IO.F_WASTE_PU)
+
                 for i = 0, 3 do
                     table.insert(tmp_cfg.Redstone, {
-                        unit = tri(PORT_DSGN[IO.WASTE_PU + i] == 1, u, nil),
-                        port = IO.WASTE_PU + i,
-                        relay = self.rs_cfg_phy,
-                        side = tri(self.rs_cfg_bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
-                        color = tri(self.rs_cfg_bundled.get_value(), default_colors[i + 1], nil)
+                        unit = tri(PORT_DSGN[base_port + i] == 1, u, nil),
+                        port = base_port + i,
+                        relay = self.cur_phy,
+                        side = tri(self.r_bundled.get_value(), side_options_map[side.get_value()], default_sides[i + 1]),
+                        color = tri(self.r_bundled.get_value(), default_colors[i + 1], nil)
                     })
                 end
             end
@@ -452,16 +471,16 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
             tool_ctl.gen_rs_summary()
 
             side.set_value(1)
-            self.rs_cfg_bundled.set_value(false)
-            self.rs_cfg_color.set_value(1)
-            self.rs_cfg_color.disable()
-            self.rs_cfg_inverted.set_value(false)
-            self.rs_cfg_advanced.disable()
+            self.r_bundled.set_value(false)
+            self.r_color.set_value(1)
+            self.r_color.disable()
+            self.r_inverted.set_value(false)
+            self.r_advanced.disable()
         else rs_err.show() end
     end
 
     PushButton{parent=rs_c_4,y=14,text="\x1b Back",callback=back_from_rs_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    self.rs_cfg_advanced = PushButton{parent=rs_c_4,x=30,y=14,min_width=10,text="Advanced",callback=function()rs_pane.set_value(9)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
+    self.r_advanced = PushButton{parent=rs_c_4,x=30,y=14,min_width=10,text="Advanced",callback=function()rs_pane.set_value(9)end,fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=btn_act_fg_bg,dis_fg_bg=btn_dis_fg_bg}
     PushButton{parent=rs_c_4,x=41,y=14,min_width=9,text="Confirm",callback=save_rs_entry,fg_bg=cpair(colors.black,colors.blue),active_fg_bg=btn_act_fg_bg}
 
     --#endregion
@@ -483,12 +502,15 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     PushButton{parent=rs_c_8,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_9,y=1,height=5,text="Advanced Options"}
-    self.rs_cfg_inverted = Checkbox{parent=rs_c_9,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),disable_fg_bg=g_lg_fg_bg}
+    self.r_inverted = Checkbox{parent=rs_c_9,y=3,label="Invert",default=false,box_fg_bg=cpair(colors.red,colors.black),disable_fg_bg=g_lg_fg_bg}
     TextBox{parent=rs_c_9,x=3,y=4,height=4,text="Digital I/O is already inverted (or not) based on intended use. If you have a non-standard setup, you can use this option to avoid needing a redstone inverter.",fg_bg=cpair(colors.gray,colors.lightGray)}
     PushButton{parent=rs_c_9,y=14,text="\x1b Back",callback=function()rs_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=rs_c_10,y=1,height=10,text="Make sure your relay is either touching the RTU gateway or connected via wired modems. There should be a wired modem on a side of the RTU gateway then one on the device, connected by a cable. The modem on the device needs to be right clicked to connect it (which will turn its border red), at which point the peripheral name will be shown in the chat."}
     PushButton{parent=rs_c_10,y=14,text="\x1b Back",callback=function()rs_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=rs_c_11,y=1,height=10,text="Both Unit Waste (U_WASTE_) and Combined Facility Waste (F_WASTE_) redstone outputs are available.\n\nIf you select Combined Facility Waste on the Supervisor, only F_WASTE_ outputs will be supported. Otherwise, you should only use U_WASTE_ outputs.\n\nMismatched outputs will be ignored and show up as disconnected."}
+    PushButton{parent=rs_c_11,y=14,text="\x1b Back",callback=function()rs_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -497,47 +519,47 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
     local function edit_rs_entry(idx)
         local def = tmp_cfg.Redstone[idx]
 
-        self.rs_cfg_shortcut.hide(true)
-        self.rs_cfg_color.show()
+        self.r_shortcut.hide(true)
+        self.r_color.show()
 
-        self.rs_cfg_port = def.port
-        self.rs_cfg_editing = idx
+        self.cur_port = def.port
+        self.editing = idx
 
         local text = "Editing " .. rsio.to_string(def.port) .. " (for "
         if PORT_DSGN[def.port] == 1 then
             text = text .. "a unit)."
-            self.rs_cfg_unit_l.show()
-            self.rs_cfg_unit.show()
-            self.rs_cfg_unit.set_value(def.unit or 1)
+            self.r_unit_l.show()
+            self.r_unit.show()
+            self.r_unit.set_value(def.unit or 1)
         else
-            self.rs_cfg_unit_l.hide(true)
-            self.rs_cfg_unit.hide(true)
+            self.r_unit_l.hide(true)
+            self.r_unit.hide(true)
             text = text .. "the facility)."
         end
 
         if rsio.is_analog(def.port) then
-            self.rs_cfg_bundled.set_value(false)
-            self.rs_cfg_bundled.disable()
-            self.rs_cfg_advanced.disable()
+            self.r_bundled.set_value(false)
+            self.r_bundled.disable()
+            self.r_advanced.disable()
         else
-            self.rs_cfg_bundled.enable()
-            self.rs_cfg_bundled.set_value(def.color ~= nil)
-            self.rs_cfg_advanced.enable()
+            self.r_bundled.enable()
+            self.r_bundled.set_value(def.color ~= nil)
+            self.r_advanced.enable()
         end
 
         local value = 1
         if def.color ~= nil then
             value = color_to_idx(def.color)
-            self.rs_cfg_color.enable()
+            self.r_color.enable()
         else
-            self.rs_cfg_color.disable()
+            self.r_color.disable()
         end
 
-        self.rs_cfg_selection.set_value(text)
-        self.rs_cfg_side_l.set_value(tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
+        self.r_selection.set_value(text)
+        self.r_side_l.set_value(tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "Input Side", "Output Side"))
         side.set_value(side_to_idx(def.side))
-        self.rs_cfg_color.set_value(value)
-        self.rs_cfg_inverted.set_value(def.invert or false)
+        self.r_color.set_value(value)
+        self.r_inverted.set_value(def.invert or false)
         rs_pane.set_value(4)
     end
 
@@ -548,19 +570,19 @@ function redstone.create(tool_ctl, main_pane, cfg_sys, rs_cfg, style)
 
     -- generate the redstone summary list
     function tool_ctl.gen_rs_summary()
-        assert(self.rs_cfg_phy ~= false, "tried to generate a summary without a phy set")
+        assert(self.cur_phy ~= false, "tried to generate a summary without a phy set")
 
         rs_list.remove_all()
 
-        local ini = redstone_subset(ini_cfg.Redstone, self.rs_cfg_phy)
-        local tmp = redstone_subset(tmp_cfg.Redstone, self.rs_cfg_phy)
+        local ini = redstone_subset(ini_cfg.Redstone, self.cur_phy)
+        local tmp = redstone_subset(tmp_cfg.Redstone, self.cur_phy)
 
         local modified = #ini ~= #tmp
 
         for i = 1, #tmp_cfg.Redstone do
             local def = tmp_cfg.Redstone[i]
 
-            if def.relay == self.rs_cfg_phy then
+            if def.relay == self.cur_phy then
                 local name = rsio.to_string(def.port)
                 local io_dir = tri(rsio.get_io_dir(def.port) == rsio.IO_DIR.IN, "\x1a", "\x1b")
                 local io_c = tri(rsio.is_digital(def.port), colors.blue, colors.purple)

@@ -628,32 +628,42 @@ end
 -- update waste app with unit data from API_GET_WASTE
 ---@param data table
 function iorx.record_waste_data(data)
-    -- get unit data
-    for u_id = 1, #io.units do
-        local unit = io.units[u_id]
-        local u_ps = unit.unit_ps
-        local u_data = data[u_id]
+    local com_waste = io.facility.combined_waste
 
-        unit.waste_mode = u_data[1]
-        unit.waste_product = u_data[2]
-        unit.num_snas = u_data[3]
-        unit.sna_peak_rate = u_data[4]
-        unit.sna_max_rate = u_data[5]
-        unit.sna_out_rate = u_data[6]
-        unit.waste_stats = u_data[7]
+    if not com_waste then
+        -- get unit data
+        for u_id = 1, #io.units do
+            local unit = io.units[u_id]
+            local u_ps = unit.unit_ps
+            local u_data = data[u_id]
 
-        u_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
-        u_ps.publish("U_WasteMode", unit.waste_mode)
-        u_ps.publish("U_WasteProduct", unit.waste_product)
+            unit.waste_mode = u_data[1]
+            unit.waste_product = u_data[2]
+            unit.num_snas = u_data[3]
+            unit.sna_peak_rate_in = u_data[4]
+            unit.sna_peak_rate_out = u_data[5]
+            unit.sna_max_rate_in = u_data[6]
+            unit.sna_max_rate_out = u_data[7]
+            unit.sna_in_rate = u_data[8]
+            unit.sna_out_rate = u_data[9]
+            unit.waste_stats = u_data[10]
 
-        u_ps.publish("sna_count", unit.num_snas)
-        u_ps.publish("sna_peak_rate", unit.sna_peak_rate)
-        u_ps.publish("sna_max_rate", unit.sna_max_rate)
-        u_ps.publish("sna_out_rate", unit.sna_out_rate)
+            u_ps.publish("U_AutoWaste", unit.waste_mode == types.WASTE_MODE.AUTO)
+            u_ps.publish("U_WasteMode", unit.waste_mode)
+            u_ps.publish("U_WasteProduct", unit.waste_product)
 
-        u_ps.publish("pu_rate", unit.waste_stats[1])
-        u_ps.publish("po_rate", unit.waste_stats[2])
-        u_ps.publish("po_pl_rate", unit.waste_stats[3])
+            u_ps.publish("sna_count", unit.num_snas)
+            u_ps.publish("sna_peak_rate_in", unit.sna_peak_rate_in)
+            u_ps.publish("sna_peak_rate_out", unit.sna_peak_rate_out)
+            u_ps.publish("sna_max_rate_in", unit.sna_max_rate_in)
+            u_ps.publish("sna_max_rate_out", unit.sna_max_rate_out)
+            u_ps.publish("sna_in_rate", unit.sna_in_rate)
+            u_ps.publish("sna_out_rate", unit.sna_out_rate)
+
+            u_ps.publish("pu_rate", unit.waste_stats[1])
+            u_ps.publish("po_rate", unit.waste_stats[2])
+            u_ps.publish("po_pl_rate", unit.waste_stats[3])
+        end
     end
 
     -- get facility data
@@ -684,6 +694,26 @@ function iorx.record_waste_data(data)
 
     fac.sps_ps_tbl[1].publish("SPSStateStatus", f_data[8])
     f_ps.publish("sps_process_rate", f_data[9])
+
+    if com_waste and type(f_data[10]) == "table" then
+        local sna = f_data[10]
+
+        fac.num_snas = sna[1]
+        fac.sna_peak_rate_in = sna[2]
+        fac.sna_peak_rate_out = sna[3]
+        fac.sna_max_rate_in = sna[4]
+        fac.sna_max_rate_out = sna[5]
+        fac.sna_in_rate = sna[6]
+        fac.sna_out_rate = sna[7]
+
+        f_ps.publish("sna_count", fac.num_snas)
+        f_ps.publish("sna_peak_rate_in", fac.sna_peak_rate_in)
+        f_ps.publish("sna_peak_rate_out", fac.sna_peak_rate_out)
+        f_ps.publish("sna_max_rate_in", fac.sna_max_rate_in)
+        f_ps.publish("sna_max_rate_out", fac.sna_max_rate_out)
+        f_ps.publish("sna_in_rate", fac.sna_in_rate)
+        f_ps.publish("sna_out_rate", fac.sna_out_rate)
+    end
 end
 
 -- update facility app with facility and unit data from API_GET_FAC_DTL
