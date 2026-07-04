@@ -9,7 +9,6 @@ local ListBox     = require("graphics.elements.ListBox")
 local MultiPane   = require("graphics.elements.MultiPane")
 local TextBox     = require("graphics.elements.TextBox")
 
-local Checkbox    = require("graphics.elements.controls.Checkbox")
 local PushButton  = require("graphics.elements.controls.PushButton")
 local RadioButton = require("graphics.elements.controls.RadioButton")
 
