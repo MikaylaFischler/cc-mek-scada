@@ -18,7 +18,7 @@ local ALARM_STATE   = types.ALARM_STATE
 local AUTO_GROUP    = types.AUTO_GROUP
 local PRIO          = types.ALARM_PRIORITY
 local PROCESS       = types.PROCESS
-local RTU_ID_FAIL   = types.RTU_ID_FAIL
+local RTU_LINK_FAIL = types.RTU_LINK_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local WASTE         = types.WASTE_PRODUCT
 
@@ -61,7 +61,7 @@ local facility = {}
 function facility.new(config)
     ---@class _facility_self
     local self = {
-        units = {},     ---@type reactor_unit[]
+        units = {}, ---@type reactor_unit[]
         types = { AUTO_SCRAM = AUTO_SCRAM, START_STATUS = START_STATUS, RCV_STATE = RCV_STATE },
         status_text = { "START UP", "initializing..." },
         all_sys_ok = false,
@@ -185,7 +185,7 @@ function facility.new(config)
     -- create units
     for i = 1, config.UnitCount do
         table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount,
-                                          self.cooling_conf.aux_coolant[i], config.ExtChargeIdling, config.UseSNAStatistics, self.po_prod_ratio))
+                                          self.cooling_conf.aux_coolant[i], self.po_prod_ratio, config))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
         table.insert(self.last_unit_states, false)
         table.insert(self.pu_fallback_times, 0)
@@ -304,7 +304,7 @@ function facility.new(config)
     ---@return boolean linked induction matrix accepted (max 1)
     function public.add_imatrix(imatrix)
         local fail_code, fail_str = svsessions.check_rtu_id(imatrix, self.induction, 1)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.induction, imatrix)
@@ -322,8 +322,13 @@ function facility.new(config)
     function public.add_sna(sna)
         if config.CombinedWaste then
             table.insert(self.snas, sna)
-            return true
-        else return false end
+            log.debug(util.c("FAC: linked SNA [", sna.get_unit_id(), "@", sna.get_session_id(), "]"))
+        else
+            svsessions.report_rtu_mismatch(sna)
+            log.warning(util.c("FAC: rejected SNA linking due to not being configured for combined facility waste"))
+        end
+
+        return config.CombinedWaste
     end
 
     -- link an SPS RTU session
@@ -331,7 +336,7 @@ function facility.new(config)
     ---@return boolean linked SPS accepted (max 1)
     function public.add_sps(sps)
         local fail_code, fail_str = svsessions.check_rtu_id(sps, self.sps, 1)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.sps, sps)
@@ -347,7 +352,7 @@ function facility.new(config)
     ---@param dynamic_tank unit_session
     function public.add_tank(dynamic_tank)
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, #self.cooling_conf.fac_tank_list)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.tanks, dynamic_tank)
@@ -364,7 +369,7 @@ function facility.new(config)
     ---@return boolean linked environment detector accepted
     function public.add_envd(envd)
         local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.envd, envd)

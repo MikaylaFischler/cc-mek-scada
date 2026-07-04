@@ -16,7 +16,7 @@ local AISTATE       = alarm_ctl.AISTATE
 local ALARM         = types.ALARM
 local ALARM_STATE   = types.ALARM_STATE
 local PRIO          = types.ALARM_PRIORITY
-local RTU_ID_FAIL   = types.RTU_ID_FAIL
+local RTU_LINK_FAIL = types.RTU_LINK_FAIL
 local RTU_UNIT_TYPE = types.RTU_UNIT_TYPE
 local TRI_FAIL      = types.TRI_FAIL
 local WASTE_MODE    = types.WASTE_MODE
@@ -56,12 +56,11 @@ local unit = {}
 ---@param num_boilers integer number of boilers expected
 ---@param num_turbines integer number of turbines expected
 ---@param aux_coolant boolean if this unit has auxiliary coolant
----@param ext_idle boolean extended idling mode
----@param use_sna_stats boolean if the SNAs should be used for Po total_out rate calculation
 ---@param po_prod_ratio number waste to polonium ratio
-function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, use_sna_stats, po_prod_ratio)
+---@param config svr_config supervisor configuration
+function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ratio, config)
     -- time (ms) to idle for auto idling
-    local IDLE_TIME = util.trinary(ext_idle, 60000, 10000)
+    local IDLE_TIME = util.trinary(config.ExtChargeIdling, 60000, 10000)
 
     local log_tag = "UNIT " .. reactor_id .. ": "
 
@@ -438,7 +437,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
         local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, num_turbines)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.turbines, turbine)
@@ -459,7 +458,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
         local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, num_boilers)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.boilers, boiler)
@@ -482,7 +481,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
     ---@return boolean linked dynamic tank accepted (max 1)
     function public.add_tank(dynamic_tank)
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, 1)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.tanks, dynamic_tank)
@@ -496,14 +495,25 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
 
     -- link a solar neutron activator RTU session
     ---@param sna unit_session
-    function public.add_sna(sna) table.insert(self.snas, sna) end
+    ---@return boolean linked SNA accepted (must NOT be using combined waste)
+    function public.add_sna(sna)
+        if config.CombinedWaste then
+            svsessions.report_rtu_mismatch(sna)
+            log.warning(util.c(log_tag, "rejected SNA linking due to being configured for combined facility waste"))
+        else
+            table.insert(self.snas, sna)
+            log.debug(util.c(log_tag, "linked SNA [", sna.get_unit_id(), "@", sna.get_session_id(), "]"))
+        end
+
+        return not config.CombinedWaste
+    end
 
     -- link an environment detector RTU session
     ---@param envd unit_session
     ---@return boolean linked environment detector accepted
     function public.add_envd(envd)
         local fail_code, fail_str = svsessions.check_rtu_id(envd, self.envd, 99)
-        local ok = fail_code == RTU_ID_FAIL.OK
+        local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
             table.insert(self.envd, envd)
@@ -1044,7 +1054,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, ext_idle, 
             total_out = total_out + math.min(out_rate_appx, prod)
         end
 
-        if not use_sna_stats then
+        if not config.UseSNAStatistics then
             total_out = util.trinary(self.waste_product == WASTE.PLUTONIUM, 0, public.get_burn_rate() / po_prod_ratio)
         end
 

@@ -288,13 +288,14 @@ function types.rtu_type_to_string(utype)
     end
 end
 
----@enum RTU_ID_FAIL
-types.RTU_ID_FAIL = {
+---@enum RTU_LINK_FAIL
+types.RTU_LINK_FAIL = {
     OK = 0,
     OUT_OF_RANGE = 1,
     DUPLICATE = 2,
     MAX_DEVICES = 3,
-    MISSING = 4
+    MISSING = 4,
+    MISMATCH = 5
 }
 
 ---@enum TRI_FAIL
