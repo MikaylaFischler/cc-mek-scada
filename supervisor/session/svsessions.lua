@@ -360,7 +360,7 @@ function svsessions.check_rtu_id(unit, list, max)
     return fail_code, fail_str
 end
 
--- on attempted link of an RTU to a facility or unit object that it shouldn't be connect to, report that
+-- on attempted link of an RTU to a facility or unit object that it shouldn't be connected to, report that
 ---@param unit unit_session RTU session
 function svsessions.report_rtu_mismatch(unit)
     local r_id, type = unit.get_reactor(), unit.get_unit_type()
