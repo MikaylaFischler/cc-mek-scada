@@ -88,6 +88,9 @@ local function init(main)
         req_height = tri(compressed_view, (11 * #units) + 13, (19 * #units) + 4)
     end
 
+    -- waste stats extend down 31 (+1 for padding)
+    req_height = math.max(32, req_height)
+
     assert(main.get_height() >= req_height, "flow display not of sufficient vertical resolution (add an additional row of monitors)")
 
     -- get the y offset for this unit index
@@ -111,6 +114,9 @@ local function init(main)
         end
         return first, last
     end
+
+    -- a little extra padding for single unit to not conflict with SPS block
+    local com_waste_y_ofs = tri(#units > 1, y_ofs(#units + 1), 13)
 
     if fac.tank_mode == 0 or fac.tank_mode == 8 then
         -- (0) tanks belong to reactor units OR (8) 4 total facility tanks (A B C D)
@@ -154,7 +160,7 @@ local function init(main)
 
                 if i == first_fdef then
                     if compressed_view then
-                        y = y_ofs(5) - 7
+                        y = com_waste_y_ofs - 7
                         table.insert(emcool_pipes, pipe(0, y - 3, 1, y + 5, c_clr(i), true))
                     else
                         table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
@@ -318,7 +324,7 @@ local function init(main)
     ---------------------------------
 
     if com_waste then
-        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
+        local waste = Div{parent=main,x=flow_x,y=com_waste_y_ofs+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
 
         waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
@@ -329,7 +335,7 @@ local function init(main)
 
         TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
 
-        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
+        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,com_waste_y_ofs-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
     else
         PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
     end
@@ -404,7 +410,7 @@ local function init(main)
 
             if tank_list[i] == 2 and compressed_view then
                 -- this only is possible with tank mode 1, so assume that and send the tank to the bottom
-                y_offset = y_ofs(5) - 7
+                y_offset = com_waste_y_ofs - 7
             end
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
