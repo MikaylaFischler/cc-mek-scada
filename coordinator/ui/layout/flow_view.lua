@@ -55,6 +55,7 @@ local function init(main)
     local tank_types = fac.tank_fluid_types
 
     local com_waste = fac.combined_waste
+    local com_waste_y_ofs = #units + 1
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
@@ -154,7 +155,7 @@ local function init(main)
 
                 if i == first_fdef then
                     if compressed_view then
-                        y = y_ofs(5) - 7
+                        y = y_ofs(com_waste_y_ofs) - 7
                         table.insert(emcool_pipes, pipe(0, y - 3, 1, y + 5, c_clr(i), true))
                     else
                         table.insert(emcool_pipes, pipe(0, y, 1, y + 5, c_clr(i), true))
@@ -318,7 +319,7 @@ local function init(main)
     ---------------------------------
 
     if com_waste then
-        local waste = Div{parent=main,x=flow_x,y=y_ofs(5)+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
+        local waste = Div{parent=main,x=flow_x,y=y_ofs(com_waste_y_ofs)+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
 
         waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
@@ -329,7 +330,7 @@ local function init(main)
 
         TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
 
-        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(5)-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
+        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,y_ofs(com_waste_y_ofs)-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
     else
         PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
     end
@@ -404,7 +405,7 @@ local function init(main)
 
             if tank_list[i] == 2 and compressed_view then
                 -- this only is possible with tank mode 1, so assume that and send the tank to the bottom
-                y_offset = y_ofs(5) - 7
+                y_offset = y_ofs(com_waste_y_ofs) - 7
             end
 
             local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
