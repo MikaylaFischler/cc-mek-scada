@@ -759,7 +759,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     --#region Combined Facility Waste
 
     TextBox{parent=fac_c_11,height=3,text="The standard setup expects waste processing (SNAs and PRCs) to be per-unit for statistics and individual Pu fallback management."}
-    TextBox{parent=fac_c_11,y=5,height=3,text="If your setup combines all raw waste before processing, please select combined facility waste management below."}
+    TextBox{parent=fac_c_11,y=5,height=3,text="If your setup combines all nuclear waste from MULTIPLE units before processing, please select combined facility waste management below."}
     TextBox{parent=fac_c_11,y=9,text="Both options expect one combined facility SPS.",fg_bg=g_lg_fg_bg}
 
     tool_ctl.com_waste = Checkbox{parent=fac_c_11,y=11,label="Combined Facility Waste",default=ini_cfg.CombinedWaste,box_fg_bg=cpair(colors.yellow,colors.black)}
