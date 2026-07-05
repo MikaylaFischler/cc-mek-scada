@@ -743,6 +743,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_10,y=5,height=3,text="If you are not using SNAs, you can unselect this option to have the Supervisor compute an estimate based on the current burn rate."}
 
     tool_ctl.sna_stats = Checkbox{parent=fac_c_10,y=9,label="Use SNAs for Po Statistics",default=ini_cfg.UseSNAStatistics,box_fg_bg=cpair(colors.yellow,colors.black)}
+    TextBox{parent=fac_c_10,x=30,y=9,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=fac_c_10,y=11,height=3,text="Both modes depend on correct waste ratios in the Mekanism Configuration section.",fg_bg=g_lg_fg_bg}
 
@@ -762,6 +763,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_11,y=9,text="Both options expect one combined facility SPS.",fg_bg=g_lg_fg_bg}
 
     tool_ctl.com_waste = Checkbox{parent=fac_c_11,y=11,label="Combined Facility Waste",default=ini_cfg.CombinedWaste,box_fg_bg=cpair(colors.yellow,colors.black)}
+    TextBox{parent=fac_c_11,x=27,y=11,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function submit_com_waste()
         tmp_cfg.CombinedWaste = tool_ctl.com_waste.get_value()
