@@ -260,7 +260,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
     TextBox{parent=net_cfg,y=2,text=" Network Configuration",fg_bg=cpair(colors.black,colors.lightBlue)}
 
     TextBox{parent=net_c_1,y=1,text="Please select the network interface(s)."}
-    TextBox{parent=net_c_1,x=41,y=1,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function en_dis_pref()
         if self.wireless.get_value() and self.wired.get_value() then
