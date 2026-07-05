@@ -224,3 +224,16 @@
 ---@field getRadiationRaw fun() : number The raw radiation in Sv/h.
 
 --#endregion
+
+--#region Draconic Evolution Classes
+
+---@class DraconicEnergyCore:PPMDevice
+---@field getInputPerTick fun() : integer Get the input rate in RF/t.
+---@field getOutputPerTick fun() : integer Get the output rate in RF/t.
+---@field getTransferPerTick fun() : integer Get the net transfer rate in RF/t.
+---@field getEnergyStored fun() : integer Get the amount of energy stored in RF.
+---@field getEnergyStoredInNotation fun() : draconic_rf_notation Get the amount of energy stored in RF.
+---@field getMaxEnergyStored fun() : integer Get the maximum energy storage capacity in RF.
+---@field getMaxEnergyStoredInNotation fun() : draconic_rf_notation Get the maximum energy storage capacity in RF.
+
+--#endregion
