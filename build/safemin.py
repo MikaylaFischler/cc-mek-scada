@@ -1,24 +1,52 @@
 import os
 import re
+import sys
+
+#
+# definitions/globals
+#
+
+DIRS = [ 'scada-common', 'graphics', 'lockbox', 'reactor-plc', 'rtu', 'supervisor', 'coordinator', 'pocket' ]
+
+# can be overridden
+OUTPUT = './_minified'
+
+# ANSI Color Codes
+BLACK = "\033[30m"
+RED = "\033[31m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+BLUE = "\033[34m"
+MAGENTA = "\033[35m"
+CYAN = "\033[36m"
+WHITE = "\033[37m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+#
+# functions
+#
 
 # minify files in a directory
 def min_files(path):
     start_sum, end_sum = 0, 0
 
     for (root, _, files) in os.walk(path):
-        os.makedirs('_minified/' + root, exist_ok=True)
+        os.makedirs(OUTPUT + '/' + root, exist_ok=True)
 
         for f in files:
-            start, end = minify(root + "/" + f)
+            start, end = minify(root + '/' + f)
 
             start_sum = start_sum + start
-            end_sum = end_sum + end
+            end_sum   = end_sum + end
 
     delta = start_sum - end_sum
 
-    print(f"> done with '{path}': shrunk from {start_sum} bytes to {end_sum} bytes (saved {delta} bytes, or {(100*delta/start_sum):.2f}%)")
+    print(f"> {BOLD}done with '{path}': shrunk from {start_sum} bytes to {end_sum} bytes (saved {delta} bytes, or {(100*delta/start_sum):.2f}%){RESET}")
 
-    return list
+    summary = { "path": path, "start": start_sum, "end": end_sum, "delta": delta, "percent": f"-{(100*delta/start_sum):.2f}%" }
+
+    return summary
 
 # minify a file
 def minify(path: str):
@@ -55,29 +83,53 @@ def minify(path: str):
         minified = re.sub(r'\n\n', '\n', minified)
 
     # write the minified file
-    f_min = open(f"_minified/{path}", "w")
+    f_min = open(f"{OUTPUT}/{path}", "w")
     f_min.write(minified)
     f_min.close()
 
-    size_end = os.stat(f"_minified/{path}").st_size
+    size_end = os.stat(f"{OUTPUT}/{path}").st_size
 
-    print(f">> shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start-size_end} bytes)")
+    print(f">> {BLACK}shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start-size_end} bytes){RESET}")
 
     return size_start, size_end
 
-# minify applications and libraries
-dirs = [ 'scada-common', 'graphics', 'lockbox', 'reactor-plc', 'rtu', 'supervisor', 'coordinator', 'pocket' ]
-for _, d in enumerate(dirs):
-    min_files(d)
+#
+# main
+#
 
-# minify root files
-minify("startup.lua")
-minify("initenv.lua")
-minify("configure.lua")
+if __name__ == "__main__":
+    # override output if specified
+    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+        OUTPUT = sys.argv[1]
 
-# copy in license for build usage
-lic1 = open("LICENSE", "r")
-lic2 = open("_minified/LICENSE", "w")
-lic2.write(lic1.read())
-lic1.close()
-lic2.close()
+    summaries = []
+
+    # minify applications and libraries
+    for _, d in enumerate(DIRS):
+        summaries.append(min_files(d))
+
+    # minify root files
+    minify("startup.lua")
+    minify("initenv.lua")
+    minify("configure.lua")
+
+    # copy in license for build usage
+    lic_a = open("LICENSE", "r")
+    lic_b = open(f"{OUTPUT}/LICENSE", "w")
+    lic_b.write(lic_a.read())
+    lic_a.close()
+    lic_b.close()
+
+    # sumary header
+    print(f"\n{BOLD}{'Resource':<15} {'Original':>15} {'New':>14} {'Saved':>18} {'Percentage':>17}{RESET}")
+    print("-" * 85)
+
+    # print summary
+    for s in summaries:
+        print(
+            f"{BLUE}{s['path']:<15}{RESET}"
+            f"{s['start']:>12,} bytes"
+            f"{s['end']:>12,} bytes"
+            f"{GREEN}{s['delta']:>12,}{RESET} bytes"
+            f"{CYAN}{s['percent']:>12}{RESET}"
+        )
