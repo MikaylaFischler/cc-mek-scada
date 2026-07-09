@@ -79,7 +79,7 @@ local function init(main)
         end
     end
 
-    local compressed_view = no_tanks or only_top_tank or (fac.tank_mode == 1 and num_tanks == 1)
+    local compressed_view = com_waste and (no_tanks or only_top_tank or (fac.tank_mode == 1 and num_tanks == 1))
 
     -- size check
 
