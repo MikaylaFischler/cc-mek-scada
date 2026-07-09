@@ -229,8 +229,13 @@ local function config_view(display)
 
     local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,fac_cfg,mek_cfg,net_cfg,log_cfg,clr_cfg,summary,changelog,import_err,disk_warn}}
 
+    local req_space = log.MIN_SPACE
+    if fs.exists("/supervisor.settings") then
+        req_space = math.max(0, req_space - fs.getSize("/supervisor.settings"))
+    end
+
     -- show disk space warning if needed
-    if fs.getFreeSpace("/") < log.MIN_SPACE then main_pane.set_value(10) end
+    if fs.getFreeSpace("/") < req_space then main_pane.set_value(10) end
 
     --#region Main Page
 
@@ -305,14 +310,14 @@ local function config_view(display)
             tool_ctl.dw_del_log_btn.disable()
         end
 
-        if space >= log.MIN_SPACE then tool_ctl.dw_continue.enable() end
+        if space >= req_space then tool_ctl.dw_continue.enable() end
     end
 
     TextBox{parent=disk_page,height=3,text="There is not enough disk space to safely configure this device. Saving the configuration may fail and cause loss of configuration data."}
 
     TextBox{parent=disk_page,y=5,height=1,text="Capacity:             "..fs.getCapacity("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
     tool_ctl.dw_free_space = TextBox{parent=disk_page,height=1,text="Available Free Space: "..fs.getFreeSpace("/").." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
-    TextBox{parent=disk_page,height=1,text="Required Free Space:  "..log.MIN_SPACE.." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=disk_page,height=1,text="Required Free Space:  "..req_space.." bytes",fg_bg=cpair(colors.gray,colors._INHERIT)}
 
     if fs.exists(ini_cfg.LogPath) then
         TextBox{parent=disk_page,y=9,height=2,text="If your log file is on this computer and not an external disk, deleting it may help."}

@@ -143,8 +143,13 @@ local function config_view(display)
 
     local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,ui_cfg,net_cfg,log_cfg,summary,changelog,disk_warn}}
 
+    local req_space = log.MIN_SPACE
+    if fs.exists("/pocket.settings") then
+        req_space = math.max(0, req_space - fs.getSize("/pocket.settings"))
+    end
+
     -- show disk space warning if needed
-    if fs.getFreeSpace("/") < log.MIN_SPACE then main_pane.set_value(7) end
+    if fs.getFreeSpace("/") < req_space then main_pane.set_value(7) end
 
     --#region Main Page
 
@@ -208,13 +213,13 @@ local function config_view(display)
             tool_ctl.dw_del_log_btn.disable()
         end
 
-        if space >= log.MIN_SPACE then tool_ctl.dw_continue.enable() end
+        if space >= req_space then tool_ctl.dw_continue.enable() end
     end
 
     TextBox{parent=disk_page,height=5,text="There is not enough space to safely configure. Saving the configuration may fail."}
 
     tool_ctl.dw_free_space = TextBox{parent=disk_page,height=1,text=fs.getFreeSpace("/").." bytes free",fg_bg=cpair(colors.gray,colors._INHERIT)}
-    TextBox{parent=disk_page,height=1,text=log.MIN_SPACE.." bytes required",fg_bg=cpair(colors.gray,colors._INHERIT)}
+    TextBox{parent=disk_page,height=1,text=req_space.." bytes required",fg_bg=cpair(colors.gray,colors._INHERIT)}
 
     if fs.exists(ini_cfg.LogPath) then
         tool_ctl.dw_log_size = TextBox{parent=disk_page,y=8,height=1,text=fs.getSize(ini_cfg.LogPath).." byte log file",fg_bg=cpair(colors.gray,colors._INHERIT)}
