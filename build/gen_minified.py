@@ -23,6 +23,8 @@ WHITE = "\033[37m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+skipped_comments = 0
+
 #
 # functions
 #
@@ -50,6 +52,8 @@ def min_files(path):
 
 # minify a file
 def minify(path: str, skip_lines = 0):
+    global skipped_comments
+
     size_start = os.path.getsize(path)
 
     f = open(path, "r")
@@ -77,10 +81,13 @@ def minify(path: str, skip_lines = 0):
         # '\' allows for multiline strings, which would require reverting to processing syntax line by line to support them
         raise Exception(f"no escaping newlines! (offending file: {path})")
 
-    # drop the comments, unless the line has quotes, because quotes are scary
+    # drop comment-only lines (which can include quotes)
+    minified = re.sub(r'^[ \t]*--+.*', '', contents, flags=re.MULTILINE)
+
+    # drop other comments, unless the line has quotes, because quotes are scary
     # (quotes are scary since we could actually be inside a string: "-- ..." shouldn't get deleted)
     # -> whitespace before '--' and anything after that, which includes '---' comments
-    minified = re.sub(r'\s*--+(?!.*[\'"]).*', '', contents)
+    minified = re.sub(r'\s*--+(?!.*[\'"]).*', '', minified)
 
     # drop leading whitespace on each line
     minified = re.sub(r'^[ \t]+', '', minified, flags=re.MULTILINE)
@@ -97,6 +104,18 @@ def minify(path: str, skip_lines = 0):
     size_end = os.path.getsize(f"{OUTPUT}/{path}")
 
     print(f">> {BLACK}shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start - size_end} bytes){RESET}")
+
+    # check for potential comments not deleted
+    for lineno, line in enumerate(contents.splitlines(), start=1):
+        if re.match(r'^[ \t]*--', line):
+            continue
+        if '--' not in line:
+            continue
+
+        stripped = re.sub(r'\s*--+(?!.*[\'"]).*', '', line)
+        if stripped == line:
+            skipped_comments = skipped_comments + 1
+            print(f">> {YELLOW}{path}:{lineno}: this may or may not be a comment, so it was not deleted: \n\t{BOLD}{line.strip()}{RESET}")
 
     return size_start, size_end
 
@@ -146,6 +165,8 @@ if __name__ == "__main__":
     lic_b.write(lic_a.read())
     lic_a.close()
     lic_b.close()
+
+    print(f"> {BOLD}minifier finished with {skipped_comments} skipped comment-like line(s){RESET}")
 
     # sumary header
     print(f"\n{BOLD}{'Resource':<15} {'Original':>15} {'New':>14} {'Saved':>18} {'Percentage':>17}{RESET}")
