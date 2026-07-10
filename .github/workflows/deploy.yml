@@ -106,7 +106,7 @@ jobs:
       - name: "[DEPLOY-TEST] Save Installation Manifest"
         if: ${{ (success() || failure()) && steps.manifest-test.outcome == 'success' }}
         working-directory: branch-test
-        run: mv installation_manifest.json ../deploy/manifests/deploy-test
+        run: mv install_manifest.json ../deploy/manifests/deploy-test
       # All artifacts ready now, upload deploy directory
       - name: Upload Artifacts
         id: upload-artifacts
