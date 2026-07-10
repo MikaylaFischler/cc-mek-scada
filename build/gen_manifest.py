@@ -109,8 +109,6 @@ if __name__ == "__main__":
     # parse arguments
     gen_shields = "--shields" in sys.argv
 
-    ini_dir = os.getcwd()
-
     # check if we were given a path to run in
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
@@ -118,14 +116,14 @@ if __name__ == "__main__":
             break
 
     # write initial manifest with placeholder size
-    manifest_file = open(ini_dir + "/install_manifest.json", "w")
+    manifest_file = open("install_manifest.json", "w")
     json.dump(make_manifest(9999), manifest_file)
     manifest_file.close()
 
-    manifest = make_manifest(os.path.getsize(ini_dir + "/install_manifest.json"))
+    manifest = make_manifest(os.path.getsize("install_manifest.json"))
 
     # calculate file size then regenerate with embedded size
-    manifest_file = open(ini_dir + "/install_manifest.json", "w")
+    manifest_file = open("install_manifest.json", "w")
     json.dump(manifest, manifest_file)
     manifest_file.close()
 
