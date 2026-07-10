@@ -50,7 +50,7 @@ def min_files(path):
 
 # minify a file
 def minify(path: str, skip_lines = 0):
-    size_start = os.stat(path).st_size
+    size_start = os.path.getsize(path)
 
     f = open(path, "r")
     contents = f.read()
@@ -94,7 +94,7 @@ def minify(path: str, skip_lines = 0):
     f_min.write(skipped + minified)
     f_min.close()
 
-    size_end = os.stat(f"{OUTPUT}/{path}").st_size
+    size_end = os.path.getsize(f"{OUTPUT}/{path}")
 
     print(f">> {BLACK}shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start - size_end} bytes){RESET}")
 
@@ -172,8 +172,8 @@ if __name__ == "__main__":
     print("-" * 112)
 
     computer_space = 1000000
-    common         = component_size['scada-common'] + component_size['graphics'] + component_size['lockbox'] + component_size['root'] + os.stat(f"{OUTPUT}/LICENSE").st_size
-    common_min     = component_size_min['scada-common'] + component_size_min['graphics'] + component_size_min['lockbox'] + component_size_min['root'] + os.stat(f"{OUTPUT}/LICENSE").st_size
+    common         = component_size['scada-common'] + component_size['graphics'] + component_size['lockbox'] + component_size['root'] + os.path.getsize(f"{OUTPUT}/LICENSE")
+    common_min     = component_size_min['scada-common'] + component_size_min['graphics'] + component_size_min['lockbox'] + component_size_min['root'] + os.path.getsize(f"{OUTPUT}/LICENSE")
 
     # estimated disk utilization
     for dev in [ "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" ]:
@@ -216,5 +216,5 @@ if __name__ == "__main__":
             f"{(computer_space - size_min):>8,} bytes"
             f"{color}{percent_str:>12}{RESET}"
             "  -> "
-            f"{color_min}{percent_str_min:>8}{RESET}"
+            f"{color_min}{percent_str_min:>7}{RESET}"
         )
