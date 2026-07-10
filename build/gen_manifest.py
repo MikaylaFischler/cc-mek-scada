@@ -109,6 +109,8 @@ if __name__ == "__main__":
     # parse arguments
     gen_shields = "--shields" in sys.argv
 
+    ini_dir = os.getcwd()
+
     # check if we were given a path to run in
     for arg in sys.argv[1:]:
         if not arg.startswith("-"):
@@ -130,7 +132,7 @@ if __name__ == "__main__":
     # write all the JSON files for shields.io if requested
     if gen_shields:
         for key, version in manifest["versions"].items():
-            shields_file = open("../deploy/" + key + ".json", "w")
+            shields_file = open(ini_dir + "/deploy/" + key + ".json", "w")
 
             # color based on release type
             if version.find("alpha") >= 0:
