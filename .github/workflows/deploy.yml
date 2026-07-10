@@ -41,52 +41,61 @@ jobs:
         shell: bash
         run: mkdir -p deploy/{builds,manifests}/{main,devel,deploy-test}
       # Generate manifest + shields files for main branch
-      - name: Checkout main
+      - name: Checkout Main Branch
         id: checkout-main
         uses: actions/checkout@v7.0.0
         with:
           ref: 'main'
+          path: branch-main
           clean: false
-      - name: (LEGACY) Generate manifest and shields for `main` branch
+      - name: \[MAIN] (LEGACY) Generate Installation Manifest and Shields JSON
         id: manifest-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
-        run: python build/gen_manifest.py --shields
-      - name: Save main's manifest
+        working-directory: branch-main
+        run: python build/imgen.py shields
+      - name: \[MAIN] Save Installation Manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
-        run: mv install_manifest.json deploy/manifests/main
+        working-directory: branch-main
+        run: mv install_manifest.json ../deploy/manifests/main
       # Generate manifest for devel branch
-      - name: Checkout devel
+      - name: Checkout Development
         id: checkout-devel
         if: success() || failure()
         uses: actions/checkout@v7.0.0
         with:
           ref: 'devel'
+          path: branch-devel
           clean: false
-      - name: (LEGACY) Generate installation manifest for `devel` branch
+      - name: \[DEVEL] (LEGACY) Generate Installation Manifest
         id: manifest-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
-        run: python build/gen_manifest.py
-      - name: Save devel's manifest
+        working-directory: branch-devel
+        run: python build/imgen.py
+      - name: \[DEVEL] Save Installation Manifest
         if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
-        run: mv install_manifest.json deploy/manifests/devel
+        working-directory: branch-devel
+        run: mv install_manifest.json ../deploy/manifests/devel
       # Generate manifest and build for deploy-test branch
-      - name: Checkout deploy-test
+      - name: Checkout Deployment Test
         id: checkout-test
         if: success() || failure()
         uses: actions/checkout@v7.0.0
         with:
           ref: 'deploy-test'
+          path: branch-test
           clean: false
-      - name: Minify deploy-test
+      - name: \[DEPLOY-TEST] Generate Minified Code
         id: minify-test
         if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
-        run: python build/gen_minified.py deploy/builds/deploy-test --deployment
-      - name: Generate manifest for deploy-test
+        working-directory: branch-test
+        run: python build/gen_minified.py ../deploy/builds/deploy-test --deployment
+      - name: \[DEPLOY-TEST] Generate Installation Manifest
         id: manifest-test
         if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
-        run: python build/gen_manifest.py deploy/builds/deploy-test
+        working-directory: branch-test
+        run: python build/gen_manifest.py ../deploy/builds/deploy-test
       # All artifacts ready now, upload deploy directory
-      - name: Upload artifacts
+      - name: Upload Artifacts
         id: upload-artifacts
         if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
         uses: actions/upload-pages-artifact@v5.0.0
