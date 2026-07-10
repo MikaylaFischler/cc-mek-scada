@@ -103,6 +103,10 @@ jobs:
         if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
         working-directory: branch-test
         run: python build/gen_manifest.py ../deploy/builds/deploy-test
+      - name: "[DEPLOY-TEST] Save Installation Manifest"
+        id: manifest-test
+        if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
+        run: mv deploy/builds/deploy-test/installation_manifest.json deploy/manifests/deploy-test
       # All artifacts ready now, upload deploy directory
       - name: Upload Artifacts
         id: upload-artifacts
