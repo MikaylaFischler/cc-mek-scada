@@ -48,12 +48,12 @@ jobs:
           ref: 'main'
           path: branch-main
           clean: false
-      - name: \[MAIN] (LEGACY) Generate Installation Manifest and Shields JSON
+      - name: "[MAIN] (LEGACY) Generate Installation Manifest and Shields JSON"
         id: manifest-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
         working-directory: branch-main
         run: python build/imgen.py shields
-      - name: \[MAIN] Save Installation Manifest
+      - name: "[MAIN] Save Installation Manifest"
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         working-directory: branch-main
         run: mv install_manifest.json ../deploy/manifests/main
@@ -66,12 +66,12 @@ jobs:
           ref: 'devel'
           path: branch-devel
           clean: false
-      - name: \[DEVEL] (LEGACY) Generate Installation Manifest
+      - name: "[DEVEL] (LEGACY) Generate Installation Manifest"
         id: manifest-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
         working-directory: branch-devel
         run: python build/imgen.py
-      - name: \[DEVEL] Save Installation Manifest
+      - name: "[DEVEL] Save Installation Manifest"
         if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
         working-directory: branch-devel
         run: mv install_manifest.json ../deploy/manifests/devel
@@ -84,12 +84,12 @@ jobs:
           ref: 'deploy-test'
           path: branch-test
           clean: false
-      - name: \[DEPLOY-TEST] Generate Minified Code
+      - name: "[DEPLOY-TEST] Generate Minified Code"
         id: minify-test
         if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
         working-directory: branch-test
         run: python build/gen_minified.py ../deploy/builds/deploy-test --deployment
-      - name: \[DEPLOY-TEST] Generate Installation Manifest
+      - name: "[DEPLOY-TEST] Generate Installation Manifest"
         id: manifest-test
         if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
         working-directory: branch-test
