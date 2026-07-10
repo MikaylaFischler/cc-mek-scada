@@ -42,19 +42,26 @@ def min_files(path):
 
     delta = start_sum - end_sum
 
-    print(f"> {BOLD}done with '{path}': shrunk from {start_sum} bytes to {end_sum} bytes (saved {delta} bytes, or {(100*delta/start_sum):.2f}%){RESET}")
+    print(f"> {BOLD}done with '{path}': shrunk from {start_sum} bytes to {end_sum} bytes (saved {delta} bytes, or {(100 * delta / start_sum):.2f}%){RESET}")
 
-    summary = { "path": path, "start": start_sum, "end": end_sum, "delta": delta, "percent": f"-{(100*delta/start_sum):.2f}%" }
+    summary = { "path": path, "start": start_sum, "end": end_sum, "delta": delta, "percent": f"-{(100 * delta / start_sum):.2f}%" }
 
     return summary
 
 # minify a file
-def minify(path: str):
+def minify(path: str, skip_lines = 0):
     size_start = os.stat(path).st_size
 
     f = open(path, "r")
     contents = f.read()
     f.close()
+
+    # allow skipping header lines (may contain things like multiline comments)
+    skipped = ""
+    if skip_lines > 0:
+        lines    = contents.splitlines(keepends=True)
+        skipped  = ''.join(lines[:skip_lines])
+        contents = contents[len(skipped):]
 
     # remove --[[@as type]] hints before anything, since it would detect as multiline comments
     contents = re.sub(r' --+\[.+]]', '', contents)
@@ -76,7 +83,7 @@ def minify(path: str):
     minified = re.sub(r'\s*--+(?!.*[\'"]).*', '', contents)
 
     # drop leading whitespace on each line
-    minified = re.sub(r'^ +', '', minified, flags=re.MULTILINE)
+    minified = re.sub(r'^[ \t]+', '', minified, flags=re.MULTILINE)
 
     # drop blank lines
     while minified != re.sub(r'\n\n', '\n', minified):
@@ -84,12 +91,12 @@ def minify(path: str):
 
     # write the minified file
     f_min = open(f"{OUTPUT}/{path}", "w")
-    f_min.write(minified)
+    f_min.write(skipped + minified)
     f_min.close()
 
     size_end = os.stat(f"{OUTPUT}/{path}").st_size
 
-    print(f">> {BLACK}shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start-size_end} bytes){RESET}")
+    print(f">> {BLACK}shrunk '{path}' from {size_start} bytes to {size_end} bytes (saved {size_start - size_end} bytes){RESET}")
 
     return size_start, size_end
 
@@ -98,20 +105,40 @@ def minify(path: str):
 #
 
 if __name__ == "__main__":
-    # override output if specified
-    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
-        OUTPUT = sys.argv[1]
+    # parse arguments
+    deployment = "--deployment" in sys.argv
 
-    summaries = []
+    # override output if specified
+    for arg in sys.argv[1:]:
+        if not arg.startswith("-"):
+            OUTPUT = sys.argv[1]
+            break
+
+    if not os.path.exists(OUTPUT):
+        raise FileNotFoundError(f"{OUTPUT} does not exist")
 
     # minify applications and libraries
+    summaries = []
     for _, d in enumerate(DIRS):
         summaries.append(min_files(d))
 
     # minify root files
-    minify("startup.lua")
-    minify("initenv.lua")
-    minify("configure.lua")
+    start_sum = 0
+    end_sum   = 0
+
+    for start, end in (minify("startup.lua"), minify("initenv.lua"), minify("configure.lua")):
+        start_sum += start
+        end_sum   += end
+
+    if deployment:
+        start, end = minify("ccmsi.lua", 16)
+        start_sum += start
+        end_sum   += end
+
+    delta = start_sum - end_sum
+
+    print(f"> {BOLD}done with 'root': shrunk from {start_sum} bytes to {end_sum} bytes (saved {delta} bytes, or {(100*delta/start_sum):.2f}%){RESET}")
+    summaries.append({ "path": "root", "start": start_sum, "end": end_sum, "delta": delta, "percent": f"-{(100*delta/start_sum):.2f}%" })
 
     # copy in license for build usage
     lic_a = open("LICENSE", "r")
@@ -124,6 +151,9 @@ if __name__ == "__main__":
     print(f"\n{BOLD}{'Resource':<15} {'Original':>15} {'New':>14} {'Saved':>18} {'Percentage':>17}{RESET}")
     print("-" * 85)
 
+    component_size     = {}
+    component_size_min = {}
+
     # print summary
     for s in summaries:
         print(
@@ -132,4 +162,59 @@ if __name__ == "__main__":
             f"{s['end']:>12,} bytes"
             f"{GREEN}{s['delta']:>12,}{RESET} bytes"
             f"{CYAN}{s['percent']:>12}{RESET}"
+        )
+
+        component_size[s['path']] = s['start']
+        component_size_min[s['path']] = s['end']
+
+    # disk utilization header
+    print(f"\n{BOLD}{'System':<17} {'Disk Utilization':>22} {'Free':>30} {'Percentage':>33}{RESET}")
+    print("-" * 112)
+
+    computer_space = 1000000
+    common         = component_size['scada-common'] + component_size['graphics'] + component_size['lockbox'] + component_size['root'] + os.stat(f"{OUTPUT}/LICENSE").st_size
+    common_min     = component_size_min['scada-common'] + component_size_min['graphics'] + component_size_min['lockbox'] + component_size_min['root'] + os.stat(f"{OUTPUT}/LICENSE").st_size
+
+    # estimated disk utilization
+    for dev in [ "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" ]:
+        size            = common + component_size[dev]
+        size_min        = common_min + component_size_min[dev]
+        percent         = 100 * size / computer_space
+        percent_min     = 100 * size_min / computer_space
+        percent_str     = f"{percent:.2f}%"
+        percent_str_min = f"{percent_min:.2f}%"
+
+        if percent >= 90:
+            color = RED
+        elif percent >= 80:
+            color = MAGENTA
+        elif percent >= 65:
+            color = YELLOW
+        elif percent >= 50:
+            color = CYAN
+        else:
+            color = GREEN
+
+        if percent_min >= 90:
+            color_min = RED
+        elif percent_min >= 80:
+            color_min = MAGENTA
+        elif percent_min >= 65:
+            color_min = YELLOW
+        elif percent_min >= 50:
+            color_min = CYAN
+        else:
+            color_min = GREEN
+
+        print(
+            f"{BLUE}{dev:<15}{RESET}"
+            f"{BLACK}{size:>8,} bytes{RESET}"
+            "  -> "
+            f"{size_min:>8,} bytes"
+            f"{BLACK}{(computer_space - size):>12,} bytes{RESET}"
+            "  -> "
+            f"{(computer_space - size_min):>8,} bytes"
+            f"{color}{percent_str:>12}{RESET}"
+            "  -> "
+            f"{color_min}{percent_str_min:>8}{RESET}"
         )
