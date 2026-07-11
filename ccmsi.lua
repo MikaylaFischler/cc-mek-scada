@@ -15,17 +15,17 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.23"
+local CCMSI_VERSION = "v1.24"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
 local INSTALL_DIR = "/.install-cache"
 local MANIFEST_DIR = "https://mikaylafischler.github.io/cc-mek-scada/manifests/"
-local REPO_BASE = "http://raw.githubusercontent.com/MikaylaFischler/cc-mek-scada/"
+local BUILD_DIR = "https://mikaylafischler.github.io/cc-mek-scada/builds/"
 
 local OPTS = { ... }
 
-local mode, app, target, repo_url, manifest_url
+local mode, app, target, build_url, manifest_url
 
 local function tsc(c) term.setTextColor(c) end
 
@@ -168,7 +168,7 @@ end
 local function http_get_file(file, w_path)
 	local dl, err
 	for i = 1, 3 do
-		dl, err = http.get(repo_url..file)
+		dl, err = http.get(build_url..file)
 		if dl then
 			if i > 1 then green();pln("success!");lgray() end
 
@@ -324,13 +324,13 @@ else
 	end
 
 	target = OPTS[next_opt] or "main"
-	if target ~= "main" and target ~= "devel" then
+	if target ~= "main" and target ~= "devel" and target ~= "deploy-test" then
 		red();pln("Invalid branch target.");white()
 		return
 	end
 
 	manifest_url = MANIFEST_DIR..target.."/install_manifest.json"
-	repo_url = REPO_BASE..target.."/"
+	build_url = BUILD_DIR..target.."/"
 end
 
 -- main operation
@@ -407,7 +407,7 @@ elseif mode == "install" or mode == "update" then
 		if not update_installer then yellow();pln("A different version of the installer is available, it is recommended to update to it.");white() end
 		if update_installer or ask_y_n("Would you like to update now", true) then
 			lgray();pln("GET ccmsi.lua")
-			local dl, err = http.get(repo_url.."ccmsi.lua")
+			local dl, err = http.get(build_url.."ccmsi.lua")
 
 			if dl == nil then
 				red();pln("HTTP Error: "..err)
