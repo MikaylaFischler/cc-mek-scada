@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.25"
+local CCMSI_VERSION = "v1.26"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -35,6 +35,7 @@ local function yellow() tsc(colors.yellow) end
 local function green() tsc(colors.green) end
 local function cyan() tsc(colors.cyan) end
 local function blue() tsc(colors.blue) end
+local function purple() tsc(colors.purple) end
 local function white() tsc(colors.white) end
 local function lgray() tsc(colors.lightGray) end
 
@@ -104,17 +105,41 @@ local function ask_y_n(question, default)
 	else return nil end
 end
 
-local function pkg_msg(m, p) white();print(m.." ");blue();pln(p);white() end
+local function v_nums(v)
+	local a, b, c = v:match("^[vV]?(%d+)%.(%d+)%.?(%d*)$")
+	return tonumber(a), tonumber(b), tonumber(c) or 0
+end
+
+local function is_update(v)
+	local l1, l2, l3 = v_nums(v.v_local)
+	local r1, r2, r3 = v_nums(v.v_remote)
+
+	if r1 ~= l1 then return (r1 > l1 and 1) or -1 end
+	if r2 ~= l2 then return (r2 > l2 and 1) or -1 end
+	if r3 ~= l3 then return (r3 > l3 and 1) or -1 end
+	return 0
+end
+
+local function pkg_v_msg(n, m, va, vb)
+	purple();print("["..n.."] ");white();print(m.." ");blue()
+	if vb then print(va);white();print(" \x1a ");blue();pln(vb) else pln(va) end
+	white()
+end
+
+local function pkg_msg(n, m) purple();print("["..n.."] ");white();pln(m.." ") end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
-	if v.v_local ~= nil then
-		if v.v_local ~= v.v_remote then
-			print("["..name.."] updating ");blue();print(v.v_local);white();print(" \xbb ");blue();pln(v.v_remote);white()
+	if v.v_local then
+		local is_up = is_update(v)
+		if is_up ~= 0 then
+			local updn = (is_up > 0) and "updating" or "downgrading"
+			pkg_v_msg(name, updn, v.v_local, v.v_remote)
 		elseif mode == "install" then
-			pkg_msg("["..name.."] reinstalling", v.v_local)
+			pkg_v_msg(name, "reinstalling", v.v_local)
 		end
-	else pkg_msg("["..name.."] new install of", v.v_remote) end
+	else pkg_v_msg(name, "new install of", v.v_remote) end
+
 	return v.v_local ~= v.v_remote
 end
 
@@ -351,7 +376,7 @@ if mode == "check" then
 
 	-- list all versions
 	for k, v in pairs(r_manifest.versions) do
-		tsc(colors.purple)
+		purple()
 		local tag = string.format("%-14s", "["..k.."]")
 		if not IS_PKT then print(tag) end
 		if k == "installer" or (ok and (l_manifest.versions[k] ~= nil)) then
@@ -556,9 +581,9 @@ elseif mode == "install" or mode == "update" then
 
 		for _, dep in pairs(deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_msg("skipping install of unchanged package", dep)
+				pkg_msg(dep, "skipping install of unchanged package")
 			else
-				pkg_msg("installing package", dep)
+				pkg_msg(dep, "installing package")
 				lgray()
 
 				-- beginning on the second try, delete the directory before starting
@@ -602,9 +627,9 @@ elseif mode == "install" or mode == "update" then
 		-- download all dependencies
 		for _, dep in pairs(deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_msg("skipping download of unchanged package", dep)
+				pkg_msg(dep, "skipping download of unchanged package")
 			else
-				pkg_msg("downloading package", dep)
+				pkg_msg(dep, "downloading package")
 				lgray()
 
 				local files = file_list[dep]
@@ -632,9 +657,9 @@ elseif mode == "install" or mode == "update" then
 		if success then
 			for _, dep in pairs(deps) do
 				if mode == "update" and unchanged(dep) then
-					pkg_msg("skipping install of unchanged package", dep)
+					pkg_msg(dep, "skipping install of unchanged package")
 				else
-					pkg_msg("installing package", dep)
+					pkg_msg(dep, "installing package")
 					lgray()
 
 					local files = file_list[dep]
