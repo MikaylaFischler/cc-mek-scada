@@ -15,7 +15,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.24"
+local CCMSI_VERSION = "v1.25"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -385,10 +385,7 @@ elseif mode == "install" or mode == "update" then
 
 	-- try to load local versions
 	ok, l_manifest = read_local_manifest()
-	if (mode == "update" and not update_installer) and not ok then
-		red();pln("Failed to load local installation information, cannot update.");white()
-		return
-	else
+	if ok then
 		ver.boot.v_local = l_manifest.versions.bootloader
 		ver.app.v_local = l_manifest.versions[app]
 		ver.comms.v_local = l_manifest.versions.comms
@@ -400,6 +397,9 @@ elseif mode == "install" or mode == "update" then
 			red();pln("Another application is already installed, please uninstall it before installing a new application.");white()
 			return
 		end
+	elseif mode == "update" and not update_installer then
+		red();pln("Failed to load local installation information, cannot update.");white()
+		return
 	end
 
 	-- installer update handling
