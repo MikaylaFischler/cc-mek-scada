@@ -15,7 +15,9 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ]]--
 
-local CCMSI_VERSION = "v1.26"
+local ccs = require("cc.strings")
+
+local CCMSI_VERSION = "v1.27"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -41,12 +43,15 @@ local function lgray() tsc(colors.lightGray) end
 
 local function pln(msg) print(tostring(msg)) end
 
+local out_w, out_h = term.getSize()
+
+local function fgbg(f, b) term.setBackgroundColor(f);tsc(b) end
+
 -- stripped down & modified copy of log.dmesg
 local function print(msg)
 	msg = tostring(msg)
 
 	local cur_x, cur_y = term.getCursorPos()
-	local out_w, out_h = term.getSize()
 
 	if cur_x == out_w then
 		-- jump to next line
@@ -85,6 +90,30 @@ local function print(msg)
 	end
 end
 
+-- reset cursor to before a print of s occurred
+local function print_reset(s)
+	local _, y = term.getCursorPos()
+	for i = 1, #ccs.wrap(s, out_w) do
+		term.setCursorPos(1, y - i);term.clearLine()
+	end
+end
+
+-- show progress and percentage at the bottom of the screen
+local function show_progress(p)
+	local _, y = term.getCursorPos()
+	term.setCursorPos(1, out_h)
+
+	print(string.format("%3.0f%% ", p*100))
+	local pb = math.floor(p*((out_w-6)*2))
+
+	fgbg(colors.lightBlue, colors.black)
+	print(string.rep("\x80", math.floor(pb/2)))
+	fgbg(colors.black, colors.lightBlue)
+	if pb % 2 > 0 then print("\x95") end
+
+	term.setCursorPos(1, y);lgray()
+end
+
 -- get command line option in list
 local function get_opt(opt, options)
 	for _, v in pairs(options) do if opt == v then return v end end
@@ -98,6 +127,7 @@ local function any_key() os.pullEvent("key_up") end
 local function ask_y_n(question, default)
 	print(question)
 	if default == true then print(" (Y/n)? ") else print(" (y/N)? ") end
+	white()
 	local r = read();any_key()
 	if r == "" then return default
 	elseif r == "Y" or r == "y" then return true
@@ -105,11 +135,13 @@ local function ask_y_n(question, default)
 	else return nil end
 end
 
+-- get major, minor, patch version numbers
 local function v_nums(v)
 	local a, b, c = v:match("^[vV]?(%d+)%.(%d+)%.?(%d*)$")
 	return tonumber(a), tonumber(b), tonumber(c) or 0
 end
 
+-- 1 = update, 0 = same, -1 = downgrade
 local function is_update(v)
 	local l1, l2, l3 = v_nums(v.v_local)
 	local r1, r2, r3 = v_nums(v.v_remote)
@@ -120,12 +152,14 @@ local function is_update(v)
 	return 0
 end
 
+-- package version message
 local function pkg_v_msg(n, m, va, vb)
 	purple();print("["..n.."] ");white();print(m.." ");blue()
 	if vb then print(va);white();print(" \x1a ");blue();pln(vb) else pln(va) end
 	white()
 end
 
+-- package info message
 local function pkg_msg(n, m) purple();print("["..n.."] ");white();pln(m.." ") end
 
 -- indicate actions to be taken based on package differences for installs/updates
@@ -259,7 +293,7 @@ local function _clean_dir(dir, tree)
 		if fs.isDir(path) then
 			_clean_dir(path, tree[val])
 			if #fs.list(path) == 0 then fs.delete(path);pln("deleted "..path) end
-		elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then ---@todo remove config.lua on full release
+		elseif (not _in_array(val, tree)) and (val ~= "config.lua" ) then
 			fs.delete(path)
 			pln("deleted "..path)
 		end
@@ -583,18 +617,17 @@ elseif mode == "install" or mode == "update" then
 			if mode == "update" and unchanged(dep) then
 				pkg_msg(dep, "skipping install of unchanged package")
 			else
-				pkg_msg(dep, "installing package")
+				pkg_msg(dep, "installing package...")
 				lgray()
 
 				-- beginning on the second try, delete the directory before starting
 				if attempt >= 2 then
-					if dep == "system" then
-					elseif dep == "common" then
+					if dep == "common" then
 						if fs.exists("/scada-common") then
 							fs.delete("/scada-common")
 							pln("deleted /scada-common")
 						end
-					else
+					elseif dep ~= "system" then
 						if fs.exists("/"..dep) then
 							fs.delete("/"..dep)
 							pln("deleted /"..dep)
@@ -602,9 +635,10 @@ elseif mode == "install" or mode == "update" then
 					end
 				end
 
-				local files = file_list[dep]
+				local files, n = file_list[dep], 1
 				for _, file in pairs(files) do
-					pln("GET "..file)
+					local s = "GET "..file
+					pln(s)
 					mitigate_case(file)
 					local dl_stat = http_get_file(file, "/")
 					if dl_stat ~= 0 then
@@ -613,7 +647,13 @@ elseif mode == "install" or mode == "update" then
 						handle_dl_fail(dl_stat, file, attempt, sf_install)
 						break
 					end
+					show_progress(n/#files)
+					n = n + 1
+					print_reset(s)
 				end
+
+				if not abort_attempt then pkg_msg(dep, "installed!") end
+				term.clearLine()
 			end
 			if abort_attempt or not success then break end
 		end
@@ -629,12 +669,13 @@ elseif mode == "install" or mode == "update" then
 			if mode == "update" and unchanged(dep) then
 				pkg_msg(dep, "skipping download of unchanged package")
 			else
-				pkg_msg(dep, "downloading package")
+				pkg_msg(dep, "downloading package...")
 				lgray()
 
-				local files = file_list[dep]
+				local files, n = file_list[dep], 1
 				for _, file in pairs(files) do
-					pln("GET "..file)
+					local s = "GET "..file
+					pln(s)
 					local dl_stat = http_get_file(file, INSTALL_DIR.."/")
 					success = dl_stat == 0
 					if dl_stat == 1 then
@@ -648,7 +689,13 @@ elseif mode == "install" or mode == "update" then
 						red();pln("no space for "..file)
 						break
 					end
+					show_progress(n/#files)
+					n = n + 1
+					print_reset(s)
 				end
+
+				if success then pkg_msg(dep, "download complete!") end
+				term.clearLine()
 			end
 			if not success then break end
 		end
@@ -659,7 +706,7 @@ elseif mode == "install" or mode == "update" then
 				if mode == "update" and unchanged(dep) then
 					pkg_msg(dep, "skipping install of unchanged package")
 				else
-					pkg_msg(dep, "installing package")
+					pkg_msg(dep, "installing package...")
 					lgray()
 
 					local files = file_list[dep]
@@ -668,6 +715,8 @@ elseif mode == "install" or mode == "update" then
 						if fs.exists(file) then fs.delete(file) end
 						fs.move(temp_file, file)
 					end
+
+					pkg_msg(dep, "installed!")
 				end
 			end
 		end
@@ -708,7 +757,7 @@ elseif mode == "uninstall" then
 		return
 	end
 
-	orange();pln("Uninstalling all "..app.." files...")
+	orange();pln("Uninstalling all "..app.." files...");white()
 
 	-- ask for confirmation
 	if not ask_y_n("Continue", false) then return end
