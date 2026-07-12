@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "v1.27"
+local CCMSI_VERSION = "v1.28"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -712,6 +712,7 @@ elseif mode == "install" or mode == "update" then
 					local files = file_list[dep]
 					for _, file in pairs(files) do
 						local temp_file = INSTALL_DIR.."/"..file
+						mitigate_case(file)
 						if fs.exists(file) then fs.delete(file) end
 						fs.move(temp_file, file)
 					end
