@@ -56,9 +56,10 @@ Once this is out of beta I will be more open to contributions, but for now I am 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
 
-This project implements concepts of a SCADA system in ComputerCraft (because why not? ..okay don't answer that). I recommend reviewing that linked wikipedia page on SCADA if you *want* to understand the concepts used here.
+This project implements concepts of a SCADA system in ComputerCraft (because why not?). I recommend reviewing that linked Wikipedia page on SCADA if you *want* to understand the concepts used here.
 
-![Architecture](https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Functional_levels_of_a_Distributed_Control_System.svg/1000px-Functional_levels_of_a_Distributed_Control_System.svg.png)
+![Architecture](https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Functional_levels_of_a_Distributed_Control_System.svg/3840px-Functional_levels_of_a_Distributed_Control_System.svg.png)
+<small><i>By Daniele Pugliesi - Own work, CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=31527335</i></small>
 
 SCADA and industrial automation terminology is used throughout the project, such as:
 - Supervisory Computer: Gathers data and controls the process
