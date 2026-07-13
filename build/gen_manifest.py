@@ -2,6 +2,10 @@ import json
 import os
 import sys
 
+#
+# functions
+#
+
 # list files in a directory
 def list_files(path):
     list = []
@@ -97,37 +101,54 @@ def make_manifest(size):
 
     return manifest
 
-# write initial manifest with placeholder size
-f = open("install_manifest.json", "w")
-json.dump(make_manifest("-----"), f)
-f.close()
+#
+#  main
+#
 
-manifest_size = os.path.getsize("install_manifest.json")
+if __name__ == "__main__":
+    # parse arguments
+    gen_shields = "--shields" in sys.argv
 
-final_manifest = make_manifest(manifest_size)
+    ini_dir = os.getcwd()
 
-# calculate file size then regenerate with embedded size
-f = open("install_manifest.json", "w")
-json.dump(final_manifest, f)
-f.close()
+    # check if we were given a path to run in
+    for arg in sys.argv[1:]:
+        if not arg.startswith("-"):
+            os.chdir(arg)
+            break
 
-if len(sys.argv) > 1 and sys.argv[1] == "shields":
-    # write all the JSON files for shields.io
-    for key, version in final_manifest["versions"].items():
-        f = open("./deploy/" + key + ".json", "w")
+    # write initial manifest with placeholder size
+    manifest_file = open(ini_dir + "/install_manifest.json", "w")
+    json.dump(make_manifest(9999), manifest_file)
+    manifest_file.close()
 
-        if version.find("alpha") >= 0:
-            color = "yellow"
-        elif version.find("beta") >= 0:
-            color = "orange"
-        else:
-            color = "blue"
+    manifest = make_manifest(os.path.getsize(ini_dir + "/install_manifest.json"))
 
-        json.dump({
-            "schemaVersion": 1,
-            "label": key,
-            "message": "" + version,
-            "color": color
-        }, f)
+    # calculate file size then regenerate with embedded size
+    manifest_file = open(ini_dir + "/install_manifest.json", "w")
+    json.dump(manifest, manifest_file)
+    manifest_file.close()
 
-        f.close()
+    # write all the JSON files for shields.io if requested
+    if gen_shields:
+        for key, version in manifest["versions"].items():
+            shields_file = open(ini_dir + "/deploy/" + key + ".json", "w")
+
+            # color based on release type
+            if version.find("alpha") >= 0:
+                color = "yellow"
+            elif version.find("beta") >= 0:
+                color = "orange"
+            else:
+                color = "blue"
+
+            # prepare shields data
+            json.dump({
+                "schemaVersion": 1,
+                "label": key,
+                "message": "" + version,
+                "color": color
+            }, shields_file)
+
+            shields_file.close()
+

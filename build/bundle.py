@@ -130,7 +130,7 @@ if not os.path.exists("./BUNDLE"):
     os.makedirs("./BUNDLE")
 
 # get offline installer
-ccmsim_file = open("./build/ccmsim.lua", "r")
+ccmsim_file = open("./build/offline/ccmsim.lua", "r")
 ccmsim_script = ccmsim_file.read()
 ccmsim_file.close()
 
@@ -161,7 +161,7 @@ f_d.close()
 for app in [ "reactor-plc", "rtu", "supervisor", "coordinator", "pocket" ]:
     app_file = app + "_" + build + ".lua"
 
-    f_script = open("./build/_offline.lua", "r")
+    f_script = open("./build/offline/_offline.lua", "r")
     script = f_script.read()
     f_script.close()
 
