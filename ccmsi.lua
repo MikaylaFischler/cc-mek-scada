@@ -515,6 +515,7 @@ elseif mode == "install" or mode == "update" then
 	local file_list = r_manifest.files
 	local size_list = r_manifest.sizes
 	local deps = r_manifest.depends[app]
+	local sf_deps = {}
 
 	table.insert(deps, app)
 
@@ -531,6 +532,7 @@ elseif mode == "install" or mode == "update" then
 	local any_change = false
 
 	for _, dep in pairs(deps) do
+		table.insert(sf_deps, dep)
 		local size = size_list[dep]
 		space_req = space_req + size
 		any_change = any_change or not unchanged(dep)
@@ -613,9 +615,10 @@ elseif mode == "install" or mode == "update" then
 		local abort_attempt = false
 		success = true
 
-		for _, dep in pairs(deps) do
+		for k, dep in pairs(sf_deps) do
 			if mode == "update" and unchanged(dep) then
 				pkg_msg(dep, "skipping install of unchanged package")
+				sf_deps[k] = nil
 			else
 				pkg_msg(dep, "installing package...")
 				lgray()
@@ -652,7 +655,7 @@ elseif mode == "install" or mode == "update" then
 					print_reset(s)
 				end
 
-				if not abort_attempt then pkg_msg(dep, "installed!") end
+				if not abort_attempt then pkg_msg(dep, "installed!");sf_deps[k] = nil end
 				term.clearLine()
 			end
 			if abort_attempt or not success then break end
