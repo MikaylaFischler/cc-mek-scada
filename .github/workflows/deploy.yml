@@ -5,9 +5,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      # - main
-      # - devel
-      - deploy-test
+      - main
+      - devel
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -66,7 +65,7 @@ jobs:
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         working-directory: branch-main
         run: mv deploy/*.json ../deploy/
-      # Generate manifest for devel branch
+      # Generate manifest and build for devel branch
       - name: Checkout Development
         id: checkout-devel
         if: success() || failure()
@@ -75,38 +74,20 @@ jobs:
           ref: 'devel'
           path: branch-devel
           clean: false
-      - name: "[DEVEL] (LEGACY) Generate Installation Manifest"
-        id: manifest-devel
+      - name: "[DEVEL] Generate Minified Code"
+        id: minify-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
         working-directory: branch-devel
-        run: python build/imgen.py
+        run: python build/gen_minified.py ../deploy/builds/devel --deployment
+      - name: "[DEVEL] Generate Installation Manifest"
+        id: manifest-devel
+        if: ${{ (success() || failure()) && steps.minify-devel.outcome == 'success' }}
+        working-directory: branch-devel
+        run: python build/gen_manifest.py ../deploy/builds/devel
       - name: "[DEVEL] Save Installation Manifest"
         if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
         working-directory: branch-devel
         run: mv install_manifest.json ../deploy/manifests/devel
-      # Generate manifest and build for deploy-test branch
-      - name: Checkout Deployment Test
-        id: checkout-test
-        if: success() || failure()
-        uses: actions/checkout@v7.0.0
-        with:
-          ref: 'deploy-test'
-          path: branch-test
-          clean: false
-      - name: "[DEPLOY-TEST] Generate Minified Code"
-        id: minify-test
-        if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
-        working-directory: branch-test
-        run: python build/gen_minified.py ../deploy/builds/deploy-test --deployment
-      - name: "[DEPLOY-TEST] Generate Installation Manifest"
-        id: manifest-test
-        if: ${{ (success() || failure()) && steps.checkout-test.outcome == 'success' }}
-        working-directory: branch-test
-        run: python build/gen_manifest.py ../deploy/builds/deploy-test
-      - name: "[DEPLOY-TEST] Save Installation Manifest"
-        if: ${{ (success() || failure()) && steps.manifest-test.outcome == 'success' }}
-        working-directory: branch-test
-        run: mv install_manifest.json ../deploy/manifests/deploy-test
       # All artifacts ready now, upload deploy directory
       - name: Upload Artifacts
         id: upload-artifacts

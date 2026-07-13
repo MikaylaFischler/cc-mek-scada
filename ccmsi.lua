@@ -380,7 +380,7 @@ else
 	end
 
 	target = OPTS[next_opt] or "main"
-	if target ~= "main" and target ~= "devel" and target ~= "deploy-test" then
+	if target ~= "main" and target ~= "devel" then
 		red();pln("Invalid branch target.");white()
 		return
 	end
