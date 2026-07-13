@@ -20,7 +20,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "v1.9.7"
+local COORDINATOR_VERSION = "1.9.8"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -61,9 +61,9 @@ local config = coordinator.config
 log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
-log.info("BOOTING coordinator.startup " .. COORDINATOR_VERSION)
+log.info("BOOTING coordinator.startup v" .. COORDINATOR_VERSION)
 log.info("========================================")
-println(">> SCADA Coordinator " .. COORDINATOR_VERSION .. " <<")
+println(">> SCADA Coordinator v" .. COORDINATOR_VERSION .. " <<")
 
 crash.set_env("coordinator", COORDINATOR_VERSION)
 crash.dbg_log_env()

@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "v2.0"
+local CCMSI_VERSION = "2.0"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -329,8 +329,8 @@ end
 -- handle command line options
 
 tsc(colors.magenta)
-if IS_PKT then pln("- SCADA Installer "..CCMSI_VERSION.." -")
-else pln("-- ComputerCraft Mekanism SCADA Installer "..CCMSI_VERSION.." --") end
+if IS_PKT then pln("- SCADA Installer v"..CCMSI_VERSION.." -")
+else pln("-- ComputerCraft Mekanism SCADA Installer v"..CCMSI_VERSION.." --") end
 white()
 
 if #OPTS == 0 or OPTS[1] == "help" then
