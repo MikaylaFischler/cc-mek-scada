@@ -25,7 +25,7 @@ local supervisor = require("supervisor.supervisor")
 
 local svsessions = require("supervisor.session.svsessions")
 
-local SUPERVISOR_VERSION = "v1.11.5"
+local SUPERVISOR_VERSION = "1.11.7"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -100,9 +100,9 @@ end
 log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
-log.info("BOOTING supervisor.startup " .. SUPERVISOR_VERSION)
+log.info("BOOTING supervisor.startup v" .. SUPERVISOR_VERSION)
 log.info("========================================")
-println(">> SCADA Supervisor " .. SUPERVISOR_VERSION .. " <<")
+println(">> SCADA Supervisor v" .. SUPERVISOR_VERSION .. " <<")
 
 crash.set_env("supervisor", SUPERVISOR_VERSION)
 crash.dbg_log_env()

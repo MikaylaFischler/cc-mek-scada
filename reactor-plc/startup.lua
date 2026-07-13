@@ -19,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "v1.12.13"
+local R_PLC_VERSION = "1.12.14"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -51,9 +51,9 @@ local config = plc.config
 log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
-log.info("BOOTING reactor-plc.startup " .. R_PLC_VERSION)
+log.info("BOOTING reactor-plc.startup v" .. R_PLC_VERSION)
 log.info("========================================")
-println(">> Reactor PLC " .. R_PLC_VERSION .. " <<")
+println(">> Reactor PLC v" .. R_PLC_VERSION .. " <<")
 
 crash.set_env("reactor-plc", R_PLC_VERSION)
 crash.dbg_log_env()

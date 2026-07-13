@@ -21,7 +21,7 @@ local rtu       = require("rtu.rtu")
 local threads   = require("rtu.threads")
 local uinit     = require("rtu.uinit")
 
-local RTU_VERSION = "v1.15.0"
+local RTU_VERSION = "1.15.0"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -53,9 +53,9 @@ local config = rtu.config
 log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
-log.info("BOOTING rtu.startup " .. RTU_VERSION)
+log.info("BOOTING rtu.startup v" .. RTU_VERSION)
 log.info("========================================")
-println(">> RTU GATEWAY " .. RTU_VERSION .. " <<")
+println(">> RTU GATEWAY v" .. RTU_VERSION .. " <<")
 
 crash.set_env("rtu", RTU_VERSION)
 crash.dbg_log_env()

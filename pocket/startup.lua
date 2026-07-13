@@ -22,7 +22,7 @@ local pocket    = require("pocket.pocket")
 local renderer  = require("pocket.renderer")
 local threads   = require("pocket.threads")
 
-local POCKET_VERSION = "v1.2.2"
+local POCKET_VERSION = "1.2.4"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -60,7 +60,7 @@ local config = pocket.config
 log.init(config.LogPath, config.LogMode, config.LogDebug)
 
 log.info("========================================")
-log.info("BOOTING pocket.startup " .. POCKET_VERSION)
+log.info("BOOTING pocket.startup v" .. POCKET_VERSION)
 log.info("========================================")
 
 crash.set_env("pocket", POCKET_VERSION)
