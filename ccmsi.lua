@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "v2.0.0"
+local CCMSI_VERSION = "v2.0"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
