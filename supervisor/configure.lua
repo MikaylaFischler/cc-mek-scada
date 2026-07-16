@@ -83,9 +83,9 @@ local tool_ctl = {
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
-    ext_idling = {},      ---@type Checkbox
-    sna_stats = {},       ---@type Checkbox
-    com_waste = {},       ---@type Checkbox
+    ext_idling = nil,     ---@type Checkbox
+    sna_stats = nil,      ---@type Checkbox
+    com_waste = nil,      ---@type Checkbox
 
     mek_profile = nil,    ---@type RadioButton
     custom_configs = {},  ---@type NumberField[]
