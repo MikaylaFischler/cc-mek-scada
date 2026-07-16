@@ -301,13 +301,10 @@ function update.pre_auto()
 
             capacity = db.build.max_energy
             energy   = db.state.energy
-            input    = db.state.last_input
-            output   = db.state.last_output
-            transfer = db.state.last_transfer
-
-            if capacity > 0 then
-                percent  = (energy / capacity) * 100
-            else percent = 0 end
+            input    = db.state.input
+            output   = db.state.output
+            transfer = db.state.transfer
+            percent  = db.virtual.energy_fill * 100
         end
 
         local has_data = build_update > 0 and rate_update > 0 and charge_update > 0
@@ -839,10 +836,7 @@ function update.auto_safety()
         else
             local db = self.ecore[1].get_db()
             storage_ok = not self.ecore[1].is_faulted()
-
-            if db.build.max_energy > 0 then
-                fill = db.state.energy / db.build.max_energy
-            else fill = 0 end
+            fill = db.virtual.energy_fill
         end
 
         -- clear energy storage fault if ok again
@@ -1099,17 +1093,14 @@ function update.redstone(ack_all)
 
         -- update energy storage related outputs
         if self.induction[1] or self.ecore[1] then
-            local fill = 0
+            local fill
 
             if self.induction[1] then
                 local db = self.induction[1].get_db()
                 fill = db.tanks.energy_fill
             else
                 local db = self.ecore[1].get_db()
-
-                if db.build.last_update > 0 and db.build.max_energy > 0 then
-                    fill = db.state.energy / db.build.max_energy
-                end
+                fill = db.virtual.energy_fill
             end
 
             self.io_ctl.digital_write(IO.F_CHARGE_LOW, fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW)
@@ -1140,11 +1131,8 @@ function update.waste_mgmt(combined_waste, public)
             local db = self.ecore[1].get_db()
 
             ok = db.build.last_update > 0 and db.build.max_energy > 0
-            last_update = db.state.last_update
-
-            if ok then
-                fill = db.state.energy / db.build.max_energy
-            else fill = 0 end
+            last_update = db.virtual.last_update
+            fill = db.virtual.energy_fill
         end
 
         if ok then

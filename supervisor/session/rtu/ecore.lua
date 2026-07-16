@@ -54,10 +54,14 @@ function ecore.new(session_id, unit_id, advert, out_queue)
             },
             state = {
                 last_update = 0,
-                last_input = 0,
-                last_output = 0,
-                last_transfer = 0,
+                input = 0,
+                output = 0,
+                transfer = 0,
                 energy = 0
+            },
+            virtual = {
+                last_update = 0,
+                energy_fill = 0
             }
         }
     }
@@ -101,17 +105,27 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_energy  = adu.data[1]
                 self.has_build = true
 
+                if self.db.build.max_energy > 0 then
+                    self.db.virtual.last_update = self.db.state.last_update -- intentionally using state
+                    self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
+                else self.db.virtual.energy_fill = 0 end
+
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
             else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
             if adu.length == 4 then
-                self.db.state.last_update   = util.time_ms()
-                self.db.state.last_input    = adu.data[1]
-                self.db.state.last_output   = adu.data[2]
-                self.db.state.last_transfer = adu.data[3]
-                self.db.state.energy        = adu.data[4]
+                self.db.state.last_update = util.time_ms()
+                self.db.state.input       = adu.data[1]
+                self.db.state.output      = adu.data[2]
+                self.db.state.transfer    = adu.data[3]
+                self.db.state.energy      = adu.data[4]
+
+                if self.has_build and self.db.build.max_energy > 0 then
+                    self.db.virtual.last_update = self.db.state.last_update
+                    self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
+                else self.db.virtual.energy_fill = 0 end
             else self.session.log_length_mismatch(txn_type) end
         else self.session.log_resolve_fail(txn_type) end
     end
