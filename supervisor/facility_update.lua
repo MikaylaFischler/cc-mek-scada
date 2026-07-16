@@ -1097,13 +1097,24 @@ function update.redstone(ack_all)
         self.io_ctl.digital_write(IO.F_ALARM, has_prio_alarm)
         self.io_ctl.digital_write(IO.F_ALARM_ANY, has_any_alarm)
 
-        -- update induction matrix related outputs
-        if self.induction[1] ~= nil then
-            local db = self.induction[1].get_db()
+        -- update energy storage related outputs
+        if self.induction[1] or self.ecore[1] then
+            local fill = 0
 
-            self.io_ctl.digital_write(IO.F_MATRIX_LOW, db.tanks.energy_fill < const.RS_THRESHOLDS.IMATRIX_CHARGE_LOW)
-            self.io_ctl.digital_write(IO.F_MATRIX_HIGH, db.tanks.energy_fill > const.RS_THRESHOLDS.IMATRIX_CHARGE_HIGH)
-            self.io_ctl.analog_write(IO.F_MATRIX_CHG, db.tanks.energy_fill, 0, 1)
+            if self.induction[1] then
+                local db = self.induction[1].get_db()
+                fill = db.tanks.energy_fill
+            else
+                local db = self.ecore[1].get_db()
+
+                if db.build.last_update > 0 and db.build.max_energy > 0 then
+                    fill = db.state.energy / db.build.max_energy
+                end
+            end
+
+            self.io_ctl.digital_write(IO.F_CHARGE_LOW, fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW)
+            self.io_ctl.digital_write(IO.F_CHARGE_HIGH, fill > const.RS_THRESHOLDS.ENERGY_CHARGE_HIGH)
+            self.io_ctl.analog_write(IO.F_ENERGY_CHG, fill, 0, 1)
         end
     end
 end
