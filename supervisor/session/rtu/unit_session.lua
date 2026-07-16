@@ -148,6 +148,18 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
         self.transaction_controller.cleanup()
     end
 
+    -- log a transaction reply length mismatch
+    ---@param txn_type integer transaction type
+    function protected.log_length_mismatch(txn_type)
+        log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. txn_tags[txn_type] .. ")")
+    end
+
+    -- log a transaction resolution failure
+    ---@param txn_type integer transaction type
+    function protected.log_resolve_fail(txn_type)
+        log.error(log_tag .. "unknown transaction " .. util.trinary(txn_type == nil, "reply", util.c("type ", txn_type)))
+    end
+
     -- get the public interface
     ---@nodiscard
     function protected.get() return public end

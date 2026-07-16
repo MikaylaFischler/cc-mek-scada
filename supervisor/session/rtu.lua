@@ -12,6 +12,7 @@ local svqtypes      = require("supervisor.session.svqtypes")
 local unit_session  = require("supervisor.session.rtu.unit_session")
 local svrs_boilerv  = require("supervisor.session.rtu.boilerv")
 local svrs_dynamicv = require("supervisor.session.rtu.dynamicv")
+local svrs_ecore    = require("supervisor.session.rtu.ecore")
 local svrs_envd     = require("supervisor.session.rtu.envd")
 local svrs_imatrix  = require("supervisor.session.rtu.imatrix")
 local svrs_redstone = require("supervisor.session.rtu.redstone")
@@ -195,6 +196,10 @@ function rtu.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout, ad
                         -- induction matrix
                         unit = svrs_imatrix.new(id, i, unit_advert, self.modbus_q)
                         if type(unit) ~= "nil" then facility.add_imatrix(unit) end
+                    elseif u_type == RTU_UNIT_TYPE.ENERGY_CORE then
+                        -- energy core
+                        unit = svrs_ecore.new(id, i, unit_advert, self.modbus_q)
+                        if type(unit) ~= "nil" then facility.add_ecore(unit) end
                     elseif u_type == RTU_UNIT_TYPE.SNA then
                         -- solar neutron activator
                         unit = svrs_sna.new(id, i, unit_advert, self.modbus_q)

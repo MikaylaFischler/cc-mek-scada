@@ -62,7 +62,7 @@ local self = {
         duplicate = {},     ---@type unit_session[]
         out_of_range = {},  ---@type unit_session[]
         mismatch = {},      ---@type unit_session[]
-        connected = {}      ---@type { induction: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
+        connected = {}      ---@type { energy_storage: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
     }
 }
 
@@ -240,9 +240,9 @@ local function _update_dev_dbg()
 
     -- look for disconnected facility RTUs
 
-    if rtu_conns.induction ~= conns.induction then
-        report(conns.induction, util.c("the facility's induction matrix"))
-        conns.induction = rtu_conns.induction
+    if rtu_conns.energy_storage ~= conns.energy_storage then
+        report(conns.energy_storage, util.c("the facility's energy storage"))
+        conns.energy_storage = rtu_conns.energy_storage
     end
 
     if rtu_conns.sps ~= conns.sps then
@@ -369,9 +369,13 @@ function svsessions.report_rtu_mismatch(unit)
     table.insert(self.dev_dbg.mismatch, unit)
 
     if r_id == 0 then
-        msg = "a facility's "
+        msg = "a facility "
 
-        if type == RTU_TYPES.SNA then
+        if type == RTU_TYPES.IMATRIX then
+            msg = msg .. "induction matrix (has energy core)"
+        elseif type == RTU_TYPES.ENERGY_CORE then
+            msg = msg .. "energy core (has induction matrix)"
+        elseif type == RTU_TYPES.SNA then
             msg = msg .. "SNA (must be for unit)"
         else
             msg = msg .. " ? (error)"
@@ -401,7 +405,7 @@ function svsessions.init(fp_ok, config, facility)
     -- initialize connection tracking table by setting all expected devices to true
     -- if connections are missing, missing entries will then be created on the next update
 
-    self.dev_dbg.connected = { induction = true, sps = true, tanks = {}, units = {} }
+    self.dev_dbg.connected = { energy_storage = true, sps = true, tanks = {}, units = {} }
 
     local cool_conf = facility.get_cooling_conf()
 

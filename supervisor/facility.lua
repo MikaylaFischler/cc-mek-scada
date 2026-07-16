@@ -82,6 +82,7 @@ function facility.new(config)
         rtu_list = {},  ---@type unit_session[][]
         redstone = {},  ---@type redstone_session[]
         induction = {}, ---@type imatrix_session[]
+        ecore = {},     ---@type ecore_session[]
         snas = {},      ---@type sna_session[]
         sps = {},       ---@type sps_session[]
         tanks = {},     ---@type dynamicv_session[]
@@ -192,7 +193,7 @@ function facility.new(config)
     end
 
     -- list for RTU session management
-    self.rtu_list = { self.redstone, self.induction, self.snas, self.sps, self.tanks, self.envd }
+    self.rtu_list = { self.redstone, self.induction, self.ecore, self.snas, self.sps, self.tanks, self.envd }
 
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone, 0)
@@ -301,16 +302,39 @@ function facility.new(config)
 
     -- link an induction matrix RTU session
     ---@param imatrix unit_session
-    ---@return boolean linked induction matrix accepted (max 1)
+    ---@return boolean linked induction matrix accepted (max 1 energy storage device)
     function public.add_imatrix(imatrix)
         local fail_code, fail_str = svsessions.check_rtu_id(imatrix, self.induction, 1)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if ok then
+        if #self.ecore > 0 then
+            svsessions.report_rtu_mismatch(imatrix)
+            log.warning(util.c("FAC: rejected induction matrix linking due to existing energy core connection"))
+        elseif ok then
             table.insert(self.induction, imatrix)
             log.debug(util.c("FAC: linked induction matrix [", imatrix.get_unit_id(), "@", imatrix.get_session_id(), "]"))
         else
             log.warning(util.c("FAC: rejected induction matrix linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return ok
+    end
+
+    -- link an energy core RTU session
+    ---@param ecore unit_session
+    ---@return boolean linked energy core accepted (max 1 energy storage device)
+    function public.add_ecore(ecore)
+        local fail_code, fail_str = svsessions.check_rtu_id(ecore, self.ecore, 1)
+        local ok = fail_code == RTU_LINK_FAIL.OK
+
+        if #self.induction > 0 then
+            svsessions.report_rtu_mismatch(ecore)
+            log.warning(util.c("FAC: rejected energy core linking due to existing induction matrix connection"))
+        elseif ok then
+            table.insert(self.ecore, ecore)
+            log.debug(util.c("FAC: linked energy core [", ecore.get_unit_id(), "@", ecore.get_session_id(), "]"))
+        else
+            log.warning(util.c("FAC: rejected energy core linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
         return ok
@@ -705,6 +729,9 @@ function facility.new(config)
         local conns = {}
 
         conns.induction = #self.induction > 0
+        conns.ecore = #self.ecore > 0
+        conns.energy_storage = conns.induction or conns.ecore
+
         conns.sps = #self.sps > 0
 
         conns.tanks = {}
