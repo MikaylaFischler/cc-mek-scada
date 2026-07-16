@@ -27,8 +27,8 @@ local IO = rsio.IO
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
     NONE = 0,
-    MATRIX_FAULT = 1,
-    MATRIX_FILL = 2,
+    STORAGE_FAULT = 1,
+    STORAGE_FILL = 2,
     CRIT_ALARM = 3,
     RADIATION = 4,
     GEN_FAULT = 5
@@ -114,8 +114,8 @@ function facility.new(config)
         ascram_reason = AUTO_SCRAM.NONE,
         ---@class ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            storage_fault = false,
+            storage_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -154,18 +154,18 @@ function facility.new(config)
         test_tone_states = {},  ---@type { [TONE]: boolean }
         test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
-        im_stat_init = false,
-        imtx_percent = 0.0,
+        energy_stat_init = false,
+        energy_percent = 0.0,
         avg_charge = util.ema_filter(0.2857),  -- ~3 seconds
         avg_inflow = util.ema_filter(0.2857),  -- ~3 seconds
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
-        -- induction matrix charge delta stats
+        -- energy storage charge delta stats
         avg_net = util.ema_filter(0.075),
         imtx_last_capacity = 0,
         imtx_last_charge = 0,
         imtx_last_charge_t = 0,
-        -- track faulted induction matrix update times to reject
-        imtx_faulted_times = { 0, 0, 0 },
+        -- track faulted energy storage update times to reject
+        energy_faulted_times = { 0, 0, 0 },
         -- facility alarms
         ---@type { [string]: alarm_def }
         alarms = {
@@ -677,6 +677,14 @@ function facility.new(config)
             end
         end
 
+        if all or type == RTU_UNIT_TYPE.ENERGY_CORE then
+            build.ecore = {}
+            for i = 1, #self.ecore do
+                local matrix = self.ecore[i]
+                build.ecore[i] = { matrix.get_db().build }
+            end
+        end
+
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
@@ -708,8 +716,8 @@ function facility.new(config)
             self.at_max_burn or self.saturated,
             self.turbine_gen_rate,
             self.ascram,
-            astat.matrix_fault,
-            astat.matrix_fill,
+            astat.storage_fault,
+            astat.storage_fill,
             astat.crit_alarm,
             astat.radiation,
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
@@ -750,7 +758,7 @@ function facility.new(config)
         -- total count of all connected RTUs in the facility
         status.count = self.rtu_gw_conn_count
 
-        -- power averages from induction matricies
+        -- power averages from energy storage
         status.power = {
             self.avg_charge.get(),
             self.avg_inflow.get(),
@@ -769,6 +777,21 @@ function facility.new(config)
             local fe_per_ms = self.avg_net.get()
             local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
             status.power[4] = remaining / fe_per_ms
+        end
+
+        -- status of energy core
+        status.ecore = {}
+        for i = 1, #self.ecore do
+            local ecore = self.ecore[i]
+            local db = ecore.get_db()
+
+            status.ecore[i] = { db.state }
+
+            if db.build.last_update > 0 then
+                local fe_per_ms = self.avg_net.get()
+                local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.build.max_energy - db.state.energy, db.state.energy))
+                status.power[4] = remaining / fe_per_ms
+            end
         end
 
         -- SNA/Po statistical information

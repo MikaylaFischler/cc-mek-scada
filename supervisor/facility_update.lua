@@ -268,67 +268,103 @@ function update.pre_auto()
     charge_update = 0
     rate_update = 0
 
-    -- calculate moving averages for induction matrix
-    if self.induction[1] ~= nil then
-        local matrix = self.induction[1]
-        local db = matrix.get_db()
+    -- calculate moving averages for energy storage
+    if self.induction[1] or self.ecore[1] then
+        local build_update, faulted
+        local capacity, energy, input, output, transfer, percent
 
-        local build_update = db.build.last_update
-        rate_update = db.state.last_update
-        charge_update = db.tanks.last_update
+        if self.induction[1] then
+            local matrix = self.induction[1]
+            local db = matrix.get_db()
+
+            build_update = db.build.last_update
+            rate_update = db.state.last_update
+            charge_update = db.tanks.last_update
+
+            faulted = matrix.is_faulted()
+
+            capacity = util.joules_to_fe_rf(db.build.max_energy)
+            energy   = util.joules_to_fe_rf(db.tanks.energy)
+            input    = util.joules_to_fe_rf(db.state.last_input)
+            output   = util.joules_to_fe_rf(db.state.last_output)
+            transfer = nil
+            percent  = db.tanks.energy_fill * 100
+        else
+            local ecore = self.ecore[1]
+            local db = ecore.get_db()
+
+            build_update = db.build.last_update
+            rate_update = db.state.last_update
+            charge_update = rate_update
+
+            faulted = ecore.is_faulted()
+
+            capacity = db.build.max_energy
+            energy   = db.state.energy
+            input    = db.state.last_input
+            output   = db.state.last_output
+            transfer = db.state.last_transfer
+
+            if capacity > 0 then
+                percent  = (energy / capacity) * 100
+            else percent = 0 end
+        end
 
         local has_data = build_update > 0 and rate_update > 0 and charge_update > 0
 
-        if matrix.is_faulted() then
+        if faulted then
             -- a fault occured, cannot reliably update stats
             has_data = false
-            self.im_stat_init = false
-            self.imtx_faulted_times = { build_update, rate_update, charge_update }
-        elseif not self.im_stat_init then
+            self.energy_stat_init = false
+            self.energy_faulted_times = { build_update, rate_update, charge_update }
+        elseif not self.energy_stat_init then
             -- prevent operation with partially invalid data
             -- all fields must have updated since the last fault
-            has_data = self.imtx_faulted_times[1] < build_update and
-                        self.imtx_faulted_times[2] < rate_update and
-                        self.imtx_faulted_times[3] < charge_update
+            has_data = self.energy_faulted_times[1] < build_update and
+                       self.energy_faulted_times[2] < rate_update and
+                       self.energy_faulted_times[3] < charge_update
         end
 
         if has_data then
-            local energy = util.joules_to_fe_rf(db.tanks.energy)
-            local input  = util.joules_to_fe_rf(db.state.last_input)
-            local output = util.joules_to_fe_rf(db.state.last_output)
+            self.energy_percent = percent
 
-            self.imtx_percent = db.tanks.energy_fill * 100
-
-            if self.im_stat_init then
+            if self.energy_stat_init then
                 self.avg_charge.update(energy, charge_update)
                 self.avg_inflow.update(input, rate_update)
                 self.avg_outflow.update(output, rate_update)
 
-                if charge_update ~= self.imtx_last_charge_t then
+                if transfer then
+                    self.avg_net.update(transfer, rate_update)
+                elseif charge_update ~= self.imtx_last_charge_t then
                     local delta = (energy - self.imtx_last_charge) / (charge_update - self.imtx_last_charge_t)
 
                     self.imtx_last_charge = energy
                     self.imtx_last_charge_t = charge_update
 
                     -- if the capacity changed, toss out existing data
-                    if db.build.max_energy ~= self.imtx_last_capacity then
-                        self.imtx_last_capacity = db.build.max_energy
+                    if capacity ~= self.imtx_last_capacity then
+                        self.imtx_last_capacity = capacity
                         self.avg_net.reset()
                     else
                         self.avg_net.update(delta, charge_update)
                     end
                 end
             else
-                self.im_stat_init = true
+                self.energy_stat_init = true
 
                 self.avg_charge.reset(energy)
                 self.avg_inflow.reset(input)
                 self.avg_outflow.reset(output)
-                self.avg_net.reset()
 
-                self.imtx_last_capacity = db.build.max_energy
-                self.imtx_last_charge = energy
-                self.imtx_last_charge_t = charge_update
+                if transfer then
+                    self.avg_net.reset(transfer)
+                else
+                    self.avg_net.reset()
+
+                    self.imtx_last_capacity = capacity
+                    self.imtx_last_charge = energy
+                    self.imtx_last_charge_t = charge_update
+                end
             end
         else
             -- prevent use by control systems
@@ -336,7 +372,7 @@ function update.pre_auto()
             charge_update = 0
         end
     else
-        self.im_stat_init = false
+        self.energy_stat_init = false
     end
 
     -- calculate energy generated by turbines under auto control
@@ -383,11 +419,11 @@ function update.auto_control(ExtChargeIdling)
             log.warning("facility_update.auto_control(): failed to save supervisor settings file")
         end
 
-        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.MATRIX_FAULT_IDLE or
+        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.STORAGE_FAULT_IDLE or
            self.last_mode == PROCESS.SYSTEM_ALARM_IDLE or self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE then
             self.start_fail = START_STATUS.OK
 
-            if (self.mode ~= PROCESS.MATRIX_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
+            if (self.mode ~= PROCESS.STORAGE_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
                 -- auto clear ASCRAM
                 self.ascram = false
                 self.ascram_reason = AUTO_SCRAM.NONE
@@ -554,13 +590,13 @@ function update.auto_control(ExtChargeIdling)
 
             self.status_text = { "CHARGE RANGE MODE", "idle, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
-        elseif self.range_control_en and (self.imtx_percent >= self.sp.range_stop) then
+        elseif self.range_control_en and (self.energy_percent >= self.sp.range_stop) then
             self.range_control_en = false
             self.waiting_on_ramp = false
 
             self.status_text = { "CHARGE RANGE MODE", "stopped, sufficient charge" }
             log.info("FAC: RANGE_CONTROL process mode started")
-        elseif (not self.range_control_en) and (self.imtx_percent <= self.sp.range_start) then
+        elseif (not self.range_control_en) and (self.energy_percent <= self.sp.range_start) then
             self.range_control_en = true
             self.waiting_on_ramp = true
 
@@ -761,14 +797,14 @@ function update.auto_control(ExtChargeIdling)
         end
 
         self.last_update = rate_update
-    elseif self.mode == PROCESS.MATRIX_FAULT_IDLE then
+    elseif self.mode == PROCESS.STORAGE_FAULT_IDLE then
         -- exceeded charge, wait until condition clears
         if self.ascram_reason == AUTO_SCRAM.NONE then
             next_mode = self.return_mode
-            log.info("FAC: exiting matrix fault idle state due to fault resolution")
+            log.info("FAC: exiting energy storage fault idle state due to fault resolution")
         elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
             next_mode = PROCESS.SYSTEM_ALARM_IDLE
-            log.info("FAC: exiting matrix fault idle state due to critical unit alarm")
+            log.info("FAC: exiting energy storage fault idle state due to critical unit alarm")
         end
     elseif self.mode == PROCESS.SYSTEM_ALARM_IDLE then
         -- do nothing, wait for user to confirm (stop and reset)
@@ -791,34 +827,45 @@ function update.auto_safety()
 
     local astatus = self.ascram_status
 
-    -- matrix related checks
-    if self.induction[1] ~= nil then
-        local db = self.induction[1].get_db()
+    -- energy storage related checks
+    if self.induction[1] or self.ecore[1] then
+        local storage_ok, fill
 
-        -- check for unformed or faulted state
-        local i_ok = db.formed and not self.induction[1].is_faulted()
-
-        -- clear matrix fault if ok again
-        if astatus.matrix_fault and i_ok then
-            astatus.matrix_fault = false
-            log.info("FAC: induction matrix OK, clearing ASCRAM condition")
+        -- check for unformed or faulted state and check fill
+        if self.induction[1] then
+            local db = self.induction[1].get_db()
+            storage_ok = db.formed and not self.induction[1].is_faulted()
+            fill = db.tanks.energy_fill
         else
-            astatus.matrix_fault = not i_ok
+            local db = self.ecore[1].get_db()
+            storage_ok = not self.ecore[1].is_faulted()
+
+            if db.build.max_energy > 0 then
+                fill = db.state.energy / db.build.max_energy
+            else fill = 0 end
         end
 
-        -- check matrix fill too high
-        local was_fill = astatus.matrix_fill
-        astatus.matrix_fill = (db.tanks.energy_fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.matrix_fill and db.tanks.energy_fill > ALARM_LIMS.CHARGE_RE_ENABLE)
+        -- clear energy storage fault if ok again
+        if astatus.storage_fault and storage_ok then
+            astatus.storage_fault = false
+            log.info("FAC: energy storage OK, clearing ASCRAM condition")
+        else
+            astatus.storage_fault = not storage_ok
+        end
 
-        if was_fill and not astatus.matrix_fill then
-            log.info(util.c("FAC: charge state of induction matrix entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
+        -- check energy storage fill too high
+        local was_fill = astatus.storage_fill
+        astatus.storage_fill = (fill >= ALARM_LIMS.CHARGE_HIGH) or (astatus.storage_fill and fill > ALARM_LIMS.CHARGE_RE_ENABLE)
+
+        if was_fill and not astatus.storage_fill then
+            log.info(util.c("FAC: charge state of energy storage entered acceptable range <= ", ALARM_LIMS.CHARGE_RE_ENABLE * 100, "%"))
         end
 
         -- system not ready, will need to restart GEN_RATE mode
         -- clears when we enter the fault waiting state
         astatus.gen_fault = self.mode == PROCESS.GEN_RATE and not self.units_ready
     else
-        astatus.matrix_fault = true
+        astatus.storage_fault = true
     end
 
     -- check for critical unit alarms
@@ -849,7 +896,7 @@ function update.auto_safety()
     end
 
     if (self.mode ~= PROCESS.INACTIVE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
-        local scram = astatus.matrix_fault or astatus.matrix_fill or astatus.crit_alarm or astatus.radiation or astatus.gen_fault
+        local scram = astatus.storage_fault or astatus.storage_fill or astatus.crit_alarm or astatus.radiation or astatus.gen_fault
 
         if scram and not self.ascram then
             -- SCRAM all units
@@ -873,22 +920,22 @@ function update.auto_safety()
                 self.status_text = { "AUTOMATIC SCRAM", "facility radiation high" }
 
                 log.info("FAC: automatic SCRAM due to high facility radiation")
-            elseif astatus.matrix_fault then
-                next_mode = PROCESS.MATRIX_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.MATRIX_FAULT
-                self.status_text = { "AUTOMATIC SCRAM", "induction matrix fault" }
+            elseif astatus.storage_fault then
+                next_mode = PROCESS.STORAGE_FAULT_IDLE
+                self.ascram_reason = AUTO_SCRAM.STORAGE_FAULT
+                self.status_text = { "AUTOMATIC SCRAM", "energy storage fault" }
 
-                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
+                if self.mode ~= PROCESS.STORAGE_FAULT_IDLE then self.return_mode = self.mode end
 
-                log.info("FAC: automatic SCRAM due to induction matrix disconnected, unformed, or faulted")
-            elseif astatus.matrix_fill then
-                next_mode = PROCESS.MATRIX_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.MATRIX_FILL
-                self.status_text = { "AUTOMATIC SCRAM", "induction matrix fill high" }
+                log.info("FAC: automatic SCRAM due to energy storage disconnected, unformed, or faulted")
+            elseif astatus.storage_fill then
+                next_mode = PROCESS.STORAGE_FAULT_IDLE
+                self.ascram_reason = AUTO_SCRAM.STORAGE_FILL
+                self.status_text = { "AUTOMATIC SCRAM", "energy storage fill high" }
 
-                if self.mode ~= PROCESS.MATRIX_FAULT_IDLE then self.return_mode = self.mode end
+                if self.mode ~= PROCESS.STORAGE_FAULT_IDLE then self.return_mode = self.mode end
 
-                log.info("FAC: automatic SCRAM due to induction matrix high charge")
+                log.info("FAC: automatic SCRAM due to energy storage high charge")
             elseif astatus.gen_fault then
                 -- lowest priority alarm
                 next_mode = PROCESS.GEN_RATE_FAULT_IDLE
@@ -1069,14 +1116,33 @@ function update.waste_mgmt(combined_waste, public)
 
     self.current_waste_product = self.waste_product
 
-    if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] ~= nil) then
-        local db = self.induction[1].get_db()
+    if (not self.sps_low_power) and (self.waste_product == WASTE.ANTI_MATTER) and (self.induction[1] or self.ecore[1]) then
+        local ok, last_update, fill
 
-        if db.tanks.energy_fill >= 0.15 then
-            self.disabled_sps = false
-        elseif self.disabled_sps or ((db.tanks.last_update > 0) and (db.tanks.energy_fill < 0.1)) then
-            self.disabled_sps = true
-            self.current_waste_product = WASTE.POLONIUM
+        if self.induction[1] then
+            local db = self.induction[1].get_db()
+
+            ok = true
+            last_update = db.tanks.last_update
+            fill = db.tanks.energy_fill
+        else
+            local db = self.ecore[1].get_db()
+
+            ok = db.build.last_update > 0 and db.build.max_energy > 0
+            last_update = db.state.last_update
+
+            if ok then
+                fill = db.state.energy / db.build.max_energy
+            else fill = 0 end
+        end
+
+        if ok then
+            if fill >= 0.15 then
+                self.disabled_sps = false
+            elseif self.disabled_sps or ((last_update > 0) and (fill < 0.1)) then
+                self.disabled_sps = true
+                self.current_waste_product = WASTE.POLONIUM
+            end
         end
     else
         self.disabled_sps = false
