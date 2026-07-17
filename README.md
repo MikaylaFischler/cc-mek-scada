@@ -12,16 +12,19 @@ Configurable ComputerCraft SCADA system for multi-reactor control of Mekanism fi
 
 ## Released Component Versions
 
+Each application and library has its own version, allowing individual component updates to be managed by the installation script.
+
+#### Installer
 ![Installer](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Finstaller.json)
 
-
+#### Core Libraries/Components
 ![Bootloader](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fbootloader.json)
-![Comms](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcommon.json)
+![Common](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcommon.json)
 ![Comms](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fcomms.json)
 ![Graphics](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fgraphics.json)
 ![Lockbox](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Flockbox.json)
 
-
+#### Main Applications
 ![Reactor PLC](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Freactor-plc.json)
 ![RTU](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Frtu.json)
 ![Supervisor](https://img.shields.io/endpoint?url=https%3A%2F%2Fmikaylafischler.github.io%2Fcc-mek-scada%2Fsupervisor.json)
@@ -47,6 +50,20 @@ You can install this on a ComputerCraft computer using either:
 * `pastebin get sqUN6VUb ccmsi.lua`
 * Off-line (when HTTP is disabled) installation via [release bundles](https://github.com/MikaylaFischler/cc-mek-scada/wiki/Alternative-Installation-Strategies#release-bundles)
 
+### Installed Software
+
+The software installed on your ComputerCraft computers will not appear perfectly identical to the source on GitHub, since the deployment system first minifies the code (removing leading whitespace, most comments, blank lines, etc.) before publishing it to GitHub pages, where the installation script pulls the source from. This is required at this point in the project, as the installed applications are now nearly filling all the available space on a 1 MB ComputerCraft computer.
+
+`build/gen_minified.py` is responsible for the minification, and GitHub Actions takes care of running that and publishing builds to GitHub pages using the `.github/workflows/deploy.yml` workflow.
+
+Builds end up at these paths:
+- `https://mikaylafischler.github.io/cc-mek-scada/builds/main/`
+- `https://mikaylafischler.github.io/cc-mek-scada/builds/devel/`
+
+Installation manifests end up at these paths:
+- [`https://mikaylafischler.github.io/cc-mek-scada/manifests/main/install_manifest.json`](https://mikaylafischler.github.io/cc-mek-scada/manifests/main/install_manifest.json)
+- [`https://mikaylafischler.github.io/cc-mek-scada/manifests/devel/install_manifest.json`](https://mikaylafischler.github.io/cc-mek-scada/manifests/devel/install_manifest.json)
+
 ## Contributing
 
 Please reach out to me via Discord or email (or GitHub in some way) if you are thinking of making any contributions at this time. I started this project as a challenge for myself and have been enjoying having something I can work on in my own way. 
@@ -59,7 +76,7 @@ Once this is out of beta I will be more open to contributions, but for now I am 
 This project implements concepts of a SCADA system in ComputerCraft (because why not?). I recommend reviewing that linked Wikipedia page on SCADA if you *want* to understand the concepts used here.
 
 ![Architecture](https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Functional_levels_of_a_Distributed_Control_System.svg/3840px-Functional_levels_of_a_Distributed_Control_System.svg.png)
-<small><i>By Daniele Pugliesi - Own work, CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=31527335</i></small>
+###### *Above image by Daniele Pugliesi - Own work, CC BY-SA 3.0, https://commons.wikimedia.org/w/index.php?curid=31527335*
 
 SCADA and industrial automation terminology is used throughout the project, such as:
 - Supervisory Computer: Gathers data and controls the process
