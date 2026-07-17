@@ -488,7 +488,7 @@ function ioctl.record_facility_builds(build)
         if type(build.induction) == "table" then
             for id, matrix in pairs(build.induction) do
                 if not _record_multiblock_build(id, matrix, fac.induction_data_tbl, fac.induction_ps_tbl) then
-                    log.debug(util.c("iocontrol.record_facility_builds: invalid induction matrix id ", id))
+                    log.debug(util.c("ioctl.record_facility_builds: invalid induction matrix id ", id))
                     valid = false
                 end
             end
@@ -498,7 +498,7 @@ function ioctl.record_facility_builds(build)
         if type(build.sps) == "table" then
             for id, sps in pairs(build.sps) do
                 if not _record_multiblock_build(id, sps, fac.sps_data_tbl, fac.sps_ps_tbl) then
-                    log.debug(util.c("iocontrol.record_facility_builds: invalid SPS id ", id))
+                    log.debug(util.c("ioctl.record_facility_builds: invalid SPS id ", id))
                     valid = false
                 end
             end
@@ -528,7 +528,7 @@ function ioctl.record_unit_builds(builds)
     for id, build in pairs(builds) do
         local unit = io.units[id] ---@type crd_io_unit
 
-        local log_header = util.c("iocontrol.record_unit_builds[UNIT ", id, "]: ")
+        local log_header = util.c("ioctl.record_unit_builds[UNIT ", id, "]: ")
 
         if type(build) ~= "table" then
             log.debug(log_header .. "build not a table")
@@ -654,7 +654,7 @@ end
 ---@return boolean valid
 function ioctl.update_facility_status(status)
     local valid = true
-    local log_header = util.c("iocontrol.update_facility_status: ")
+    local log_header = util.c("ioctl.update_facility_status: ")
 
     if type(status) ~= "table" then
         log.debug(util.c(log_header, "status not a table"))
@@ -989,10 +989,10 @@ function ioctl.update_unit_statuses(statuses)
     local valid = true
 
     if type(statuses) ~= "table" then
-        log.debug("iocontrol.update_unit_statuses: unit statuses not a table")
+        log.debug("ioctl.update_unit_statuses: unit statuses not a table")
         valid = false
     elseif #statuses ~= #io.units then
-        log.debug("iocontrol.update_unit_statuses: number of provided unit statuses does not match expected number of units")
+        log.debug("ioctl.update_unit_statuses: number of provided unit statuses does not match expected number of units")
         valid = false
     else
         local burn_rate_sum = 0.0
@@ -1003,7 +1003,7 @@ function ioctl.update_unit_statuses(statuses)
 
         -- get all unit statuses
         for i = 1, #statuses do
-            local log_header = util.c("iocontrol.update_unit_statuses[unit ", i, "]: ")
+            local log_header = util.c("ioctl.update_unit_statuses[unit ", i, "]: ")
 
             local unit = io.units[i]
             local status = statuses[i]
