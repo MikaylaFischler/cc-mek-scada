@@ -308,14 +308,14 @@ function facility.new(config)
 
     -- link an induction matrix RTU session
     ---@param imatrix unit_session
-    ---@return boolean linked induction matrix accepted (max 1 energy storage device)
+    ---@return boolean linked induction matrix accepted (max 1 ESS device)
     function public.add_imatrix(imatrix)
         local fail_code, fail_str = svsessions.check_rtu_id(imatrix, self.induction, 1)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if #self.ecore > 0 then
+        if config.EnergyStorageSystem ~= types.ESS.INDUCTION_MATRIX or #self.ecore > 0 then
             svsessions.report_rtu_mismatch(imatrix)
-            log.warning(util.c("FAC: rejected induction matrix linking due to existing energy core connection"))
+            log.warning(util.c("FAC: rejected induction matrix linking due to having/being configured for an energy core"))
         elseif ok then
             table.insert(self.induction, imatrix)
             log.debug(util.c("FAC: linked induction matrix [", imatrix.get_unit_id(), "@", imatrix.get_session_id(), "]"))
@@ -328,14 +328,14 @@ function facility.new(config)
 
     -- link an energy core RTU session
     ---@param ecore unit_session
-    ---@return boolean linked energy core accepted (max 1 energy storage device)
+    ---@return boolean linked energy core accepted (max 1 ESS device)
     function public.add_ecore(ecore)
         local fail_code, fail_str = svsessions.check_rtu_id(ecore, self.ecore, 1)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if #self.induction > 0 then
+        if config.EnergyStorageSystem ~= types.ESS.ENERGY_CORE or #self.induction > 0 then
             svsessions.report_rtu_mismatch(ecore)
-            log.warning(util.c("FAC: rejected energy core linking due to existing induction matrix connection"))
+            log.warning(util.c("FAC: rejected energy core linking due having/being configured for an induction matrix"))
         elseif ok then
             table.insert(self.ecore, ecore)
             log.debug(util.c("FAC: linked energy core [", ecore.get_unit_id(), "@", ecore.get_session_id(), "]"))
@@ -689,8 +689,7 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.ENERGY_CORE then
             build.ecore = {}
             for i = 1, #self.ecore do
-                local matrix = self.ecore[i]
-                build.ecore[i] = { matrix.get_db().build }
+                build.ecore[i] = { true, self.ecore[i].get_db().build }
             end
         end
 
@@ -794,7 +793,7 @@ function facility.new(config)
             local ecore = self.ecore[i]
             local db = ecore.get_db()
 
-            status.ecore[i] = { db.state }
+            status.ecore[i] = { ecore.is_faulted(), db.state, db.virtual }
 
             if db.build.last_update > 0 then
                 local fe_per_ms = self.avg_net.get()

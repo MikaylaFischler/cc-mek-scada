@@ -110,7 +110,7 @@ function supervisor.load_config()
 
     if cfv.valid() then
         cfv.assert_range(config.FacilityTankMode, 0, 8)
-        cfv.assert_range(config.EnergyStorageSystem, types.ENERGY_STORAGE.INDUCTION_MATRIX, types.ENERGY_STORAGE.ENERGY_CORE)
+        cfv.assert_range(config.EnergyStorageSystem, types.ESS.INDUCTION_MATRIX, types.ESS.ENERGY_CORE)
     end
 
     cfv.assert_type_table(config.MekanismConfig)
@@ -372,7 +372,7 @@ function supervisor.comms(_version, fp_ok, facility)
                 println(util.c("CRD (", firmware_v, ") [@", src_addr, "] \xbb connected"))
                 log.info(util.c("CRD_ESTABLISH: [@", src_addr, "] CRD (", firmware_v, ") connected with session ID ", s_id, " on ", nic.phy_name()))
 
-                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf(), { config.MekanismWasteToPu, config.MekanismWasteToPo }, config.CombinedWaste })
+                _send_establish(nic, packet.scada_frame, ESTABLISH_ACK.ALLOW, { config.UnitCount, facility.get_cooling_conf(), { config.MekanismWasteToPu, config.MekanismWasteToPo }, config.CombinedWaste, config.EnergyStorageSystem })
             else
                 if last_ack ~= ESTABLISH_ACK.COLLISION then
                     log.info("CRD_ESTABLISH: [@" .. src_addr .. "] denied new coordinator due to already being connected to another coordinator")

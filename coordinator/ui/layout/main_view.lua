@@ -3,11 +3,13 @@
 --
 
 local util          = require("scada-common.util")
+local types         = require("scada-common.types")
 
 local ioctl         = require("coordinator.ioctl")
 
 local style         = require("coordinator.ui.style")
 
+local ecore         = require("coordinator.ui.components.ecore")
 local imatrix       = require("coordinator.ui.components.imatrix")
 local process_ctl   = require("coordinator.ui.components.process_ctl")
 local unit_overview = require("coordinator.ui.components.unit_overview")
@@ -75,7 +77,7 @@ local function init(main)
 
     -- command & control
 
-    -- induction matrix and process control interfaces are 24 tall + space needed for divider
+    -- ESS and process control interfaces are 24 tall + space needed for divider
     local cnc_bottom_align_start = main.get_height() - 26
 
     assert(cnc_bottom_align_start >= cnc_y_start, "main display not of sufficient vertical resolution (add an additional row of monitors)")
@@ -88,7 +90,11 @@ local function init(main)
 
     util.nop()
 
-    imatrix(main, 131, cnc_bottom_align_start, fac.induction_ps_tbl[1])
+    if fac.ess_type == types.ESS.INDUCTION_MATRIX then
+        imatrix(main, 131, cnc_bottom_align_start, fac.induction_ps_tbl[1])
+    elseif fac.ess_type == types.ESS.ENERGY_CORE then
+        ecore(main, 131, cnc_bottom_align_start, fac.ecore_ps_tbl[1])
+    end
 end
 
 return init

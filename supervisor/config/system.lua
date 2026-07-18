@@ -879,9 +879,9 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
 
                 if val == "" then val = "no auxiliary coolant" end
             elseif f[1] == "EnergyStorageSystem" then
-                if raw == types.ENERGY_STORAGE.INDUCTION_MATRIX then
+                if raw == types.ESS.INDUCTION_MATRIX then
                     val = "Induction Matrix"
-                elseif raw == types.ENERGY_STORAGE.ENERGY_CORE then
+                elseif raw == types.ESS.ENERGY_CORE then
                     val = "Energy Core"
                 else val = "Unknown" end
             elseif f[1] == "MekanismConfig" then

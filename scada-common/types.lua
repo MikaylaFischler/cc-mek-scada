@@ -231,6 +231,15 @@ types.IMATRIX_STATE = {
     HIGH_CHARGE = 6
 }
 
+---@enum ECORE_STATE
+types.ECORE_STATE = {
+    OFFLINE = 1,
+    FAULT = 2,
+    ONLINE = 3,
+    LOW_CHARGE = 4,
+    HIGH_CHARGE = 5
+}
+
 ---@enum SPS_STATE
 types.SPS_STATE = GENERIC_STATE
 
@@ -447,8 +456,8 @@ types.ALARM_STATE_NAMES = {
     "RING_BACK"
 }
 
----@enum ENERGY_STORAGE
-types.ENERGY_STORAGE = {
+---@enum ESS
+types.ESS = {
     INDUCTION_MATRIX = 1,
     ENERGY_CORE = 2
 }

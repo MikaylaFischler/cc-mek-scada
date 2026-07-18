@@ -114,7 +114,7 @@ local tmp_cfg = {
     ExtChargeIdling = false,
     UseSNAStatistics = true,
     CombinedWaste = false,
-    EnergyStorageSystem = 1, ---@type ENERGY_STORAGE
+    EnergyStorageSystem = 1, ---@type ESS
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
     MekanismWasteToPu = { 10, 1 },
@@ -162,7 +162,7 @@ local fields = {
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "UseSNAStatistics", "Use SNA Statistics", true },
     { "CombinedWaste", "Combined Facility Waste", false },
-    { "EnergyStorageSystem", "Energy Storage System", types.ENERGY_STORAGE.INDUCTION_MATRIX },
+    { "EnergyStorageSystem", "Energy Storage System", types.ESS.INDUCTION_MATRIX },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },

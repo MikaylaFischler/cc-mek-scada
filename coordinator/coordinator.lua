@@ -682,14 +682,15 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                 -- reset to disconnected before validating
                                 ioctl.fp_link_state(types.PANEL_LINK_STATE.DISCONNECTED)
 
-                                if type(sv_config) == "table" and #sv_config == 4 then
+                                if type(sv_config) == "table" and #sv_config == 5 then
                                     -- get configuration
 
                                     ---@class facility_conf
                                     local conf = {
                                         num_units = sv_config[1], ---@type integer
                                         cooling = sv_config[2],   ---@type sv_cooling_conf
-                                        com_waste = sv_config[4]  ---@type boolean
+                                        com_waste = sv_config[4], ---@type boolean
+                                        ess = sv_config[5]        ---@type ESS
                                     }
 
                                     if not ioctl.set_mek_config(sv_config[3]) then
