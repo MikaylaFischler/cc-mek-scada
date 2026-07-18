@@ -72,7 +72,7 @@ local function new_view(root, x, y)
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=ind_grn}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=style.ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd}
-    local ind_mat = IndicatorLight{parent=main,label="Induction Matrix",colors=ind_grn}
+    local ind_mat = IndicatorLight{parent=main,label="Energy Storage System",colors=ind_grn}
     local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=ind_grn}
 
     all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
@@ -95,8 +95,8 @@ local function new_view(root, x, y)
     main.line_break()
 
     local auto_scram = IndicatorLight{parent=main,label="Automatic SCRAM",colors=ind_red,flash=true,period=period.BLINK_250_MS}
-    local ess_fault  = IndicatorLight{parent=main,label="Energy Storage Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
-    local ess_fill   = IndicatorLight{parent=main,label="Energy Storage Charge High",colors=ind_red,flash=true,period=period.BLINK_500_MS}
+    local ess_fault  = IndicatorLight{parent=main,label="ESS Hardware Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
+    local ess_fill   = IndicatorLight{parent=main,label="ESS Charge High",colors=ind_red,flash=true,period=period.BLINK_500_MS}
     local unit_crit  = IndicatorLight{parent=main,label="Unit Critical Alarm",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local fac_rad_h  = IndicatorLight{parent=main,label="Facility Radiation High",colors=ind_red,flash=true,period=period.BLINK_250_MS}
     local gen_fault  = IndicatorLight{parent=main,label="Gen. Control Fault",colors=ind_yel,flash=true,period=period.BLINK_500_MS}
