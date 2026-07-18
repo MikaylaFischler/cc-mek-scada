@@ -69,12 +69,19 @@ function facility.new(config)
         -- facility tanks
         ---@class sv_cooling_conf
         cooling_conf = {
+            -- cooling construction
             r_cool = config.CoolingConfig,
+            -- dynamic tank emergency coolant layout
             fac_tank_mode = config.FacilityTankMode,
+            -- each unit's tank connection target (0 = disconnected, 1 = unit, 2 = facility)
             fac_tank_defs = config.FacilityTankDefs,
+            -- list of tanks by slot (0 = none or covered by an above tank, 1 = unit tank, 2 = facility tank)
             fac_tank_list = config.FacilityTankList,
+            -- map of unit tank connections (indicies are units, values are tank indicies in the tank list)
             fac_tank_conns = config.FacilityTankConns,
+            -- which type of fluid each tank in the tank list should be containing
             tank_fluid_types = config.TankFluidTypes,
+            -- if a unit has auxiliary coolant
             aux_coolant = config.AuxiliaryCoolant
         },
         -- rtus
@@ -185,8 +192,7 @@ function facility.new(config)
 
     -- create units
     for i = 1, config.UnitCount do
-        table.insert(self.units, unit.new(i, self.cooling_conf.r_cool[i].BoilerCount, self.cooling_conf.r_cool[i].TurbineCount,
-                                          self.cooling_conf.aux_coolant[i], self.po_prod_ratio, config))
+        table.insert(self.units, unit.new(i, self.cooling_conf, self.po_prod_ratio, config))
         table.insert(self.group_map, AUTO_GROUP.MANUAL)
         table.insert(self.last_unit_states, false)
         table.insert(self.pu_fallback_times, 0)
@@ -378,7 +384,10 @@ function facility.new(config)
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, #self.cooling_conf.fac_tank_list)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if ok then
+        if self.cooling_conf.fac_tank_mode == 0 then
+            svsessions.report_rtu_mismatch(dynamic_tank)
+            log.warning("FAC: rejected dynamic tank due to not being configured for facility tanks")
+        elseif ok then
             table.insert(self.tanks, dynamic_tank)
             log.debug(util.c("FAC: linked dynamic tank #", dynamic_tank.get_device_idx(), " [", dynamic_tank.get_unit_id(), "@", dynamic_tank.get_session_id(), "]"))
         else

@@ -53,12 +53,10 @@ local unit = {}
 -- create a new reactor unit
 ---@nodiscard
 ---@param reactor_id integer reactor unit number
----@param num_boilers integer number of boilers expected
----@param num_turbines integer number of turbines expected
----@param aux_coolant boolean if this unit has auxiliary coolant
+---@param cooling_conf sv_cooling_conf cooling configuration
 ---@param po_prod_ratio number waste to polonium ratio
 ---@param config svr_config supervisor configuration
-function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ratio, config)
+function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
     -- time (ms) to idle for auto idling
     local IDLE_TIME = util.trinary(config.ExtChargeIdling, 60000, 10000)
 
@@ -69,9 +67,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
         r_id = reactor_id,
         plc_s = nil,    ---@type plc_session_struct
         plc_i = nil,    ---@type plc_session
-        num_boilers = num_boilers,
-        num_turbines = num_turbines,
-        aux_coolant = aux_coolant,
+        num_boilers = cooling_conf.r_cool[reactor_id].BoilerCount,
+        num_turbines = cooling_conf.r_cool[reactor_id].TurbineCount,
+        aux_coolant = cooling_conf.aux_coolant[reactor_id],
+        tank_conn = cooling_conf.fac_tank_defs[reactor_id],
         types = { DT_KEYS = DT_KEYS },
         -- rtus
         rtu_list = {},  ---@type unit_session[][]
@@ -258,13 +257,13 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
     self.io_ctl = rsctl.new(self.redstone, reactor_id)
 
     -- init boiler table fields
-    for _ = 1, num_boilers do
+    for _ = 1, self.num_boilers do
         table.insert(self.db.annunciator.BoilerOnline, false)
         table.insert(self.db.annunciator.HeatingRateLow, false)
     end
 
     -- init turbine table fields
-    for _ = 1, num_turbines do
+    for _ = 1, self.num_turbines do
         table.insert(self.db.annunciator.TurbineOnline, false)
         table.insert(self.db.annunciator.SteamDumpOpen, TRI_FAIL.OK)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
@@ -436,7 +435,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
     ---@param turbine unit_session
     ---@return boolean linked turbine accepted to associated device slot
     function public.add_turbine(turbine)
-        local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, num_turbines)
+        local fail_code, fail_str = svsessions.check_rtu_id(turbine, self.turbines, self.num_turbines)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
@@ -457,7 +456,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
     ---@param boiler unit_session
     ---@return boolean linked boiler accepted to associated device slot
     function public.add_boiler(boiler)
-        local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, num_boilers)
+        local fail_code, fail_str = svsessions.check_rtu_id(boiler, self.boilers, self.num_boilers)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
         if ok then
@@ -483,7 +482,10 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
         local fail_code, fail_str = svsessions.check_rtu_id(dynamic_tank, self.tanks, 1)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if ok then
+        if self.tank_conn ~= 1 then
+            svsessions.report_rtu_mismatch(dynamic_tank)
+            log.warning(util.c(log_tag, "rejected dynamic tank due to not being configured for a unit tank"))
+        elseif ok then
             table.insert(self.tanks, dynamic_tank)
             log.debug(util.c(log_tag, "linked dynamic tank [", dynamic_tank.get_unit_id(), "@", dynamic_tank.get_session_id(), "]"))
         else
@@ -548,7 +550,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
         for _, v in pairs(self.rtu_list) do util.filter_table(v, function (u) return u.is_connected() end) end
 
         -- update degraded state for auto control
-        self.db.control.degraded = (#self.boilers ~= num_boilers) or (#self.turbines ~= num_turbines) or (self.plc_i == nil)
+        self.db.control.degraded = (#self.boilers ~= self.num_boilers) or (#self.turbines ~= self.num_turbines) or (self.plc_i == nil)
 
         -- check boilers formed/faulted
         for i = 1, #self.boilers do
@@ -593,7 +595,7 @@ function unit.new(reactor_id, num_boilers, num_turbines, aux_coolant, po_prod_ra
                 if (not self.db.annunciator.CoolantLevelLow) and (db.mek_status.act_burn_rate > 0) then
                     local prod = db.mek_status.act_burn_rate * const.mek.JOULES_PER_MB
                     local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
-                    local heat = db.mek_status.heating_rate * util.trinary(num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
+                    local heat = db.mek_status.heating_rate * util.trinary(self.num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
 
                     local mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
 

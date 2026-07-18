@@ -33,7 +33,7 @@ PRs will only be accepted if they match the style of this project and pass manua
    These interfere with the minification used for the bundled installation files due to the complexity of parsing Lua block comments. The minification code is meant to be simple to have 0 risk of breaking anything, so I'm staying far away from those.
 2. **Comment Your Code.**
    This includes type hints as used elsewhere throughout the project. Your comments should be associated with parts of code that are more complex or unclear, or otherwise to split up sections of tasks. You'll see `--#region` used in various places.
-   - Type hints are intended to be utilized by the `sumneko.lua` vscode extension. You should use this while developing, as it provides extremely valuable functionality.
+   - Type hints are intended to be utilized by the `sumneko.lua` vscode extension. You should use this while developing, as it provides extremely valuable functionality. Documentation for that can be found here: https://luals.github.io/wiki/.
 3. **Whitespace Usage.**
    Whitespace should be used to separate function parameters and operators. The one exception is the unique styling of graphics elements, which you should compare against if modifying them.
    - 4 spaces are used for all indentation.

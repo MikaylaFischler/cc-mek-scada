@@ -365,6 +365,7 @@ end
 function svsessions.report_rtu_mismatch(unit)
     local r_id, type = unit.get_reactor(), unit.get_unit_type()
     local msg
+    local details = ""
 
     table.insert(self.dev_dbg.mismatch, unit)
 
@@ -372,9 +373,14 @@ function svsessions.report_rtu_mismatch(unit)
         msg = "a facility "
 
         if type == RTU_TYPES.IMATRIX then
-            msg = msg .. "induction matrix (has energy core)"
+            msg = msg .. "induction matrix"
+            details = "configured for an energy core"
         elseif type == RTU_TYPES.ENERGY_CORE then
-            msg = msg .. "energy core (has induction matrix)"
+            msg = msg .. "energy core"
+            details = "configured for an induction matrix"
+        elseif type == RTU_TYPES.DYNAMIC_VALVE then
+            msg = msg .. "dynamic tank"
+            details = "not configured for a facility tank"
         elseif type == RTU_TYPES.SNA then
             msg = msg .. "SNA (must be for unit)"
         else
@@ -383,14 +389,17 @@ function svsessions.report_rtu_mismatch(unit)
     else
         msg = util.c("unit ", r_id, "'s ")
 
-        if type == RTU_TYPES.SNA then
+        if type == RTU_TYPES.DYNAMIC_VALVE then
+            msg = msg .. "dynamic tank"
+            details = "unit not configured for a unit tank"
+        elseif type == RTU_TYPES.SNA then
             msg = msg .. "SNA (must be for facility)"
         else
             msg = msg .. " ? (error)"
         end
     end
 
-    pgi.create_chk_entry(unit, RTU_LINK_FAIL.MISMATCH, msg)
+    pgi.create_chk_entry(unit, RTU_LINK_FAIL.MISMATCH, msg, details)
 end
 
 -- initialize svsessions

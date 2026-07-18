@@ -17,9 +17,10 @@ local cpair = core.cpair
 
 -- create an ID check list entry
 ---@param parent ListBox parent
----@param msg string message
 ---@param fail_code integer failure code
-local function init(parent, msg, fail_code)
+---@param msg string message
+---@param details string? details
+local function init(parent, fail_code, msg, details)
     -- root div
     local root = Div{parent=parent,x=2,y=2,height=4,width=parent.get_width()-2}
     local entry = Div{parent=root,x=2,y=1,height=3,fg_bg=style.theme.highlight_box_bright}
@@ -43,6 +44,7 @@ local function init(parent, msg, fail_code)
     TextBox{parent=entry,text="",width=11,fg_bg=fg_bg}
 
     TextBox{parent=entry,x=13,y=2,text=msg}
+    if details then TextBox{parent=entry,x=13,y=3,text=details,fg_bg=style.fp.label_fg} end
 
     return root
 end
