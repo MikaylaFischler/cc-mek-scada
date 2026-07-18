@@ -158,8 +158,8 @@ function ioctl.init_fac(conf)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false

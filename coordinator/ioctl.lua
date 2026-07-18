@@ -110,8 +110,8 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -683,8 +683,8 @@ function ioctl.update_facility_status(status)
             fac.auto_gen_rate = ctl_status[6]
 
             fac.auto_scram = ctl_status[7]
-            fac.ascram_status.matrix_fault = ctl_status[8]
-            fac.ascram_status.matrix_fill = ctl_status[9]
+            fac.ascram_status.ess_fault = ctl_status[8]
+            fac.ascram_status.ess_fill = ctl_status[9]
             fac.ascram_status.crit_alarm = ctl_status[10]
             fac.ascram_status.radiation = ctl_status[11]
             fac.ascram_status.gen_fault = ctl_status[12]
@@ -699,8 +699,8 @@ function ioctl.update_facility_status(status)
             f_ps.publish("auto_saturated", fac.auto_saturated)
             f_ps.publish("auto_gen_rate", fac.auto_gen_rate)
             f_ps.publish("auto_scram", fac.auto_scram)
-            f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-            f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+            f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
+            f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
             f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             f_ps.publish("as_radiation", fac.ascram_status.radiation)
             f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)

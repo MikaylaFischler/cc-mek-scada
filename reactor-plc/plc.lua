@@ -279,7 +279,7 @@ function plc.rps_init(reactor, plc_state)
     local function _excess_heated_coolant()
         local hc_filled = reactor.getHeatedCoolantFilledPercentage()
         if _check_and_handle_ppm_call(hc_filled) and not self.state[CHK.EX_HCOOLANT] then
-            self.state[CHK.EX_HCOOLANT] = hc_filled > RPS_LIMITS.MAX_HEATED_COLLANT_FILL
+            self.state[CHK.EX_HCOOLANT] = hc_filled > RPS_LIMITS.MAX_HEATED_COOLANT_FILL
         end
     end
 

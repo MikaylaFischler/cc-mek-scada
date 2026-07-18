@@ -121,8 +121,8 @@ function facility.new(config)
         ascram_reason = AUTO_SCRAM.NONE,
         ---@class ascram_status
         ascram_status = {
-            storage_fault = false,
-            storage_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -161,18 +161,18 @@ function facility.new(config)
         test_tone_states = {},  ---@type { [TONE]: boolean }
         test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
-        energy_stat_init = false,
-        energy_percent = 0.0,
+        ess_stat_init = false,
+        ess_percent = 0.0,
         avg_charge = util.ema_filter(0.2857),  -- ~3 seconds
         avg_inflow = util.ema_filter(0.2857),  -- ~3 seconds
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
-        -- energy storage charge delta stats
+        -- ESS charge delta stats
         avg_net = util.ema_filter(0.075),
         imtx_last_capacity = 0,
         imtx_last_charge = 0,
         imtx_last_charge_t = 0,
-        -- track faulted energy storage update times to reject
-        energy_faulted_times = { 0, 0, 0 },
+        -- track faulted ESS update times to reject
+        ess_faulted_times = { 0, 0, 0 },
         -- facility alarms
         ---@type { [string]: alarm_def }
         alarms = {
@@ -725,8 +725,8 @@ function facility.new(config)
             self.at_max_burn or self.saturated,
             self.turbine_gen_rate,
             self.ascram,
-            astat.storage_fault,
-            astat.storage_fill,
+            astat.ess_fault,
+            astat.ess_fill,
             astat.crit_alarm,
             astat.radiation,
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,

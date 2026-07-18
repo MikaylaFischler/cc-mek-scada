@@ -14,7 +14,7 @@ rps.MAX_DAMAGE_PERCENT      = 90   -- damage >= 90%
 rps.MAX_DAMAGE_TEMPERATURE  = 1200 -- temp >= 1200K
 rps.MIN_COOLANT_FILL        = 0.10 -- fill < 10%
 rps.MAX_WASTE_FILL          = 0.95 -- fill > 95%
-rps.MAX_HEATED_COLLANT_FILL = 0.95 -- fill > 95%
+rps.MAX_HEATED_COOLANT_FILL = 0.95 -- fill > 95%
 
 constants.RPS_LIMITS = rps
 
