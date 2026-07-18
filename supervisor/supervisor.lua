@@ -54,6 +54,7 @@ function supervisor.load_config()
     config.ExtChargeIdling = settings.get("ExtChargeIdling")
     config.UseSNAStatistics = settings.get("UseSNAStatistics")
     config.CombinedWaste = settings.get("CombinedWaste")
+    config.EnergyStorageSystem = settings.get("EnergyStorageSystem")
 
     config.MekanismConfig = settings.get("MekanismConfig")
     config.MekanismWasteToPu = settings.get("MekanismWasteToPu")
@@ -105,9 +106,11 @@ function supervisor.load_config()
     cfv.assert_type_bool(config.ExtChargeIdling)
     cfv.assert_type_bool(config.UseSNAStatistics)
     cfv.assert_type_bool(config.CombinedWaste)
+    cfv.assert_type_int(config.EnergyStorageSystem)
 
     if cfv.valid() then
         cfv.assert_range(config.FacilityTankMode, 0, 8)
+        cfv.assert_range(config.EnergyStorageSystem, types.ENERGY_STORAGE.INDUCTION_MATRIX, types.ENERGY_STORAGE.ENERGY_CORE)
     end
 
     cfv.assert_type_table(config.MekanismConfig)

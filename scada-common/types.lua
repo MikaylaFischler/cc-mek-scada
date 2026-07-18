@@ -447,6 +447,12 @@ types.ALARM_STATE_NAMES = {
     "RING_BACK"
 }
 
+---@enum ENERGY_STORAGE
+types.ENERGY_STORAGE = {
+    INDUCTION_MATRIX = 1,
+    ENERGY_CORE = 2
+}
+
 --#endregion
 
 --#region STRING TYPES
