@@ -339,8 +339,8 @@ local function new_view(root)
         local gen_fault = IconIndicator{parent=a_div,label="Control Fault",states=yel_ind_s}
 
         auto_scram.register(f_ps, "auto_scram", auto_scram.update)
-        matrix_flt.register(f_ps, "as_matrix_fault", matrix_flt.update)
-        matrix_fill.register(f_ps, "as_matrix_fill", matrix_fill.update)
+        matrix_flt.register(f_ps, "as_ess_fault", matrix_flt.update)
+        matrix_fill.register(f_ps, "as_ess_fill", matrix_fill.update)
         unit_crit.register(f_ps, "as_crit_alarm", unit_crit.update)
         fac_rad_h.register(f_ps, "as_radiation", fac_rad_h.update)
         gen_fault.register(f_ps, "as_gen_fault", gen_fault.update)
