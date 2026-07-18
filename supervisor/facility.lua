@@ -168,9 +168,9 @@ function facility.new(config)
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
         -- ESS charge delta stats
         avg_net = util.ema_filter(0.075),
-        imtx_last_capacity = 0,
-        imtx_last_charge = 0,
-        imtx_last_charge_t = 0,
+        ess_last_capacity = 0,
+        ess_last_charge = 0,
+        ess_last_charge_t = 0,
         -- track faulted ESS update times to reject
         ess_faulted_times = { 0, 0, 0 },
         -- facility alarms

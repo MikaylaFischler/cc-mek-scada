@@ -287,7 +287,6 @@ function update.pre_auto()
             energy   = util.joules_to_fe_rf(db.tanks.energy)
             input    = util.joules_to_fe_rf(db.state.last_input)
             output   = util.joules_to_fe_rf(db.state.last_output)
-            transfer = nil
             percent  = db.tanks.energy_fill * 100
         else
             local ecore = self.ecore[1]
@@ -303,7 +302,6 @@ function update.pre_auto()
             energy   = db.state.energy
             input    = db.state.input
             output   = db.state.output
-            transfer = db.state.transfer
             percent  = db.virtual.energy_fill * 100
         end
 
@@ -330,17 +328,15 @@ function update.pre_auto()
                 self.avg_inflow.update(input, rate_update)
                 self.avg_outflow.update(output, rate_update)
 
-                if transfer then
-                    self.avg_net.update(transfer, rate_update)
-                elseif charge_update ~= self.imtx_last_charge_t then
-                    local delta = (energy - self.imtx_last_charge) / (charge_update - self.imtx_last_charge_t)
+                if charge_update ~= self.ess_last_charge_t then
+                    local delta = (energy - self.ess_last_charge) / (charge_update - self.ess_last_charge_t)
 
-                    self.imtx_last_charge = energy
-                    self.imtx_last_charge_t = charge_update
+                    self.ess_last_charge = energy
+                    self.ess_last_charge_t = charge_update
 
                     -- if the capacity changed, toss out existing data
-                    if capacity ~= self.imtx_last_capacity then
-                        self.imtx_last_capacity = capacity
+                    if capacity ~= self.ess_last_capacity then
+                        self.ess_last_capacity = capacity
                         self.avg_net.reset()
                     else
                         self.avg_net.update(delta, charge_update)
@@ -352,16 +348,11 @@ function update.pre_auto()
                 self.avg_charge.reset(energy)
                 self.avg_inflow.reset(input)
                 self.avg_outflow.reset(output)
+                self.avg_net.reset()
 
-                if transfer then
-                    self.avg_net.reset(transfer)
-                else
-                    self.avg_net.reset()
-
-                    self.imtx_last_capacity = capacity
-                    self.imtx_last_charge = energy
-                    self.imtx_last_charge_t = charge_update
-                end
+                self.ess_last_capacity = capacity
+                self.ess_last_charge = energy
+                self.ess_last_charge_t = charge_update
             end
         else
             -- prevent use by control systems
