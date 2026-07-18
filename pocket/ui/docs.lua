@@ -474,7 +474,7 @@ doc("fp_rps_temp", "HI DAMAGE", "The RPS tripped due to being >=" .. const.RPS_L
 doc("fp_rps_temp", "HI TEMP", "The RPS tripped due to high reactor temperature (>=" .. const.RPS_LIMITS.MAX_DAMAGE_TEMPERATURE .. "K).")
 doc("fp_rps_waste", "HI WASTE", "The RPS tripped due to having high levels of waste (>" .. (const.RPS_LIMITS.MAX_WASTE_FILL * 100) .. "%).")
 doc("fp_rps_ccool", "LO CCOOLANT", "The RPS tripped due to having low levels of cooled coolant (<" .. (const.RPS_LIMITS.MIN_COOLANT_FILL * 100) .. "%).")
-doc("fp_rps_ccool", "HI HCOOLANT", "The RPS tripped due to having high levels of heated coolant (>" .. (const.RPS_LIMITS.MAX_HEATED_COLLANT_FILL * 100) .. "%).")
+doc("fp_rps_ccool", "HI HCOOLANT", "The RPS tripped due to having high levels of heated coolant (>" .. (const.RPS_LIMITS.MAX_HEATED_COOLANT_FILL * 100) .. "%).")
 
 target = docs.fp.rtu_gw
 sect("Overview")

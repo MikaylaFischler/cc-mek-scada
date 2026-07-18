@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.10.3"
+util.version = "1.10.4"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
