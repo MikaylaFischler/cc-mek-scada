@@ -271,7 +271,7 @@ function update.pre_auto()
     -- calculate moving averages for energy storage
     if self.induction[1] or self.ecore[1] then
         local build_update, faulted
-        local capacity, energy, input, output, transfer, percent
+        local capacity, energy, input, output, percent
 
         if self.induction[1] then
             local matrix = self.induction[1]
