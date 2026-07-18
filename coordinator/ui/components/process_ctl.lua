@@ -1,4 +1,5 @@
 local tcd               = require("scada-common.tcd")
+local types             = require("scada-common.types")
 local util              = require("scada-common.util")
 
 local ioctl             = require("coordinator.ioctl")
@@ -62,6 +63,8 @@ local function new_view(root, x, y)
     local facility = db.facility
     local units = db.units
 
+    local ess_ps = util.trinary(facility.ess_type == types.ESS.ENERGY_CORE, facility.ecore_ps_tbl[1], facility.induction_ps_tbl[1])
+
     local main = Div{parent=root,width=128,height=24,x=x,y=y}
 
     local scram = HazardButton{parent=main,y=1,text="FAC SCRAM",accent=colors.yellow,dis_colors=dis_colors,callback=db.process.fac_scram,fg_bg=hzd_fg_bg}
@@ -72,12 +75,12 @@ local function new_view(root, x, y)
 
     local all_ok  = IndicatorLight{parent=main,y=5,label="Unit Systems Online",colors=ind_grn}
     local rad_mon = TriIndicatorLight{parent=main,label="Radiation Monitor",c1=style.ind_bkg,c2=ind_yel.fgd,c3=ind_grn.fgd}
-    local ind_mat = IndicatorLight{parent=main,label="Energy Storage System",colors=ind_grn}
+    local ind_ess = IndicatorLight{parent=main,label="Energy Storage System",colors=ind_grn}
     local sps     = IndicatorLight{parent=main,label="SPS Connected",colors=ind_grn}
 
     all_ok.register(facility.ps, "all_sys_ok", all_ok.update)
     rad_mon.register(facility.ps, "rad_computed_status", rad_mon.update)
-    ind_mat.register(facility.induction_ps_tbl[1], "computed_status", function (status) ind_mat.update(status > 1) end)
+    ind_ess.register(ess_ps, "computed_status", function (status) ind_ess.update(status > 1) end)
     sps.register(facility.sps_ps_tbl[1], "computed_status", function (status) sps.update(status > 1) end)
 
     main.line_break()
