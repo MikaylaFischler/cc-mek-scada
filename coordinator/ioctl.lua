@@ -760,8 +760,7 @@ function ioctl.update_facility_status(status)
 
             -- power statistics
             if type(rtu_statuses.power) == "table" and #rtu_statuses.power == 4 then
-                local data = fac.induction_data_tbl[1]
-                local ps   = fac.induction_ps_tbl[1]
+                local ps = util.trinary(fac.ess_type == types.ESS.ENERGY_CORE, fac.ecore_ps_tbl[1], fac.induction_ps_tbl[1])
 
                 local chg   = tonumber(rtu_statuses.power[1])
                 local in_f  = tonumber(rtu_statuses.power[2])
@@ -774,13 +773,29 @@ function ioctl.update_facility_status(status)
                 ps.publish("eta_ms", eta)
                 ps.publish("eta_string", gen_eta_text(eta or 0))
 
-                ps.publish("is_charging", in_f > out_f)
-                ps.publish("is_discharging", out_f > in_f)
+                local charging, discharging = false, false
 
-                if data and data.build then
-                    local cap = util.joules_to_fe_rf(data.build.transfer_cap)
-                    ps.publish("at_max_io", in_f >= cap or out_f >= cap)
+                if fac.ess_type == types.ESS.ENERGY_CORE then
+                    local data = fac.ecore_data_tbl[1]
+
+                    if data and data.state then
+                        charging = data.state.transfer > 0
+                        discharging = data.state.transfer < 0
+                    end
+                else
+                    local data = fac.induction_data_tbl[1]
+
+                    charging = in_f > out_f
+                    discharging = out_f > in_f
+
+                    if data and data.build then
+                        local cap = util.joules_to_fe_rf(data.build.transfer_cap)
+                        ps.publish("at_max_io", in_f >= cap or out_f >= cap)
+                    end
                 end
+
+                ps.publish("is_charging", charging)
+                ps.publish("is_discharging", discharging)
             else
                 log.debug(log_header .. "power statistics list not a table")
                 valid = false
