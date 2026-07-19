@@ -61,7 +61,8 @@ function ecore.new(session_id, unit_id, advert, out_queue)
             },
             virtual = {
                 last_update = 0,
-                energy_fill = 0
+                energy_fill = 0,
+                tier = 0
             }
         }
     }
@@ -109,6 +110,27 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                     self.db.virtual.last_update = self.db.state.last_update -- intentionally using state
                     self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
                 else self.db.virtual.energy_fill = 0 end
+
+                local max = self.db.build.max_energy
+
+                -- if max == 9223372036854775807 then
+                if max > 2140000000000 then
+                    self.db.virtual.tier = "Tier 8"
+                elseif max > 356000000000 then
+                    self.db.virtual.tier = "Tier 7"
+                elseif max > 59300000000 then
+                    self.db.virtual.tier = "Tier 6"
+                elseif max > 9880000000  then
+                    self.db.virtual.tier = "Tier 5"
+                elseif max > 1640000000 then
+                    self.db.virtual.tier = "Tier 4"
+                elseif max > 273000000 then
+                    self.db.virtual.tier = "Tier 3"
+                elseif max > 45500000 then
+                    self.db.virtual.tier = "Tier 2"
+                else
+                    self.db.virtual.tier = "Tier 1"
+                end
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
             else self.session.log_length_mismatch(txn_type) end
