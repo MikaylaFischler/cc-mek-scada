@@ -20,7 +20,7 @@ local TXN_TAGS = {
 }
 
 local PERIODICS = {
-    BUILD = 1000,
+    BUILD = 2000,
     STATE = 500
 }
 
@@ -133,7 +133,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
     -- update this runner
     ---@param time_now integer milliseconds
     function public.update(time_now)
-        if not self.has_build and self.periodics.next_build_req <= time_now then _request_build(time_now) end
+        if self.periodics.next_build_req <= time_now then _request_build(time_now) end
         if self.periodics.next_state_req <= time_now then _request_state(time_now) end
 
         self.session.post_update()
