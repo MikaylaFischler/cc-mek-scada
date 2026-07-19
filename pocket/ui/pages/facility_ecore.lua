@@ -26,7 +26,6 @@ local label   = style.label
 local lu_col  = style.label_unit_pair
 local text_fg = style.text_fg
 
-local yel_ind_s = style.icon_states.yel_ind_s
 local wht_ind_s = style.icon_states.wht_ind_s
 
 -- create an energy core view for the facility app
@@ -37,7 +36,6 @@ local wht_ind_s = style.icon_states.wht_ind_s
 ---@param update function
 return function (app, panes, ecore_pane, ps, update)
     local db = ioctl.get_db()
-    local fac = db.facility
 
     local ecr_div = Div{parent=ecore_pane,x=2,width=ecore_pane.get_width()-2}
     table.insert(panes, ecr_div)
