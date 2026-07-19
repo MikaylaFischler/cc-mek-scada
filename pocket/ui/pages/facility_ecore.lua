@@ -44,7 +44,7 @@ return function (app, panes, ecore_pane, ps, update)
     matrix_page.tasks = { update }
 
     TextBox{parent=ecr_div,y=1,text="Energy Core",alignment=ALIGN.CENTER}
-    local status = StateIndicator{parent=ecr_div,x=5,y=3,states=style.ecore.states,value=1,min_width=12}
+    local status = StateIndicator{parent=ecr_div,x=5,y=3,states=style.ess.states,value=1,min_width=12}
     status.register(ps, "EnergyCoreStateStatus", status.update)
 
     TextBox{parent=ecr_div,text="Chg",y=5,fg_bg=label}

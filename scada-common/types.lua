@@ -221,23 +221,14 @@ types.TANK_STATE = {
     HIGH_FILL = 6
 }
 
----@enum IMATRIX_STATE
-types.IMATRIX_STATE = {
+---@enum ESS_STATE
+types.ESS_STATE = {
     OFFLINE = 1,
     UNFORMED = 2,
     FAULT = 3,
     ONLINE = 4,
     LOW_CHARGE = 5,
     HIGH_CHARGE = 6
-}
-
----@enum ECORE_STATE
-types.ECORE_STATE = {
-    OFFLINE = 1,
-    FAULT = 2,
-    ONLINE = 3,
-    LOW_CHARGE = 4,
-    HIGH_CHARGE = 5
 }
 
 ---@enum SPS_STATE

@@ -46,7 +46,7 @@ return function (app, panes, matrix_pane, ps, update)
     matrix_page.tasks = { update }
 
     TextBox{parent=mtx_div,y=1,text="Induction Matrix",alignment=ALIGN.CENTER}
-    local status = StateIndicator{parent=mtx_div,x=5,y=3,states=style.imatrix.states,value=1,min_width=12}
+    local status = StateIndicator{parent=mtx_div,x=5,y=3,states=style.ess.states,value=1,min_width=12}
     status.register(ps, "InductionMatrixStateStatus", status.update)
 
     TextBox{parent=mtx_div,text="Chg",y=5,fg_bg=label}

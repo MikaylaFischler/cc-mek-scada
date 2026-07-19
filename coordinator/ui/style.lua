@@ -202,24 +202,12 @@ style.dtank = {
     }
 }
 
-style.imatrix = {
-    -- induction matrix states<br>
-    ---@see IMATRIX_STATE
+style.ess = {
+    -- induction matrix and energy core states<br>
+    ---@see ESS_STATE
     states = {
         { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
         { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },
-        { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
-        { color = cpair(colors.black, colors.green),  text = "ONLINE" },
-        { color = cpair(colors.black, colors.yellow), text = "LOW CHARGE" },
-        { color = cpair(colors.black, colors.yellow), text = "HIGH  CHARGE" }
-    }
-}
-
-style.ecore = {
-    -- energy core states<br>
-    ---@see ECORE_STATE
-    states = {
-        { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
         { color = cpair(colors.black, colors.orange), text = "RTU  FAULT" },
         { color = cpair(colors.black, colors.green),  text = "ONLINE" },
         { color = cpair(colors.black, colors.yellow), text = "LOW CHARGE" },

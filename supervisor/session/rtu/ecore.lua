@@ -48,6 +48,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
         },
         ---@class ecore_session_db
         db = {
+            formed = false,
             build = {
                 last_update = 0,
                 max_energy = 0
@@ -107,9 +108,13 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                 self.has_build = true
 
                 if self.db.build.max_energy > 0 then
+                    self.db.formed = true
                     self.db.virtual.last_update = self.db.state.last_update -- intentionally using state
                     self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
-                else self.db.virtual.energy_fill = 0 end
+                else
+                    self.db.formed = false
+                    self.db.virtual.energy_fill = 0
+                end
 
                 local max = self.db.build.max_energy
 

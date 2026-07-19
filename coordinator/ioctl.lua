@@ -25,8 +25,7 @@ local RCT_STATE = types.REACTOR_STATE
 local BLR_STATE = types.BOILER_STATE
 local TRB_STATE = types.TURBINE_STATE
 local TNK_STATE = types.TANK_STATE
-local MTX_STATE = types.IMATRIX_STATE
-local ECR_STATE = types.ECORE_STATE
+local ESS_STATE = types.ESS_STATE
 local SPS_STATE = types.SPS_STATE
 
 local WASTE_PRODUCT = types.WASTE_PRODUCT
@@ -803,7 +802,7 @@ function ioctl.update_facility_status(status)
 
             -- induction matricies statuses
             if type(rtu_statuses.induction) == "table" then
-                local matrix_status = MTX_STATE.OFFLINE
+                local matrix_status = ESS_STATE.OFFLINE
 
                 for id = 1, #fac.induction_ps_tbl do
                     if rtu_statuses.induction[id] == nil then
@@ -820,17 +819,17 @@ function ioctl.update_facility_status(status)
                         local rtu_faulted = _record_multiblock_status(matrix, data, ps)
 
                         if rtu_faulted then
-                            matrix_status = MTX_STATE.FAULT
+                            matrix_status = ESS_STATE.FAULT
                         elseif data.formed then
                             if data.tanks.energy_fill > const.RS_THRESHOLDS.ENERGY_CHARGE_HIGH then
-                                matrix_status = MTX_STATE.HIGH_CHARGE
+                                matrix_status = ESS_STATE.HIGH_CHARGE
                             elseif data.tanks.energy_fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW then
-                                matrix_status = MTX_STATE.LOW_CHARGE
+                                matrix_status = ESS_STATE.LOW_CHARGE
                             else
-                                matrix_status = MTX_STATE.ONLINE
+                                matrix_status = ESS_STATE.ONLINE
                             end
                         else
-                            matrix_status = MTX_STATE.UNFORMED
+                            matrix_status = ESS_STATE.UNFORMED
                         end
 
                         ps.publish("computed_status", matrix_status)
@@ -845,7 +844,7 @@ function ioctl.update_facility_status(status)
 
             -- energy core statuses
             if type(rtu_statuses.ecore) == "table" then
-                local ecore_status = ECR_STATE.OFFLINE
+                local ecore_status = ESS_STATE.OFFLINE
 
                 for id = 1, #fac.ecore_ps_tbl do
                     if rtu_statuses.ecore[id] == nil then
@@ -861,24 +860,28 @@ function ioctl.update_facility_status(status)
 
                         local rtu_faulted = ecore[1]
 
-                        data.state   = ecore[2]
-                        data.virtual = ecore[3]
+                        data.formed  = ecore[2]
+                        data.state   = ecore[3]
+                        data.virtual = ecore[4]
 
+                        ps.publish("formed", data.formed)
                         ps.publish("faulted", rtu_faulted)
 
                         for key, val in pairs(data.state) do ps.publish(key, val) end
                         for key, val in pairs(data.virtual) do ps.publish(key, val) end
 
                         if rtu_faulted then
-                            ecore_status = ECR_STATE.FAULT
-                        else
+                            ecore_status = ESS_STATE.FAULT
+                        elseif data.formed then
                             if data.virtual.energy_fill > const.RS_THRESHOLDS.ENERGY_CHARGE_HIGH then
-                                ecore_status = ECR_STATE.HIGH_CHARGE
+                                ecore_status = ESS_STATE.HIGH_CHARGE
                             elseif data.virtual.energy_fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW then
-                                ecore_status = ECR_STATE.LOW_CHARGE
+                                ecore_status = ESS_STATE.LOW_CHARGE
                             else
-                                ecore_status = ECR_STATE.ONLINE
+                                ecore_status = ESS_STATE.ONLINE
                             end
+                        else
+                            ecore_status = ESS_STATE.UNFORMED
                         end
 
                         ps.publish("computed_status", ecore_status)

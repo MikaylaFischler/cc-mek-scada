@@ -681,23 +681,24 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.IMATRIX then
             build.induction = {}
             for i = 1, #self.induction do
-                local matrix = self.induction[i]
-                build.induction[i] = { matrix.get_db().formed, matrix.get_db().build }
+                local db = self.induction[i].get_db()
+                build.induction[i] = { db.formed, db.build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.ENERGY_CORE then
             build.ecore = {}
             for i = 1, #self.ecore do
-                build.ecore[i] = { true, self.ecore[i].get_db().build }
+                local db = self.ecore[i].get_db()
+                build.ecore[i] = { db.formed, db.build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
-                local sps = self.sps[i]
-                build.sps[i] = { sps.get_db().formed, sps.get_db().build }
+                local db = self.sps[i].get_db()
+                build.sps[i] = { db.formed, db.build }
             end
         end
 
@@ -793,7 +794,7 @@ function facility.new(config)
             local ecore = self.ecore[i]
             local db = ecore.get_db()
 
-            status.ecore[i] = { ecore.is_faulted(), db.state, db.virtual }
+            status.ecore[i] = { ecore.is_faulted(), db.formed, db.state, db.virtual }
 
             if db.build.last_update > 0 then
                 local fe_per_ms = self.avg_net.get()

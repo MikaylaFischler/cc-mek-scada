@@ -15,8 +15,7 @@ local ALARM_STATE = types.ALARM_STATE
 local BLR_STATE = types.BOILER_STATE
 local TRB_STATE = types.TURBINE_STATE
 local TNK_STATE = types.TANK_STATE
-local MTX_STATE = types.IMATRIX_STATE
-local ECR_STATE = types.ECORE_STATE
+local ESS_STATE = types.ESS_STATE
 local SPS_STATE = types.SPS_STATE
 
 local io        ---@type pkt_io
@@ -831,14 +830,16 @@ function iorx.record_fac_detail_data(data)
 
         local ecr_status = 1
 
-        if e_stat ~= ECR_STATE.OFFLINE then
-            if e_stat == ECR_STATE.FAULT then
+        if e_stat ~= ESS_STATE.OFFLINE then
+            if e_stat == ESS_STATE.FAULT then
                 ecr_status = 3
-            else
+            elseif e_data.formed then
                 ecr_status = 4
+            else
+                ecr_status = 2
             end
 
-            ess_ps.publish("faulted", e_stat == ECR_STATE.FAULT)
+            ess_ps.publish("faulted", e_stat == ESS_STATE.FAULT)
 
             if e_data.build then
                 for key, val in pairs(e_data.build) do ess_ps.publish(key, val) end
@@ -860,8 +861,8 @@ function iorx.record_fac_detail_data(data)
 
         local mtx_status = 1
 
-        if m_stat ~= MTX_STATE.OFFLINE then
-            if m_stat == MTX_STATE.FAULT then
+        if m_stat ~= ESS_STATE.OFFLINE then
+            if m_stat == ESS_STATE.FAULT then
                 mtx_status = 3
             elseif m_data.formed then
                 mtx_status = 4
@@ -869,7 +870,7 @@ function iorx.record_fac_detail_data(data)
                 mtx_status = 2
             end
 
-            _record_multiblock_status(m_stat == MTX_STATE.FAULT, m_data, ess_ps)
+            _record_multiblock_status(m_stat == ESS_STATE.FAULT, m_data, ess_ps)
         end
 
         ess_ps.publish("InductionMatrixStatus", mtx_status)
