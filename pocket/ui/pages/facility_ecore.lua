@@ -52,11 +52,16 @@ return function (app, panes, ecore_pane, ps, update)
 
     chg_bar.register(ps, "energy_fill", chg_bar.update)
 
-    local energy  = PowerIndicator{parent=ecr_div,y=7,lu_colors=lu_col,label="Chg:  ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=ecr_div,text="Core Tier",y=7,fg_bg=label}
+    local tier = TextBox{parent=ecr_div,x=11,y=7,width=11,text="Unknown",alignment=ALIGN.RIGHT}
+
+    tier.register(ps, "tier", tier.set_value)
+
+    local energy  = PowerIndicator{parent=ecr_div,y=9,lu_colors=lu_col,label="Chg:  ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
     local avg_chg = PowerIndicator{parent=ecr_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",value=0,width=21,fg_bg=text_fg}
-    local input   = PowerIndicator{parent=ecr_div,y=10,lu_colors=lu_col,label="In:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local input   = PowerIndicator{parent=ecr_div,y=12,lu_colors=lu_col,label="In:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
     local avg_in  = PowerIndicator{parent=ecr_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
-    local output  = PowerIndicator{parent=ecr_div,y=13,lu_colors=lu_col,label="Out:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local output  = PowerIndicator{parent=ecr_div,y=15,lu_colors=lu_col,label="Out:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
     local avg_out = PowerIndicator{parent=ecr_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
 
     energy.register(ps, "energy", function (val) energy.update(db.energy_convert(val)) end)
