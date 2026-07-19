@@ -133,6 +133,8 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                     self.db.virtual.tier = "Tier 3"
                 elseif max > 45500000 then
                     self.db.virtual.tier = "Tier 2"
+                elseif max == 0 then
+                    self.db.virtual.tier = "Tier ?"
                 else
                     self.db.virtual.tier = "Tier 1"
                 end
