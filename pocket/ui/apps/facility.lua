@@ -3,6 +3,7 @@
 --
 
 local util          = require("scada-common.util")
+local types         = require("scada-common.types")
 
 local ioctl         = require("pocket.ioctl")
 local pocket        = require("pocket.pocket")
@@ -10,6 +11,7 @@ local pocket        = require("pocket.pocket")
 local style         = require("pocket.ui.style")
 
 local dyn_tank      = require("pocket.ui.pages.dynamic_tank")
+local energy_core   = require("pocket.ui.pages.facility_ecore")
 local facility_sps  = require("pocket.ui.pages.facility_sps")
 local induction_mtx = require("pocket.ui.pages.facility_matrix")
 
@@ -89,16 +91,21 @@ local function new_view(root)
 
         TextBox{parent=f_div,y=1,text="Facility",alignment=ALIGN.CENTER}
 
-        local mtx_state = IconIndicator{parent=f_div,y=3,label="Matrix Status",states=basic_states}
+        local ess_state = IconIndicator{parent=f_div,y=3,label="ESS Status",states=basic_states}
         local sps_state = IconIndicator{parent=f_div,label="SPS Status",states=basic_states}
-        mtx_state.register(fac.induction_ps_tbl[1], "InductionMatrixStatus", mtx_state.update)
         sps_state.register(fac.sps_ps_tbl[1], "SPSStatus", sps_state.update)
+
+        if fac.ess_type == types.ESS.ENERGY_CORE then
+            ess_state.register(fac.ecore_ps_tbl[1], "EnergyCoreStatus", ess_state.update)
+        else
+            ess_state.register(fac.induction_ps_tbl[1], "InductionMatrixStatus", ess_state.update)
+        end
 
         TextBox{parent=f_div,y=6,text="RTU Gateways",fg_bg=label_fg_bg}
         local rtu_count = DataIndicator{parent=f_div,x=19,y=6,label="",format="%3d",value=0,lu_colors=lu_col,width=3}
         rtu_count.register(f_ps, "rtu_count", rtu_count.update)
 
-        TextBox{parent=f_div,y=8,text="Induction Matrix",alignment=ALIGN.CENTER}
+        TextBox{parent=f_div,y=8,text="Energy Storage System",alignment=ALIGN.CENTER}
 
         local eta = TextBox{parent=f_div,y=10,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
         eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
@@ -126,18 +133,23 @@ local function new_view(root)
         TextBox{parent=a_div,y=1,text="Annunciator",alignment=ALIGN.CENTER}
 
         local all_ok  = IconIndicator{parent=a_div,y=3,label="Units Online",states=grn_ind_s}
-        local ind_mat = IconIndicator{parent=a_div,label="Induction Matrix",states=grn_ind_s}
+        local ind_ess = IconIndicator{parent=a_div,label="ESS Connected",states=grn_ind_s}
         local sps     = IconIndicator{parent=a_div,label="SPS Connected",states=grn_ind_s}
 
         all_ok.register(f_ps, "all_sys_ok", all_ok.update)
-        ind_mat.register(fac.induction_ps_tbl[1], "InductionMatrixStateStatus", function (status) ind_mat.update(status > 1) end)
         sps.register(fac.sps_ps_tbl[1], "SPSStateStatus", function (status) sps.update(status > 1) end)
+
+        if fac.ess_type == types.ESS.ENERGY_CORE then
+            ind_ess.register(fac.ecore_ps_tbl[1], "EnergyCoreStatetatus", function (status) ind_ess.update(status > 1) end)
+        else
+            ind_ess.register(fac.induction_ps_tbl[1], "InductionMatrixStateStatus", function (status) ind_ess.update(status > 1) end)
+        end
 
         a_div.line_break()
 
         local auto_scram  = IconIndicator{parent=a_div,label="Automatic SCRAM",states=red_ind_s}
-        local matrix_flt  = IconIndicator{parent=a_div,label="Ind. Matrix Fault",states=yel_ind_s}
-        local matrix_fill = IconIndicator{parent=a_div,label="Matrix Charge Hi",states=red_ind_s}
+        local matrix_flt  = IconIndicator{parent=a_div,label="ESS HW Fault",states=yel_ind_s}
+        local matrix_fill = IconIndicator{parent=a_div,label="ESS Charge Hi",states=red_ind_s}
         local unit_crit   = IconIndicator{parent=a_div,label="Unit Crit. Alarm",states=red_ind_s}
         local fac_rad_h   = IconIndicator{parent=a_div,label="FAC Radiation Hi",states=red_ind_s}
         local gen_fault   = IconIndicator{parent=a_div,label="Gen Control Fault",states=yel_ind_s}
@@ -151,9 +163,15 @@ local function new_view(root)
 
         --#endregion
 
-        --#region induction matrix
+        --#region energy storage system
 
-        local mtx_page_nav = induction_mtx(app, panes, Div{parent=page_div}, fac.induction_ps_tbl[1], update)
+        local ess_page_nav ---@type function
+
+        if fac.ess_type == types.ESS.ENERGY_CORE then
+            ess_page_nav = energy_core(app, panes, Div{parent=page_div}, fac.ecore_ps_tbl[1], update)
+        else
+            ess_page_nav = induction_mtx(app, panes, Div{parent=page_div}, fac.induction_ps_tbl[1], update)
+        end
 
         --#endregion
 
@@ -220,7 +238,7 @@ local function new_view(root)
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = "FAC", tall = true, color = core.cpair(colors.black, colors.orange), callback = fac_page.nav_to },
             { label = "ANN", color = core.cpair(colors.black, colors.yellow), callback = annunc_page.nav_to },
-            { label = "MTX", color = core.cpair(colors.black, colors.white), callback = mtx_page_nav },
+            { label = "ESS", color = core.cpair(colors.black, colors.white), callback = ess_page_nav },
             { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page_nav },
             { label = "TNK", tall = true, color = core.cpair(colors.black, colors.blue), callback = tank_page.nav_to }
         }

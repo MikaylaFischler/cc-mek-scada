@@ -49,19 +49,19 @@ local function new_view(root, x, y, ps, id)
     local rect = Rectangle{parent=ecore,border=border(1,colors.gray,true),width=33,height=22,y=3}
 
     local status   = StateIndicator{parent=rect,x=10,y=1,states=style.ecore.states,value=1,min_width=14}
-    local capacity = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity",unit=db.energy_label,format="%9.2f",value=0,width=26,fg_bg=text_fg}
-    local energy   = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="Energy  ",unit=db.energy_label,format="%9.2f",value=0,width=26,fg_bg=text_fg}
-    local avg_chg  = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="\xb7Average",unit=db.energy_label,format="%9.2f",value=0,width=26,fg_bg=text_fg}
+    local capacity = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local energy   = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="Energy:  ",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
+    local avg_chg  = PowerIndicator{parent=rect,x=7,y=6,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
 
-    local transfer = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Transfer",unit=db.energy_label,format="%9.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local transfer = PowerIndicator{parent=rect,x=7,y=8,lu_colors=lu_col,label="Transfer:",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
 
     local chging   = IndicatorLight{parent=rect,x=7,y=10,label="Charging",colors=ind_wht}
     local dischg   = IndicatorLight{parent=rect,x=7,y=11,label="Discharging",colors=ind_wht}
 
-    local input    = PowerIndicator{parent=rect,x=7,y=13,lu_colors=lu_col,label="Input   ",unit=db.energy_label,format="%9.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local avg_in   = PowerIndicator{parent=rect,x=7,y=14,lu_colors=lu_col,label="\xb7Average",unit=db.energy_label,format="%9.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local output   = PowerIndicator{parent=rect,x=7,y=16,lu_colors=lu_col,label="Output  ",unit=db.energy_label,format="%9.2f",rate=true,value=0,width=26,fg_bg=text_fg}
-    local avg_out  = PowerIndicator{parent=rect,x=7,y=17,lu_colors=lu_col,label="\xb7Average",unit=db.energy_label,format="%9.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local input    = PowerIndicator{parent=rect,x=7,y=13,lu_colors=lu_col,label="Input:   ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local avg_in   = PowerIndicator{parent=rect,x=7,y=14,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local output   = PowerIndicator{parent=rect,x=7,y=16,lu_colors=lu_col,label="Output:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
+    local avg_out  = PowerIndicator{parent=rect,x=7,y=17,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=26,fg_bg=text_fg}
 
     status.register(ps, "computed_status", status.update)
     capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert_from_fe(val)) end)
