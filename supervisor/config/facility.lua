@@ -199,7 +199,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     tool_ctl.num_units = NumberField{parent=fac_c_1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_1,x=7,y=5,text="reactors"}
-    TextBox{parent=fac_c_1,y=7,height=3,text="If you already configured your coordinator, make sure you update the coordinator's configured unit count.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+    TextBox{parent=fac_c_1,y=7,height=3,text="If you already configured your Coordinator, make sure you update the Coordinator's configured unit count.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     local nu_error = TextBox{parent=fac_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -787,6 +787,10 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
         tmp_cfg.EnergyStorageSystem = tool_ctl.ene_storage.get_value()
         main_pane.set_value(3)
     end
+
+    TextBox{parent=fac_c_12,y=9,height=4,text="In most interfaces, this device will be referred to as the Energy Storage System or the ESS, rather than as an induction matrix or energy core, so you should be aware of these terms.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_12,x=11,y=10,width=21,height=1,text="Energy Storage System",fg_bg=cpair(colors.blue,colors._INHERIT)}
+    TextBox{parent=fac_c_12,x=40,y=10,width=3,height=1,text="ESS",fg_bg=cpair(colors.blue,colors._INHERIT)}
 
     PushButton{parent=fac_c_12,y=14,text="\x1b Back",callback=function()fac_pane.set_value(11)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_12,x=44,y=14,text="Next \x1a",callback=submit_ene_storage,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
