@@ -24,6 +24,8 @@ local PERIODICS = {
     STATE = 500
 }
 
+local DEACTIVATION_TIMEOUT_ms = 5000
+
 -- create a new ecore rtu session runner
 ---@nodiscard
 ---@param session_id integer RTU gateway session ID
@@ -42,6 +44,12 @@ function ecore.new(session_id, unit_id, advert, out_queue)
     local self = {
         session = unit_session.new(session_id, unit_id, advert, out_queue, log_tag, TXN_TAGS),
         has_build = false,
+        -- formed tracking (activation/decativation)
+        formed = {
+            build_ok = false,
+            state_ok = true,
+            time_deact = 0
+        },
         periodics = {
             next_build_req = 0,
             next_state_req = 0
@@ -108,11 +116,15 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                 self.has_build = true
 
                 if self.db.build.max_energy > 0 then
-                    self.db.formed = true
+                    self.formed.build_ok = true
+                    self.db.formed = self.formed.state_ok
+
                     self.db.virtual.last_update = self.db.state.last_update -- intentionally using state
                     self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
                 else
+                    self.formed.build_ok = false
                     self.db.formed = false
+
                     self.db.virtual.energy_fill = 0
                 end
 
@@ -172,6 +184,35 @@ function ecore.new(session_id, unit_id, advert, out_queue)
     function public.invalidate_cache()
         self.periodics.next_build_req = 0
         self.has_build = false
+    end
+
+    -- try to determine if this energy core is formed or not based on expected input rate
+    ---@param gen_in number expected input from generator(s)
+    function public.eval_formed(gen_in)
+        local build, state = self.db.build, self.db.state
+
+        if self.has_build and build.max_energy > 0 then
+            self.formed.build_ok = true
+            self.formed.state_ok = true
+
+            local now = util.time_ms()
+
+            if (gen_in >= 1) and (state.transfer == 0 and state.input == 0 and state.output == 0) then
+                if self.formed.time_deact > 0 then
+                    if ((now - self.formed.time_deact) > DEACTIVATION_TIMEOUT_ms) then
+                        self.formed.state_ok = false
+                    end
+                else
+                    self.formed.time_deact = now
+                end
+            else
+                self.formed.time_deact = 0
+            end
+        else
+            self.formed.build_ok = false
+        end
+
+        self.db.formed = self.formed.build_ok and self.formed.state_ok
     end
 
     -- get the unit session database

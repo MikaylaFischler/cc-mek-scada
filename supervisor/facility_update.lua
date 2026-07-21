@@ -822,11 +822,22 @@ function update.auto_safety()
         -- check for unformed or faulted state and check fill
         if self.induction[1] then
             local db = self.induction[1].get_db()
+
             ess_ok = db.formed and not self.induction[1].is_faulted()
             fill = db.tanks.energy_fill
         else
             local db = self.ecore[1].get_db()
-            ess_ok = not self.ecore[1].is_faulted()
+
+            -- get total turbine generation rate (regardless of auto assignments)
+            local gen = 0
+            for _, u in pairs(self.units) do
+                gen = gen + u.get_generation_rate()
+            end
+
+            -- update if formed
+            self.ecore[1].eval_formed(gen)
+
+            ess_ok = db.formed and not self.ecore[1].is_faulted()
             fill = db.virtual.energy_fill
         end
 
