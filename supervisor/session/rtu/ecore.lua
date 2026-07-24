@@ -70,6 +70,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
             },
             virtual = {
                 last_update = 0,
+                energy_need = 0,
                 energy_fill = 0,
                 tier = "Tier ?"
             }
@@ -99,6 +100,21 @@ function ecore.new(session_id, unit_id, advert, out_queue)
         end
     end
 
+    -- update computed values <br/>
+    -- <b>IMPORTANT: ok is the check for max_energy > 0, otherwise this will allow for a divide by zero</b>
+    ---@param ok boolean if the build is received and the maximum energy is > 0
+    local function _update_virtual(ok)
+        self.db.virtual.last_update = self.db.state.last_update
+
+        if ok then
+            self.db.virtual.energy_need = self.db.build.max_energy - self.db.state.energy
+            self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
+        else
+            self.db.virtual.energy_need = 0
+            self.db.virtual.energy_fill = 0
+        end
+    end
+
     -- PUBLIC FUNCTIONS --
 
     -- handle an ADU
@@ -115,20 +131,12 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                 self.db.build.max_energy  = adu.data[1]
                 self.has_build = true
 
-                if self.db.build.max_energy > 0 then
-                    self.formed.build_ok = true
-                    self.db.formed = self.formed.state_ok
-
-                    self.db.virtual.last_update = self.db.state.last_update -- intentionally using state
-                    self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
-                else
-                    self.formed.build_ok = false
-                    self.db.formed = false
-
-                    self.db.virtual.energy_fill = 0
-                end
-
                 local max = self.db.build.max_energy
+
+                self.formed.build_ok = max > 0
+                self.db.formed = self.formed.build_ok and self.formed.state_ok
+
+                _update_virtual(self.formed.build_ok)
 
                 -- if max == 9223372036854775807 then
                 if max > 2140000000000 then
@@ -163,10 +171,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                 self.db.state.transfer    = adu.data[3]
                 self.db.state.energy      = adu.data[4]
 
-                if self.has_build and self.db.build.max_energy > 0 then
-                    self.db.virtual.last_update = self.db.state.last_update
-                    self.db.virtual.energy_fill = self.db.state.energy / self.db.build.max_energy
-                else self.db.virtual.energy_fill = 0 end
+                _update_virtual(self.has_build and self.db.build.max_energy > 0)
             else self.session.log_length_mismatch(txn_type) end
         else self.session.log_resolve_fail(txn_type) end
     end

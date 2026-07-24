@@ -794,11 +794,9 @@ function facility.new(config)
 
             status.ecore[i] = { ecore.is_faulted(), db.formed, db.state, db.virtual }
 
-            if db.build.last_update > 0 then
-                local fe_per_ms = self.avg_net.get()
-                local remaining = util.trinary(fe_per_ms >= 0, db.build.max_energy - db.state.energy, db.state.energy)
-                status.power[4] = remaining / fe_per_ms
-            end
+            local fe_per_ms = self.avg_net.get()
+            local remaining = util.trinary(fe_per_ms >= 0, db.virtual.energy_need, db.state.energy)
+            status.power[4] = remaining / fe_per_ms
         end
 
         -- SNA/Po statistical information
