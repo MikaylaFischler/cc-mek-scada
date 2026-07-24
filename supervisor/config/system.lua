@@ -552,7 +552,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, fac_pane, mek_pane, s
             try_set(tool_ctl.ext_idling, ini_cfg.ExtChargeIdling)
             try_set(tool_ctl.sna_stats, ini_cfg.UseSNAStatistics)
             try_set(tool_ctl.com_waste, ini_cfg.CombinedWaste)
-            try_set(tool_ctl.ene_storage, ini_cfg.EnergyStorageSystem)
+            try_set(tool_ctl.ess_opt, ini_cfg.EnergyStorageSystem)
 
             for k, v in pairs(ini_cfg.MekanismConfig) do
                 try_set(tool_ctl.custom_configs[k], v)

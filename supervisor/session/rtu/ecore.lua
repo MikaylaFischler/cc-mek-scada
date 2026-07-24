@@ -71,7 +71,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
             virtual = {
                 last_update = 0,
                 energy_fill = 0,
-                tier = 0
+                tier = "Tier ?"
             }
         }
     }
@@ -202,15 +202,9 @@ function ecore.new(session_id, unit_id, advert, out_queue)
                     if ((now - self.formed.time_deact) > DEACTIVATION_TIMEOUT_ms) then
                         self.formed.state_ok = false
                     end
-                else
-                    self.formed.time_deact = now
-                end
-            else
-                self.formed.time_deact = 0
-            end
-        else
-            self.formed.build_ok = false
-        end
+                else self.formed.time_deact = now end
+            else self.formed.time_deact = 0 end
+        else self.formed.build_ok = false end
 
         self.db.formed = self.formed.build_ok and self.formed.state_ok
     end

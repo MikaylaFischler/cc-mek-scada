@@ -24,6 +24,14 @@
 
 --#endregion
 
+--#region Supervisor Aliases
+
+---@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
+
+---@alias svr__rtu_conns { ess: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
+
+--#endregion
+
 --#region Pocket Aliases
 
 ---@alias pkt__sect_construct_data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }

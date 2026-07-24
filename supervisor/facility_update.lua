@@ -407,11 +407,11 @@ function update.auto_control(ExtChargeIdling)
             log.warning("facility_update.auto_control(): failed to save supervisor settings file")
         end
 
-        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.STORAGE_FAULT_IDLE or
+        if self.last_mode == PROCESS.INACTIVE or self.last_mode == PROCESS.ESS_FAULT_IDLE or
            self.last_mode == PROCESS.SYSTEM_ALARM_IDLE or self.last_mode == PROCESS.GEN_RATE_FAULT_IDLE then
             self.start_fail = START_STATUS.OK
 
-            if (self.mode ~= PROCESS.STORAGE_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
+            if (self.mode ~= PROCESS.ESS_FAULT_IDLE) and (self.mode ~= PROCESS.SYSTEM_ALARM_IDLE) then
                 -- auto clear ASCRAM
                 self.ascram = false
                 self.ascram_reason = AUTO_SCRAM.NONE
@@ -785,14 +785,14 @@ function update.auto_control(ExtChargeIdling)
         end
 
         self.last_update = rate_update
-    elseif self.mode == PROCESS.STORAGE_FAULT_IDLE then
+    elseif self.mode == PROCESS.ESS_FAULT_IDLE then
         -- exceeded charge, wait until condition clears
         if self.ascram_reason == AUTO_SCRAM.NONE then
             next_mode = self.return_mode
-            log.info("FAC: exiting energy storage fault idle state due to fault resolution")
+            log.info("FAC: exiting ESS fault idle state due to fault resolution")
         elseif self.ascram_reason == AUTO_SCRAM.CRIT_ALARM then
             next_mode = PROCESS.SYSTEM_ALARM_IDLE
-            log.info("FAC: exiting energy storage fault idle state due to critical unit alarm")
+            log.info("FAC: exiting ESS fault idle state due to critical unit alarm")
         end
     elseif self.mode == PROCESS.SYSTEM_ALARM_IDLE then
         -- do nothing, wait for user to confirm (stop and reset)
@@ -917,19 +917,19 @@ function update.auto_safety()
 
                 log.info("FAC: automatic SCRAM due to high facility radiation")
             elseif astatus.ess_fault then
-                next_mode = PROCESS.STORAGE_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.STORAGE_FAULT
+                next_mode = PROCESS.ESS_FAULT_IDLE
+                self.ascram_reason = AUTO_SCRAM.ESS_FAULT
                 self.status_text = { "AUTOMATIC SCRAM", "energy storage fault" }
 
-                if self.mode ~= PROCESS.STORAGE_FAULT_IDLE then self.return_mode = self.mode end
+                if self.mode ~= PROCESS.ESS_FAULT_IDLE then self.return_mode = self.mode end
 
                 log.info("FAC: automatic SCRAM due to ESS disconnected, unformed, or faulted")
             elseif astatus.ess_fill then
-                next_mode = PROCESS.STORAGE_FAULT_IDLE
-                self.ascram_reason = AUTO_SCRAM.STORAGE_FILL
+                next_mode = PROCESS.ESS_FAULT_IDLE
+                self.ascram_reason = AUTO_SCRAM.ESS_FILL
                 self.status_text = { "AUTOMATIC SCRAM", "energy storage fill high" }
 
-                if self.mode ~= PROCESS.STORAGE_FAULT_IDLE then self.return_mode = self.mode end
+                if self.mode ~= PROCESS.ESS_FAULT_IDLE then self.return_mode = self.mode end
 
                 log.info("FAC: automatic SCRAM due to ESS high charge")
             elseif astatus.gen_fault then

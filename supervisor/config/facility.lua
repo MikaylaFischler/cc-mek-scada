@@ -781,19 +781,19 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     TextBox{parent=fac_c_12,y=4,text="Energy Storage System (ESS)"}
     TextBox{parent=fac_c_12,x=29,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
-    tool_ctl.ene_storage = RadioButton{parent=fac_c_12,y=5,default=math.max(1,ini_cfg.EnergyStorageSystem),options={"Induction Matrix (Mekanism)","Energy Core (Draconic Evolution)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
+    tool_ctl.ess_opt = RadioButton{parent=fac_c_12,y=5,default=math.max(1,ini_cfg.EnergyStorageSystem),options={"Induction Matrix (Mekanism)","Energy Core (Draconic Evolution)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
 
-    local function submit_ene_storage()
-        tmp_cfg.EnergyStorageSystem = tool_ctl.ene_storage.get_value()
+    local function submit_ess()
+        tmp_cfg.EnergyStorageSystem = tool_ctl.ess_opt.get_value()
         main_pane.set_value(3)
     end
 
-    TextBox{parent=fac_c_12,y=9,height=4,text="In most interfaces, this device will be referred to as the Energy Storage System or the ESS, rather than as an induction matrix or energy core, so you should be aware of these terms.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_12,y=9,height=4,text="In most interfaces, this device will be referred to as the Energy Storage System or the ESS, rather than as an Induction Matrix or Energy Core, so you should be aware of these terms.",fg_bg=g_lg_fg_bg}
     TextBox{parent=fac_c_12,x=11,y=10,width=21,height=1,text="Energy Storage System",fg_bg=cpair(colors.blue,colors._INHERIT)}
     TextBox{parent=fac_c_12,x=40,y=10,width=3,height=1,text="ESS",fg_bg=cpair(colors.blue,colors._INHERIT)}
 
     PushButton{parent=fac_c_12,y=14,text="\x1b Back",callback=function()fac_pane.set_value(11)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=fac_c_12,x=44,y=14,text="Next \x1a",callback=submit_ene_storage,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_12,x=44,y=14,text="Next \x1a",callback=submit_ess,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

@@ -155,7 +155,7 @@ function unit_session.new(session_id, unit_id, advert, out_queue, log_tag, txn_t
     end
 
     -- log a transaction resolution failure
-    ---@param txn_type integer transaction type
+    ---@param txn_type integer? transaction type
     function protected.log_resolve_fail(txn_type)
         log.error(log_tag .. "unknown transaction " .. util.trinary(txn_type == nil, "reply", util.c("type ", txn_type)))
     end

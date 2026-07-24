@@ -27,8 +27,8 @@ local IO = rsio.IO
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
     NONE = 0,
-    STORAGE_FAULT = 1,
-    STORAGE_FILL = 2,
+    ESS_FAULT = 1,
+    ESS_FILL = 2,
     CRIT_ALARM = 3,
     RADIATION = 4,
     GEN_FAULT = 5
@@ -743,11 +743,9 @@ function facility.new(config)
     -- check which RTUs are connected
     ---@nodiscard
     function public.check_rtu_conns()
-        local conns = {}
+        local conns = {} ---@type svr__rtu_conns
 
-        conns.induction = #self.induction > 0
-        conns.ecore = #self.ecore > 0
-        conns.energy_storage = conns.induction or conns.ecore
+        conns.ess = (#self.induction > 0) or (#self.ecore > 0)
 
         conns.sps = #self.sps > 0
 

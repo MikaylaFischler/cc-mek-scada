@@ -87,7 +87,7 @@ local tool_ctl = {
     ext_idling = nil,     ---@type Checkbox
     sna_stats = nil,      ---@type Checkbox
     com_waste = nil,      ---@type Checkbox
-    ene_storage = nil,    ---@type RadioButton
+    ess_opt = nil,        ---@type RadioButton
 
     mek_profile = nil,    ---@type RadioButton
     custom_configs = {},  ---@type NumberField[]

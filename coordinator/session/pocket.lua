@@ -276,14 +276,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 for i = 1, #fac.tank_ps_tbl do table.insert(tank_statuses, fac.tank_ps_tbl[i].get("computed_status")) end
 
-                local ess_state, ess_data, ess_ps
+                local ess_data, ess_ps
 
                 if fac.ess_type == types.ESS.ENERGY_CORE then
-                    ess_state = fac.ecore_ps_tbl[1].get("computed_status") or types.ESS_STATE.OFFLINE
                     ess_data = fac.ecore_data_tbl[1]
                     ess_ps = fac.ecore_ps_tbl[1]
                 else
-                    ess_state = fac.induction_ps_tbl[1].get("computed_status") or types.ESS_STATE.OFFLINE
                     ess_data = fac.induction_data_tbl[1]
                     ess_ps = fac.induction_ps_tbl[1]
                 end
@@ -305,7 +303,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     fac.ascram_status,
                     tank_statuses,
                     fac.tank_data_tbl,
-                    ess_state,
+                    ess_ps.get("computed_status") or types.ESS_STATE.OFFLINE,
                     ess_data,
                     power_data,
                     fac.sps_ps_tbl[1].get("computed_status") or types.SPS_STATE.OFFLINE,
