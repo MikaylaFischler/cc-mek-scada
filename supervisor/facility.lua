@@ -782,8 +782,10 @@ function facility.new(config)
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
             local fe_per_ms = self.avg_net.get()
-            local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
-            status.power[4] = remaining / fe_per_ms
+            if fe_per_ms ~= 0 then
+                local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms > 0, db.tanks.energy_need, db.tanks.energy))
+                status.power[4] = remaining / fe_per_ms
+            end
         end
 
         -- status of energy core
@@ -795,8 +797,10 @@ function facility.new(config)
             status.ecore[i] = { ecore.is_faulted(), db.formed, db.state, db.virtual }
 
             local fe_per_ms = self.avg_net.get()
-            local remaining = util.trinary(fe_per_ms >= 0, db.virtual.energy_need, db.state.energy)
-            status.power[4] = remaining / fe_per_ms
+            if fe_per_ms ~= 0 then
+                local remaining = util.trinary(fe_per_ms > 0, db.virtual.energy_need, db.state.energy)
+                status.power[4] = remaining / fe_per_ms
+            end
         end
 
         -- SNA/Po statistical information
