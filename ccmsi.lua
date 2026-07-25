@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "2.0"
+local CCMSI_VERSION = "2.1"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -33,6 +33,7 @@ local mode, app, target, build_url, manifest_url
 local out_w, out_h = term.getSize()
 
 local function tsc(c) term.setTextColor(c) end
+local function tbc(c) term.setBackgroundColor(c) end
 
 local function red() tsc(colors.red) end
 local function orange() tsc(colors.orange) end
@@ -45,8 +46,6 @@ local function white() tsc(colors.white) end
 local function lgray() tsc(colors.lightGray) end
 
 local function pln(msg) print(tostring(msg)) end
-
-local function fgbg(f, b) term.setBackgroundColor(f);tsc(b) end
 
 -- stripped down & modified copy of log.dmesg
 local function print(msg)
@@ -105,12 +104,11 @@ local function show_progress(p)
 	term.setCursorPos(1, out_h)
 
 	print(string.format("%3.0f%% ", p*100))
-	local pb = math.floor(p*((out_w-6)*2))
+	local pb = math.floor(p*(out_w-6))
 
-	fgbg(colors.lightBlue, colors.black)
-	print(string.rep("\x80", math.floor(pb/2)))
-	fgbg(colors.black, colors.lightBlue)
-	if pb % 2 > 0 then print("\x95") end
+	tbc(colors.lightBlue);tsc(colors.black)
+	print(string.rep("\x80", pb))
+	tbc(colors.black)
 
 	term.setCursorPos(1, y);lgray()
 end
@@ -160,8 +158,12 @@ local function pkg_v_msg(n, m, va, vb)
 	white()
 end
 
--- package info message
-local function pkg_msg(n, m) purple();print("["..n.."] ");white();pln(m.." ") end
+-- package info/warn message
+local function pkg_msg(n, m, w)
+	purple();print("["..n.."] ")
+	if w then yellow() else white() end
+	pln(m.." ")
+end
 
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
@@ -326,12 +328,14 @@ local function clean(manifest)
 	white()
 end
 
--- handle command line options
+-- startup header
 
 tsc(colors.magenta)
 if IS_PKT then pln("- SCADA Installer v"..CCMSI_VERSION.." -")
 else pln("-- ComputerCraft Mekanism SCADA Installer v"..CCMSI_VERSION.." --") end
 white()
+
+-- handle command line options
 
 if #OPTS == 0 or OPTS[1] == "help" then
 	pln("usage: ccmsi <mode> <app> <branch>")
@@ -499,7 +503,7 @@ elseif mode == "install" or mode == "update" then
 	ver.common.changed = show_pkg_change("common", ver.common)
 	ver.comms.changed = show_pkg_change("comms", ver.comms)
 	if ver.comms.changed and ver.comms.v_local ~= nil then
-		print("[comms] ");yellow();pln("other devices on the network will require an update");white()
+		pkg_msg("comms", "all networked devices must be updated", true)
 	end
 	ver.app.changed = show_pkg_change(app, ver.app)
 	ver.graphics.changed = show_pkg_change("graphics", ver.graphics)
@@ -609,7 +613,7 @@ elseif mode == "install" or mode == "update" then
 
 		for k, dep in pairs(sf_deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_msg(dep, "skipping install of unchanged package")
+				pkg_msg(dep, "skipping install of unchanged package", true)
 				sf_deps[k] = nil
 			else
 				pkg_msg(dep, "installing package...")
@@ -660,7 +664,7 @@ elseif mode == "install" or mode == "update" then
 		-- download all dependencies
 		for _, dep in pairs(deps) do
 			if mode == "update" and unchanged(dep) then
-				pkg_msg(dep, "skipping download of unchanged package")
+				pkg_msg(dep, "skipping download of unchanged package", true)
 			else
 				pkg_msg(dep, "downloading package...")
 				lgray()
@@ -697,7 +701,7 @@ elseif mode == "install" or mode == "update" then
 		if success then
 			for _, dep in pairs(deps) do
 				if mode == "update" and unchanged(dep) then
-					pkg_msg(dep, "skipping install of unchanged package")
+					pkg_msg(dep, "skipping install of unchanged package", true)
 				else
 					pkg_msg(dep, "installing package...")
 					lgray()
