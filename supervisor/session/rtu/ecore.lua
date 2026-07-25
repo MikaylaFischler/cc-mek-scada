@@ -24,7 +24,7 @@ local PERIODICS = {
     STATE = 500
 }
 
-local DEACTIVATION_TIMEOUT_ms = 5000
+local DEACTIVATION_TIMEOUT_ms = 3000
 
 -- create a new ecore rtu session runner
 ---@nodiscard
