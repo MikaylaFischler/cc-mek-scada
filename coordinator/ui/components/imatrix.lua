@@ -50,7 +50,7 @@ local function new_view(root, x, y, ps, id)
 
     local rect = Rectangle{parent=matrix,border=border(1,colors.gray,true),width=33,height=22,y=3}
 
-    local status    = StateIndicator{parent=rect,x=10,y=1,states=style.imatrix.states,value=1,min_width=14}
+    local status    = StateIndicator{parent=rect,x=10,y=1,states=style.ess.states,value=1,min_width=14}
     local capacity  = PowerIndicator{parent=rect,x=7,y=3,lu_colors=lu_col,label="Capacity:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
     local energy    = PowerIndicator{parent=rect,x=7,y=4,lu_colors=lu_col,label="Energy:  ",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}
     local avg_chg   = PowerIndicator{parent=rect,x=7,y=5,lu_colors=lu_col,label="\xb7Average:",unit=db.energy_label,format="%8.2f",value=0,width=26,fg_bg=text_fg}

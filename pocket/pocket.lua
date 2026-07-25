@@ -739,7 +739,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 end
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_FAC then
-                            if _check_length(packet, 11) then
+                            if _check_length(packet, 9) then
                                 ioctl.rx.record_facility_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_FAC_DTL then
@@ -807,9 +807,9 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                 if packet.length == 2 then
                                     local fac_config = packet.data[2]
 
-                                    if type(fac_config) == "table" and #fac_config == 3 then
+                                    if type(fac_config) == "table" and #fac_config == 4 then
                                         -- get configuration
-                                        local conf = { num_units = fac_config[1], cooling = fac_config[2], com_waste = fac_config[3] }
+                                        local conf = { num_units = fac_config[1], cooling = fac_config[2], com_waste = fac_config[3], ess = fac_config[4] }
 
                                         ioctl.init_fac(conf)
 

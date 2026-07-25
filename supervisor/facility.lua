@@ -27,8 +27,8 @@ local IO = rsio.IO
 ---@enum AUTO_SCRAM
 local AUTO_SCRAM = {
     NONE = 0,
-    MATRIX_FAULT = 1,
-    MATRIX_FILL = 2,
+    ESS_FAULT = 1,
+    ESS_FILL = 2,
     CRIT_ALARM = 3,
     RADIATION = 4,
     GEN_FAULT = 5
@@ -89,6 +89,7 @@ function facility.new(config)
         rtu_list = {},  ---@type unit_session[][]
         redstone = {},  ---@type redstone_session[]
         induction = {}, ---@type imatrix_session[]
+        ecore = {},     ---@type ecore_session[]
         snas = {},      ---@type sna_session[]
         sps = {},       ---@type sps_session[]
         tanks = {},     ---@type dynamicv_session[]
@@ -120,8 +121,8 @@ function facility.new(config)
         ascram_reason = AUTO_SCRAM.NONE,
         ---@class ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -160,18 +161,18 @@ function facility.new(config)
         test_tone_states = {},  ---@type { [TONE]: boolean }
         test_alarm_states = {}, ---@type { [ALARM]: boolean }
         -- statistics
-        im_stat_init = false,
-        imtx_percent = 0.0,
+        ess_stat_init = false,
+        ess_percent = 0.0,
         avg_charge = util.ema_filter(0.2857),  -- ~3 seconds
         avg_inflow = util.ema_filter(0.2857),  -- ~3 seconds
         avg_outflow = util.ema_filter(0.2857), -- ~3 seconds
-        -- induction matrix charge delta stats
+        -- ESS charge delta stats
         avg_net = util.ema_filter(0.075),
-        imtx_last_capacity = 0,
-        imtx_last_charge = 0,
-        imtx_last_charge_t = 0,
-        -- track faulted induction matrix update times to reject
-        imtx_faulted_times = { 0, 0, 0 },
+        ess_last_capacity = 0,
+        ess_last_charge = 0,
+        ess_last_charge_t = 0,
+        -- track faulted ESS update times to reject
+        ess_faulted_times = { 0, 0, 0 },
         -- facility alarms
         ---@type { [string]: alarm_def }
         alarms = {
@@ -198,7 +199,7 @@ function facility.new(config)
     end
 
     -- list for RTU session management
-    self.rtu_list = { self.redstone, self.induction, self.snas, self.sps, self.tanks, self.envd }
+    self.rtu_list = { self.redstone, self.induction, self.ecore, self.snas, self.sps, self.tanks, self.envd }
 
     -- init redstone RTU I/O controller
     self.io_ctl = rsctl.new(self.redstone, 0)
@@ -307,16 +308,39 @@ function facility.new(config)
 
     -- link an induction matrix RTU session
     ---@param imatrix unit_session
-    ---@return boolean linked induction matrix accepted (max 1)
+    ---@return boolean linked induction matrix accepted (max 1 ESS device)
     function public.add_imatrix(imatrix)
         local fail_code, fail_str = svsessions.check_rtu_id(imatrix, self.induction, 1)
         local ok = fail_code == RTU_LINK_FAIL.OK
 
-        if ok then
+        if config.EnergyStorageSystem ~= types.ESS.INDUCTION_MATRIX or #self.ecore > 0 then
+            svsessions.report_rtu_mismatch(imatrix)
+            log.warning(util.c("FAC: rejected induction matrix linking due to having/being configured for an energy core"))
+        elseif ok then
             table.insert(self.induction, imatrix)
             log.debug(util.c("FAC: linked induction matrix [", imatrix.get_unit_id(), "@", imatrix.get_session_id(), "]"))
         else
             log.warning(util.c("FAC: rejected induction matrix linking due to failure code ", fail_code, " (", fail_str, ")"))
+        end
+
+        return ok
+    end
+
+    -- link an energy core RTU session
+    ---@param ecore unit_session
+    ---@return boolean linked energy core accepted (max 1 ESS device)
+    function public.add_ecore(ecore)
+        local fail_code, fail_str = svsessions.check_rtu_id(ecore, self.ecore, 1)
+        local ok = fail_code == RTU_LINK_FAIL.OK
+
+        if config.EnergyStorageSystem ~= types.ESS.ENERGY_CORE or #self.induction > 0 then
+            svsessions.report_rtu_mismatch(ecore)
+            log.warning(util.c("FAC: rejected energy core linking due having/being configured for an induction matrix"))
+        elseif ok then
+            table.insert(self.ecore, ecore)
+            log.debug(util.c("FAC: linked energy core [", ecore.get_unit_id(), "@", ecore.get_session_id(), "]"))
+        else
+            log.warning(util.c("FAC: rejected energy core linking due to failure code ", fail_code, " (", fail_str, ")"))
         end
 
         return ok
@@ -657,16 +681,24 @@ function facility.new(config)
         if all or type == RTU_UNIT_TYPE.IMATRIX then
             build.induction = {}
             for i = 1, #self.induction do
-                local matrix = self.induction[i]
-                build.induction[i] = { matrix.get_db().formed, matrix.get_db().build }
+                local db = self.induction[i].get_db()
+                build.induction[i] = { db.formed, db.build }
+            end
+        end
+
+        if all or type == RTU_UNIT_TYPE.ENERGY_CORE then
+            build.ecore = {}
+            for i = 1, #self.ecore do
+                local db = self.ecore[i].get_db()
+                build.ecore[i] = { db.formed, db.build }
             end
         end
 
         if all or type == RTU_UNIT_TYPE.SPS then
             build.sps = {}
             for i = 1, #self.sps do
-                local sps = self.sps[i]
-                build.sps[i] = { sps.get_db().formed, sps.get_db().build }
+                local db = self.sps[i].get_db()
+                build.sps[i] = { db.formed, db.build }
             end
         end
 
@@ -693,8 +725,8 @@ function facility.new(config)
             self.at_max_burn or self.saturated,
             self.turbine_gen_rate,
             self.ascram,
-            astat.matrix_fault,
-            astat.matrix_fill,
+            astat.ess_fault,
+            astat.ess_fill,
             astat.crit_alarm,
             astat.radiation,
             astat.gen_fault or self.mode == PROCESS.GEN_RATE_FAULT_IDLE,
@@ -711,9 +743,10 @@ function facility.new(config)
     -- check which RTUs are connected
     ---@nodiscard
     function public.check_rtu_conns()
-        local conns = {}
+        local conns = {} ---@type svr__rtu_conns
 
-        conns.induction = #self.induction > 0
+        conns.ess = (#self.induction > 0) or (#self.ecore > 0)
+
         conns.sps = #self.sps > 0
 
         conns.tanks = {}
@@ -732,7 +765,7 @@ function facility.new(config)
         -- total count of all connected RTUs in the facility
         status.count = self.rtu_gw_conn_count
 
-        -- power averages from induction matricies
+        -- power averages from energy storage
         status.power = {
             self.avg_charge.get(),
             self.avg_inflow.get(),
@@ -749,8 +782,25 @@ function facility.new(config)
             status.induction[i] = { matrix.is_faulted(), db.formed, db.state, db.tanks }
 
             local fe_per_ms = self.avg_net.get()
-            local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms >= 0, db.tanks.energy_need, db.tanks.energy))
-            status.power[4] = remaining / fe_per_ms
+            if fe_per_ms ~= 0 then
+                local remaining = util.joules_to_fe_rf(util.trinary(fe_per_ms > 0, db.tanks.energy_need, db.tanks.energy))
+                status.power[4] = remaining / fe_per_ms
+            end
+        end
+
+        -- status of energy core
+        status.ecore = {}
+        for i = 1, #self.ecore do
+            local ecore = self.ecore[i]
+            local db = ecore.get_db()
+
+            status.ecore[i] = { ecore.is_faulted(), db.formed, db.state, db.virtual }
+
+            local fe_per_ms = self.avg_net.get()
+            if fe_per_ms ~= 0 then
+                local remaining = util.trinary(fe_per_ms > 0, db.virtual.energy_need, db.state.energy)
+                status.power[4] = remaining / fe_per_ms
+            end
         end
 
         -- SNA/Po statistical information

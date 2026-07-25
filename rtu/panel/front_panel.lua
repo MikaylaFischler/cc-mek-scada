@@ -30,7 +30,7 @@ local border = core.border
 
 local ind_grn = style.ind_grn
 
-local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR" }
+local UNIT_TYPE_LABELS = { "UNKNOWN", "REDSTONE", "BOILER", "TURBINE", "DYNAMIC TANK", "IND MATRIX", "SPS", "SNA", "ENV DETECTOR", "ENERGY CORE" }
 
 -- create new front panel view
 ---@param panel DisplayBox main displaybox

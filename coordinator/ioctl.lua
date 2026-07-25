@@ -2,6 +2,7 @@
 -- I/O Control for Supervisor/Coordinator Integration
 --
 
+local const   = require("scada-common.constants")
 local log     = require("scada-common.log")
 local psil    = require("scada-common.psil")
 local types   = require("scada-common.types")
@@ -24,7 +25,7 @@ local RCT_STATE = types.REACTOR_STATE
 local BLR_STATE = types.BOILER_STATE
 local TRB_STATE = types.TURBINE_STATE
 local TNK_STATE = types.TANK_STATE
-local MTX_STATE = types.IMATRIX_STATE
+local ESS_STATE = types.ESS_STATE
 local SPS_STATE = types.SPS_STATE
 
 local WASTE_PRODUCT = types.WASTE_PRODUCT
@@ -96,6 +97,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         tank_conns = conf.cooling.fac_tank_conns,
         tank_fluid_types = conf.cooling.tank_fluid_types,
         combined_waste = conf.com_waste,
+        ess_type = conf.ess,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -110,8 +112,8 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -140,6 +142,9 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         induction_ps_tbl = {},   ---@type psil[]
         induction_data_tbl = {}, ---@type imatrix_session_db[]
 
+        ecore_ps_tbl = {},       ---@type psil[]
+        ecore_data_tbl = {},     ---@type ecore_session_db[]
+
         sps_ps_tbl = {},         ---@type psil[]
         sps_data_tbl = {},       ---@type sps_session_db[]
 
@@ -149,9 +154,11 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
         rad_monitors = {}        ---@type { radiation: radiation_reading, raw: number }[]
     }
 
-    -- create induction and SPS tables (currently only 1 of each is supported)
+    -- create ESS and SPS tables (currently only 1 of each is supported)
     table.insert(io.facility.induction_ps_tbl, psil.create())
     table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.ecore_ps_tbl, psil.create())
+    table.insert(io.facility.ecore_data_tbl, {})
     table.insert(io.facility.sps_ps_tbl, psil.create())
     table.insert(io.facility.sps_data_tbl, {})
 
@@ -494,6 +501,16 @@ function ioctl.record_facility_builds(build)
             end
         end
 
+        -- energy cores
+        if type(build.ecore) == "table" then
+            for id, ecore in pairs(build.ecore) do
+                if not _record_multiblock_build(id, ecore, fac.ecore_data_tbl, fac.ecore_ps_tbl) then
+                    log.debug(util.c("ioctl.record_facility_builds: invalid energy core id ", id))
+                    valid = false
+                end
+            end
+        end
+
         -- SPS
         if type(build.sps) == "table" then
             for id, sps in pairs(build.sps) do
@@ -683,8 +700,8 @@ function ioctl.update_facility_status(status)
             fac.auto_gen_rate = ctl_status[6]
 
             fac.auto_scram = ctl_status[7]
-            fac.ascram_status.matrix_fault = ctl_status[8]
-            fac.ascram_status.matrix_fill = ctl_status[9]
+            fac.ascram_status.ess_fault = ctl_status[8]
+            fac.ascram_status.ess_fill = ctl_status[9]
             fac.ascram_status.crit_alarm = ctl_status[10]
             fac.ascram_status.radiation = ctl_status[11]
             fac.ascram_status.gen_fault = ctl_status[12]
@@ -699,8 +716,8 @@ function ioctl.update_facility_status(status)
             f_ps.publish("auto_saturated", fac.auto_saturated)
             f_ps.publish("auto_gen_rate", fac.auto_gen_rate)
             f_ps.publish("auto_scram", fac.auto_scram)
-            f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-            f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+            f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
+            f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
             f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
             f_ps.publish("as_radiation", fac.ascram_status.radiation)
             f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
@@ -742,8 +759,7 @@ function ioctl.update_facility_status(status)
 
             -- power statistics
             if type(rtu_statuses.power) == "table" and #rtu_statuses.power == 4 then
-                local data = fac.induction_data_tbl[1]
-                local ps   = fac.induction_ps_tbl[1]
+                local ps = util.trinary(fac.ess_type == types.ESS.ENERGY_CORE, fac.ecore_ps_tbl[1], fac.induction_ps_tbl[1])
 
                 local chg   = tonumber(rtu_statuses.power[1])
                 local in_f  = tonumber(rtu_statuses.power[2])
@@ -756,13 +772,29 @@ function ioctl.update_facility_status(status)
                 ps.publish("eta_ms", eta)
                 ps.publish("eta_string", gen_eta_text(eta or 0))
 
-                ps.publish("is_charging", in_f > out_f)
-                ps.publish("is_discharging", out_f > in_f)
+                local charging, discharging = false, false
 
-                if data and data.build then
-                    local cap = util.joules_to_fe_rf(data.build.transfer_cap)
-                    ps.publish("at_max_io", in_f >= cap or out_f >= cap)
+                if fac.ess_type == types.ESS.ENERGY_CORE then
+                    local data = fac.ecore_data_tbl[1]
+
+                    if data and data.state then
+                        charging = data.state.transfer > 0
+                        discharging = data.state.transfer < 0
+                    end
+                else
+                    local data = fac.induction_data_tbl[1]
+
+                    charging = in_f > out_f
+                    discharging = out_f > in_f
+
+                    if data and data.build then
+                        local cap = util.joules_to_fe_rf(data.build.transfer_cap)
+                        ps.publish("at_max_io", in_f >= cap or out_f >= cap)
+                    end
                 end
+
+                ps.publish("is_charging", charging)
+                ps.publish("is_discharging", discharging)
             else
                 log.debug(log_header .. "power statistics list not a table")
                 valid = false
@@ -770,7 +802,7 @@ function ioctl.update_facility_status(status)
 
             -- induction matricies statuses
             if type(rtu_statuses.induction) == "table" then
-                local matrix_status = MTX_STATE.OFFLINE
+                local matrix_status = ESS_STATE.OFFLINE
 
                 for id = 1, #fac.induction_ps_tbl do
                     if rtu_statuses.induction[id] == nil then
@@ -787,17 +819,17 @@ function ioctl.update_facility_status(status)
                         local rtu_faulted = _record_multiblock_status(matrix, data, ps)
 
                         if rtu_faulted then
-                            matrix_status = MTX_STATE.FAULT
+                            matrix_status = ESS_STATE.FAULT
                         elseif data.formed then
-                            if data.tanks.energy_fill >= 0.99 then
-                                matrix_status = MTX_STATE.HIGH_CHARGE
-                            elseif data.tanks.energy_fill <= 0.01 then
-                                matrix_status = MTX_STATE.LOW_CHARGE
+                            if data.tanks.energy_fill > const.RS_THRESHOLDS.ENERGY_CHARGE_HIGH then
+                                matrix_status = ESS_STATE.HIGH_CHARGE
+                            elseif data.tanks.energy_fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW then
+                                matrix_status = ESS_STATE.LOW_CHARGE
                             else
-                                matrix_status = MTX_STATE.ONLINE
+                                matrix_status = ESS_STATE.ONLINE
                             end
                         else
-                            matrix_status = MTX_STATE.UNFORMED
+                            matrix_status = ESS_STATE.UNFORMED
                         end
 
                         ps.publish("computed_status", matrix_status)
@@ -807,6 +839,58 @@ function ioctl.update_facility_status(status)
                 end
             else
                 log.debug(log_header .. "induction matrix list not a table")
+                valid = false
+            end
+
+            -- energy core statuses
+            if type(rtu_statuses.ecore) == "table" then
+                local ecore_status = ESS_STATE.OFFLINE
+
+                for id = 1, #fac.ecore_ps_tbl do
+                    if rtu_statuses.ecore[id] == nil then
+                        -- disconnected
+                        fac.ecore_ps_tbl[id].publish("computed_status", ecore_status)
+                    end
+                end
+
+                for id, ecore in pairs(rtu_statuses.ecore) do
+                    if type(fac.induction_data_tbl[id]) == "table" then
+                        local data = fac.ecore_data_tbl[id]
+                        local ps   = fac.ecore_ps_tbl[id]
+
+                        local rtu_faulted = ecore[1]
+
+                        data.formed  = ecore[2]
+                        data.state   = ecore[3]
+                        data.virtual = ecore[4]
+
+                        ps.publish("formed", data.formed)
+                        ps.publish("faulted", rtu_faulted)
+
+                        for key, val in pairs(data.state) do ps.publish(key, val) end
+                        for key, val in pairs(data.virtual) do ps.publish(key, val) end
+
+                        if rtu_faulted then
+                            ecore_status = ESS_STATE.FAULT
+                        elseif data.formed then
+                            if data.virtual.energy_fill > const.RS_THRESHOLDS.ENERGY_CHARGE_HIGH then
+                                ecore_status = ESS_STATE.HIGH_CHARGE
+                            elseif data.virtual.energy_fill < const.RS_THRESHOLDS.ENERGY_CHARGE_LOW then
+                                ecore_status = ESS_STATE.LOW_CHARGE
+                            else
+                                ecore_status = ESS_STATE.ONLINE
+                            end
+                        else
+                            ecore_status = ESS_STATE.UNFORMED
+                        end
+
+                        ps.publish("computed_status", ecore_status)
+                    else
+                        log.debug(util.c(log_header, "invalid energy core id ", id))
+                    end
+                end
+            else
+                log.debug(log_header .. "energy core list not a table")
                 valid = false
             end
 

@@ -266,9 +266,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                     self.phy_io.digital_in[entry.bank][entry.port].phy = value
                 end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.INPUT_REG_READ then
             -- input register read response
             if adu.length == #self.io_map.analog_in then
@@ -278,9 +276,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                     self.phy_io.analog_in[entry.bank][entry.port].phy = value
                 end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.COIL_WRITE then
             -- successful acknowledgement, read back
             _read_coils()
@@ -299,9 +295,7 @@ function redstone.new(session_id, unit_id, advert, out_queue)
                 end
 
                 self.phy_trans.coils = TXN_READY
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.HOLD_REG_WRITE then
             -- successful acknowledgement, read back
             _read_holding_registers()
@@ -316,16 +310,10 @@ function redstone.new(session_id, unit_id, advert, out_queue)
 
                     self.phy_io.analog_out[entry.bank][entry.port].phy = value
                 end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
 
             self.phy_trans.hold_regs = TXN_READY
-        elseif txn_type == nil then
-            log.error(log_tag .. "unknown transaction reply")
-        else
-            log.error(log_tag .. "unknown transaction type " .. txn_type)
-        end
+        else self.session.log_resolve_fail(txn_type) end
     end
 
     -- update this runner

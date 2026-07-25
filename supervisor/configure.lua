@@ -39,7 +39,8 @@ local changes = {
     { "v1.9.5", { "Added Mekanism Generators configuration options" } },
     { "v1.9.9", { "Added waste ratio configuration options" } },
     { "v1.10.4", { "Added option for using SNAs for polonium statistics (default)" } },
-    { "v1.11.0", { "Added option for combined facility waste" } }
+    { "v1.11.0", { "Added option for combined facility waste" } },
+    { "v1.12.0", { "Added options for the energy storage system" } }
 }
 
 ---@class svr_configurator
@@ -83,9 +84,10 @@ local tool_ctl = {
     cooling_elems = {},   ---@type { line: Div, turbines: NumberField, boilers: NumberField, tank: Checkbox }[]
     tank_elems = {},      ---@type { div: Div, tank_opt: Radio2D, no_tank: TextBox }[]
     aux_cool_elems = {},  ---@type { line: Div, enable: Checkbox }[]
-    ext_idling = {},      ---@type Checkbox
-    sna_stats = {},       ---@type Checkbox
-    com_waste = {},       ---@type Checkbox
+    ext_idling = nil,     ---@type Checkbox
+    sna_stats = nil,      ---@type Checkbox
+    com_waste = nil,      ---@type Checkbox
+    ess_opt = nil,        ---@type RadioButton
 
     mek_profile = nil,    ---@type RadioButton
     custom_configs = {},  ---@type NumberField[]
@@ -112,6 +114,7 @@ local tmp_cfg = {
     ExtChargeIdling = false,
     UseSNAStatistics = true,
     CombinedWaste = false,
+    EnergyStorageSystem = 1, ---@type ESS
     MekanismProfile = mekanism.profiles[1].name,
     MekanismConfig = mekanism.profiles[1].fields,
     MekanismWasteToPu = { 10, 1 },
@@ -159,6 +162,7 @@ local fields = {
     { "ExtChargeIdling", "Extended Charge Idling", false },
     { "UseSNAStatistics", "Use SNA Statistics", true },
     { "CombinedWaste", "Combined Facility Waste", false },
+    { "EnergyStorageSystem", "Energy Storage System", types.ESS.INDUCTION_MATRIX },
     { "MekanismProfile", "Mekanism Profile", mekanism.profiles[1].name },
     { "MekanismConfig", "Mekanism Configuration", mekanism.profiles[1].fields },
     { "MekanismWasteToPu", "Nuclear Waste to Plutonium", { 10, 1 } },

@@ -188,8 +188,9 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     local fac_c_9 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_10 = Div{parent=fac_cfg,x=2,y=4,width=49}
     local fac_c_11 = Div{parent=fac_cfg,x=2,y=4,width=49}
+    local fac_c_12 = Div{parent=fac_cfg,x=2,y=4,width=49}
 
-    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9,fac_c_10,fac_c_11}}
+    local fac_pane = MultiPane{parent=fac_cfg,y=4,panes={fac_c_1,fac_c_2,fac_c_3,fac_c_4,fac_c_5,fac_c_6,fac_c_7,fac_c_8,fac_c_9,fac_c_10,fac_c_11,fac_c_12}}
 
     TextBox{parent=fac_cfg,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
@@ -198,7 +199,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
     TextBox{parent=fac_c_1,y=1,height=3,text="Please enter the number of reactors you have, also referred to as reactor units or 'units' for short. A maximum of 4 is currently supported."}
     tool_ctl.num_units = NumberField{parent=fac_c_1,y=5,width=5,max_chars=2,default=ini_cfg.UnitCount,min=1,max=4,fg_bg=bw_fg_bg}
     TextBox{parent=fac_c_1,x=7,y=5,text="reactors"}
-    TextBox{parent=fac_c_1,y=7,height=3,text="If you already configured your coordinator, make sure you update the coordinator's configured unit count.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+    TextBox{parent=fac_c_1,y=7,height=3,text="If you already configured your Coordinator, make sure you update the Coordinator's configured unit count.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     local nu_error = TextBox{parent=fac_c_1,x=8,y=14,width=35,text="Please set the number of reactors.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
 
@@ -767,11 +768,32 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     local function submit_com_waste()
         tmp_cfg.CombinedWaste = tool_ctl.com_waste.get_value()
-        main_pane.set_value(3)
+        fac_pane.set_value(12)
     end
 
     PushButton{parent=fac_c_11,y=14,text="\x1b Back",callback=function()fac_pane.set_value(10)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=fac_c_11,x=44,y=14,text="Next \x1a",callback=submit_com_waste,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
+    --#region Energy Storage
+
+    TextBox{parent=fac_c_12,height=2,text="Please select the energy storage system you are using for this facility."}
+
+    TextBox{parent=fac_c_12,y=4,text="Energy Storage System (ESS)"}
+    TextBox{parent=fac_c_12,x=29,y=4,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+    tool_ctl.ess_opt = RadioButton{parent=fac_c_12,y=5,default=math.max(1,ini_cfg.EnergyStorageSystem),options={"Induction Matrix (Mekanism)","Energy Core (Draconic Evolution)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.yellow}
+
+    local function submit_ess()
+        tmp_cfg.EnergyStorageSystem = tool_ctl.ess_opt.get_value()
+        main_pane.set_value(3)
+    end
+
+    TextBox{parent=fac_c_12,y=9,height=4,text="In most interfaces, this device will be referred to as the Energy Storage System or the ESS, rather than as an Induction Matrix or Energy Core, so you should be aware of these terms.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=fac_c_12,x=11,y=10,width=21,height=1,text="Energy Storage System",fg_bg=cpair(colors.blue,colors._INHERIT)}
+    TextBox{parent=fac_c_12,x=40,y=10,width=3,height=1,text="ESS",fg_bg=cpair(colors.blue,colors._INHERIT)}
+
+    PushButton{parent=fac_c_12,y=14,text="\x1b Back",callback=function()fac_pane.set_value(11)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=fac_c_12,x=44,y=14,text="Next \x1a",callback=submit_ess,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

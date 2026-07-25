@@ -62,11 +62,9 @@ local self = {
         duplicate = {},     ---@type unit_session[]
         out_of_range = {},  ---@type unit_session[]
         mismatch = {},      ---@type unit_session[]
-        connected = {}      ---@type { induction: boolean, sps: boolean, tanks: boolean[], units: unit_connections[] }
+        connected = {}      ---@type svr__rtu_conns
     }
 }
-
----@alias sv_session_structs plc_session_struct|rtu_session_struct|crd_session_struct|pdg_session_struct
 
 --#region PRIVATE FUNCTIONS
 
@@ -240,9 +238,9 @@ local function _update_dev_dbg()
 
     -- look for disconnected facility RTUs
 
-    if rtu_conns.induction ~= conns.induction then
-        report(conns.induction, util.c("the facility's induction matrix"))
-        conns.induction = rtu_conns.induction
+    if rtu_conns.ess ~= conns.ess then
+        report(conns.ess, util.c("the facility's energy storage"))
+        conns.ess = rtu_conns.ess
     end
 
     if rtu_conns.sps ~= conns.sps then
@@ -372,7 +370,13 @@ function svsessions.report_rtu_mismatch(unit)
     if r_id == 0 then
         msg = "a facility "
 
-        if type == RTU_TYPES.DYNAMIC_VALVE then
+        if type == RTU_TYPES.IMATRIX then
+            msg = msg .. "induction matrix"
+            details = "configured for an energy core"
+        elseif type == RTU_TYPES.ENERGY_CORE then
+            msg = msg .. "energy core"
+            details = "configured for an induction matrix"
+        elseif type == RTU_TYPES.DYNAMIC_VALVE then
             msg = msg .. "dynamic tank"
             details = "not configured for a facility tank"
         elseif type == RTU_TYPES.SNA then
@@ -408,7 +412,7 @@ function svsessions.init(fp_ok, config, facility)
     -- initialize connection tracking table by setting all expected devices to true
     -- if connections are missing, missing entries will then be created on the next update
 
-    self.dev_dbg.connected = { induction = true, sps = true, tanks = {}, units = {} }
+    self.dev_dbg.connected = { ess = true, sps = true, tanks = {}, units = {} }
 
     local cool_conf = facility.get_cooling_conf()
 

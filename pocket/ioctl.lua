@@ -145,6 +145,7 @@ function ioctl.init_fac(conf)
         tank_conns = conf.cooling.fac_tank_conns,
         tank_fluid_types = conf.cooling.tank_fluid_types,
         combined_waste = conf.com_waste,
+        ess_type = conf.ess,
         all_sys_ok = false,
         rtu_count = 0,
 
@@ -158,8 +159,8 @@ function ioctl.init_fac(conf)
         auto_scram = false,
         ---@type ascram_status
         ascram_status = {
-            matrix_fault = false,
-            matrix_fill = false,
+            ess_fault = false,
+            ess_fill = false,
             crit_alarm = false,
             radiation = false,
             gen_fault = false
@@ -191,6 +192,9 @@ function ioctl.init_fac(conf)
         induction_ps_tbl = {},   ---@type psil[]
         induction_data_tbl = {}, ---@type imatrix_session_db[]
 
+        ecore_ps_tbl = {},       ---@type psil[]
+        ecore_data_tbl = {},     ---@type ecore_session_db[]
+
         sps_ps_tbl = {},         ---@type psil[]
         sps_data_tbl = {},       ---@type sps_session_db[]
 
@@ -200,9 +204,11 @@ function ioctl.init_fac(conf)
         rad_monitors = {}        ---@type { radiation: radiation_reading, raw: number }[]
     }
 
-    -- create induction and SPS tables (currently only 1 of each is supported)
+    -- create ESS and SPS tables (currently only 1 of each is supported)
     table.insert(io.facility.induction_ps_tbl, psil.create())
     table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.ecore_ps_tbl, psil.create())
+    table.insert(io.facility.ecore_data_tbl, {})
     table.insert(io.facility.sps_ps_tbl, psil.create())
     table.insert(io.facility.sps_data_tbl, {})
 

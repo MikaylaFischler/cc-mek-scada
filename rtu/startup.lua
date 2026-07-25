@@ -21,7 +21,7 @@ local rtu       = require("rtu.rtu")
 local threads   = require("rtu.threads")
 local uinit     = require("rtu.uinit")
 
-local RTU_VERSION = "1.14.4"
+local RTU_VERSION = "1.15.0"
 
 local println = util.println
 local println_ts = util.println_ts

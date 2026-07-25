@@ -29,3 +29,7 @@
 ---@field index integer|false unit device index
 ---@field reactor integer reactor assignment, 0 for facility
 ---@field rs_conns IO_PORT[][]|nil redstone connections (only for redstone units)
+
+---@class draconic_rf_notation
+---@field exponent integer exponent scaler
+---@field coefficient number coefficient to be scaled

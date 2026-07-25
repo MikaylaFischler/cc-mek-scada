@@ -12,6 +12,7 @@ local renderer     = require("rtu.renderer")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
 local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
+local ecore_rtu    = require("rtu.dev.ecore_rtu")
 local envd_rtu     = require("rtu.dev.envd_rtu")
 local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
 local sna_rtu      = require("rtu.dev.sna_rtu")
@@ -95,6 +96,11 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
                 if (unit.index == false) or unit.index < 1 then fail(util.c("environment detector '", unit.name, "' cannot init, invalid index provided")) end
 
                 unit.type = RTU_UNIT_TYPE.ENV_DETECTOR
+            elseif type == "draconic_rf_storage" then
+                -- draconic evolution energy core
+                if unit.reactor ~= 0 then fail(util.c("energy core '", unit.name, "' cannot init, not assigned to facility")) end
+
+                unit.type = RTU_UNIT_TYPE.ENERGY_CORE
             else
                 resend_advert = false
                 log.error(util.c("virtual device '", unit.name, "' cannot init to an unknown type (", type, ")"))
@@ -111,7 +117,7 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
             return
         end
 
-        -- note for multiblock structures: if not formed, indexing the multiblock functions results in a PPM fault
+        -- note for Mekanism multiblock structures: if not formed, indexing the multiblock functions results in a PPM fault
 
         if unit.type == RTU_UNIT_TYPE.BOILER_VALVE then
             unit.rtu, faulted = boilerv_rtu.new(device)
@@ -132,6 +138,8 @@ local function handle_unit_mount(smem, println_ts, iface, type, device, unit)
             unit.rtu, faulted = sna_rtu.new(device)
         elseif unit.type == RTU_UNIT_TYPE.ENV_DETECTOR then
             unit.rtu, faulted = envd_rtu.new(device)
+        elseif unit.type == RTU_UNIT_TYPE.ENERGY_CORE then
+            unit.rtu, faulted = ecore_rtu.new(device)
         elseif unit.type == RTU_UNIT_TYPE.REDSTONE then
             unit.rtu.remount_phy(device)
         else
