@@ -171,7 +171,7 @@ local function new_view(root)
             elseif m == PROCESS.BURN_RATE then
                 desc.set_value("This mode runs assigned reactors by priority group to meet the requested burn rate. Primary ones are used, then secondary if they can't keep up, etc.")
             elseif m == PROCESS.CHARGE then
-                desc.set_value("This mode runs assigned reactors by priority group to meet the requested induction matrix charge level. Primary ones are used, then secondary if they can't keep up, etc.")
+                desc.set_value("This mode runs assigned reactors by priority group to meet the requested energy storage system charge level. Primary ones are used, then secondary if they can't keep up, etc.")
             elseif m == PROCESS.GEN_RATE then
                 desc.set_value("This mode runs assigned reactors by priority group to meet the requested energy generation rate. Primary ones are used, then secondary if they can't keep up, etc.")
             elseif m == PROCESS.RANGE_CONTROL then
@@ -325,9 +325,9 @@ local function new_view(root)
 
         local auto_scram = IconIndicator{parent=a_div,y=3,label="Automatic SCRAM",states=red_ind_s}
 
-        TextBox{parent=a_div,y=5,text="Induction Matrix",fg_bg=label_fg_bg}
-        local matrix_flt  = IconIndicator{parent=a_div,label="Matrix Fault",states=yel_ind_s}
-        local matrix_fill = IconIndicator{parent=a_div,label="Charge High",states=red_ind_s}
+        TextBox{parent=a_div,y=5,text="Energy Storage System",fg_bg=label_fg_bg}
+        local ess_fault = IconIndicator{parent=a_div,label="Hardware Fault",states=yel_ind_s}
+        local ess_fill  = IconIndicator{parent=a_div,label="Charge High",states=red_ind_s}
 
         TextBox{parent=a_div,y=9,text="Assigned Units",fg_bg=label_fg_bg}
         local unit_crit = IconIndicator{parent=a_div,label="Critical Alarm",states=red_ind_s}
@@ -339,8 +339,8 @@ local function new_view(root)
         local gen_fault = IconIndicator{parent=a_div,label="Control Fault",states=yel_ind_s}
 
         auto_scram.register(f_ps, "auto_scram", auto_scram.update)
-        matrix_flt.register(f_ps, "as_ess_fault", matrix_flt.update)
-        matrix_fill.register(f_ps, "as_ess_fill", matrix_fill.update)
+        ess_fault.register(f_ps, "as_ess_fault", ess_fault.update)
+        ess_fill.register(f_ps, "as_ess_fill", ess_fill.update)
         unit_crit.register(f_ps, "as_crit_alarm", unit_crit.update)
         fac_rad_h.register(f_ps, "as_radiation", fac_rad_h.update)
         gen_fault.register(f_ps, "as_gen_fault", gen_fault.update)

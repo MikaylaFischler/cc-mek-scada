@@ -816,7 +816,7 @@ function iorx.record_fac_detail_data(data)
         next_t_stat = next_t_stat + 1
     end
 
-    -- induction matrix data
+    -- ess data
 
     local ess_ps
 

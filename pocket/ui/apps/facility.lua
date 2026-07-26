@@ -147,16 +147,16 @@ local function new_view(root)
 
         a_div.line_break()
 
-        local auto_scram  = IconIndicator{parent=a_div,label="Automatic SCRAM",states=red_ind_s}
-        local matrix_flt  = IconIndicator{parent=a_div,label="ESS HW Fault",states=yel_ind_s}
-        local matrix_fill = IconIndicator{parent=a_div,label="ESS Charge Hi",states=red_ind_s}
-        local unit_crit   = IconIndicator{parent=a_div,label="Unit Crit. Alarm",states=red_ind_s}
-        local fac_rad_h   = IconIndicator{parent=a_div,label="FAC Radiation Hi",states=red_ind_s}
-        local gen_fault   = IconIndicator{parent=a_div,label="Gen Control Fault",states=yel_ind_s}
+        local auto_scram = IconIndicator{parent=a_div,label="Automatic SCRAM",states=red_ind_s}
+        local ess_fault  = IconIndicator{parent=a_div,label="ESS HW Fault",states=yel_ind_s}
+        local ess_fill   = IconIndicator{parent=a_div,label="ESS Charge Hi",states=red_ind_s}
+        local unit_crit  = IconIndicator{parent=a_div,label="Unit Crit. Alarm",states=red_ind_s}
+        local fac_rad_h  = IconIndicator{parent=a_div,label="FAC Radiation Hi",states=red_ind_s}
+        local gen_fault  = IconIndicator{parent=a_div,label="Gen Control Fault",states=yel_ind_s}
 
         auto_scram.register(f_ps, "auto_scram", auto_scram.update)
-        matrix_flt.register(f_ps, "as_ess_fault", matrix_flt.update)
-        matrix_fill.register(f_ps, "as_ess_fill", matrix_fill.update)
+        ess_fault.register(f_ps, "as_ess_fault", ess_fault.update)
+        ess_fill.register(f_ps, "as_ess_fill", ess_fill.update)
         unit_crit.register(f_ps, "as_crit_alarm", unit_crit.update)
         fac_rad_h.register(f_ps, "as_radiation", fac_rad_h.update)
         gen_fault.register(f_ps, "as_gen_fault", gen_fault.update)

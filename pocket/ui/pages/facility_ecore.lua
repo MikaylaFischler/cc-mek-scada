@@ -40,8 +40,8 @@ return function (app, panes, ecore_pane, ps, update)
     local ecr_div = Div{parent=ecore_pane,x=2,width=ecore_pane.get_width()-2}
     table.insert(panes, ecr_div)
 
-    local matrix_page = app.new_page(nil, #panes)
-    matrix_page.tasks = { update }
+    local ecore_page = app.new_page(nil, #panes)
+    ecore_page.tasks = { update }
 
     TextBox{parent=ecr_div,y=1,text="Energy Core",alignment=ALIGN.CENTER}
     local status = StateIndicator{parent=ecr_div,x=5,y=3,states=style.ess.states,value=1,min_width=12}
@@ -71,39 +71,39 @@ return function (app, panes, ecore_pane, ps, update)
     output.register(ps, "output", function (val) output.update(db.energy_convert(val)) end)
     avg_out.register(ps, "avg_outflow", avg_out.update)
 
-    local mtx_ext_div = Div{parent=ecore_pane,x=2,width=ecore_pane.get_width()-2}
-    table.insert(panes, mtx_ext_div)
+    local ecr_ext_div = Div{parent=ecore_pane,x=2,width=ecore_pane.get_width()-2}
+    table.insert(panes, ecr_ext_div)
 
-    local mtx_ext_page = app.new_page(matrix_page, #panes)
-    mtx_ext_page.tasks = { update }
+    local ecr_ext_page = app.new_page(ecore_page, #panes)
+    ecr_ext_page.tasks = { update }
 
-    PushButton{parent=ecr_div,x=9,y=18,text="MORE",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=mtx_ext_page.nav_to}
-    PushButton{parent=mtx_ext_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=matrix_page.nav_to}
+    PushButton{parent=ecr_div,x=9,y=18,text="MORE",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=ecr_ext_page.nav_to}
+    PushButton{parent=ecr_ext_div,x=9,y=18,text="BACK",min_width=6,fg_bg=cpair(colors.lightGray,colors.gray),active_fg_bg=cpair(colors.gray,colors.lightGray),callback=ecore_page.nav_to}
 
-    TextBox{parent=mtx_ext_div,y=1,text="More Energy Core Info",alignment=ALIGN.CENTER}
+    TextBox{parent=ecr_ext_div,y=1,text="More Energy Core Info",alignment=ALIGN.CENTER}
 
-    TextBox{parent=mtx_ext_div,text="Energy Fill",y=3,width=13,fg_bg=label}
-    local fill = DataIndicator{parent=mtx_ext_div,y=3,x=14,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    TextBox{parent=ecr_ext_div,text="Energy Fill",y=3,width=13,fg_bg=label}
+    local fill = DataIndicator{parent=ecr_ext_div,y=3,x=14,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
 
-    local chging = IconIndicator{parent=mtx_ext_div,y=5,label="Charging",states=wht_ind_s}
-    local dischg = IconIndicator{parent=mtx_ext_div,label="Discharging",states=wht_ind_s}
+    local chging = IconIndicator{parent=ecr_ext_div,y=5,label="Charging",states=wht_ind_s}
+    local dischg = IconIndicator{parent=ecr_ext_div,label="Discharging",states=wht_ind_s}
 
-    TextBox{parent=mtx_ext_div,text="Transfer",y=8,width=13,fg_bg=label}
-    local transfer = PowerIndicator{parent=mtx_ext_div,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=ecr_ext_div,text="Transfer",y=8,width=13,fg_bg=label}
+    local transfer = PowerIndicator{parent=ecr_ext_div,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",rate=true,value=0,width=21,fg_bg=text_fg}
 
     fill.register(ps, "energy_fill", function (x) fill.update(x * 100) end)
     chging.register(ps, "is_charging", chging.update)
     dischg.register(ps, "is_discharging", dischg.update)
     transfer.register(ps, "transfer", function (val) transfer.update(db.energy_convert_from_fe(val)) end)
 
-    TextBox{parent=mtx_ext_div,text="Capacity",y=11,width=13,fg_bg=label}
-    local capacity = PowerIndicator{parent=mtx_ext_div,y=12,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=ecr_ext_div,text="Capacity",y=11,width=13,fg_bg=label}
+    local capacity = PowerIndicator{parent=ecr_ext_div,y=12,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",value=0,width=21,fg_bg=text_fg}
 
-    TextBox{parent=mtx_ext_div,text="Capacity ("..db.energy_label..")",y=14,fg_bg=label}
-    local cap_fe  = DataIndicator{parent=mtx_ext_div,y=15,lu_colors=lu_col,label="",unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
+    TextBox{parent=ecr_ext_div,text="Capacity ("..db.energy_label..")",y=14,fg_bg=label}
+    local cap_fe  = DataIndicator{parent=ecr_ext_div,y=15,lu_colors=lu_col,label="",unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
 
     capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert_from_fe(val)) end)
     cap_fe.register(ps, "max_energy", function (val) cap_fe.update(db.energy_convert_from_fe(val)) end)
 
-    return matrix_page.nav_to
+    return ecore_page.nav_to
 end
