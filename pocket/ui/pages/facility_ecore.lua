@@ -64,11 +64,11 @@ return function (app, panes, ecore_pane, ps, update)
     local output  = PowerIndicator{parent=ecr_div,y=15,lu_colors=lu_col,label="Out:  ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
     local avg_out = PowerIndicator{parent=ecr_div,lu_colors=lu_col,label="\xb7Avg: ",unit=db.energy_label,format="%8.2f",rate=true,value=0,width=21,fg_bg=text_fg}
 
-    energy.register(ps, "energy", function (val) energy.update(db.energy_convert(val)) end)
+    energy.register(ps, "energy", function (val) energy.update(db.energy_convert_from_fe(val)) end)
     avg_chg.register(ps, "avg_charge", avg_chg.update)
-    input.register(ps, "input", function (val) input.update(db.energy_convert(val)) end)
+    input.register(ps, "input", function (val) input.update(db.energy_convert_from_fe(val)) end)
     avg_in.register(ps, "avg_inflow", avg_in.update)
-    output.register(ps, "output", function (val) output.update(db.energy_convert(val)) end)
+    output.register(ps, "output", function (val) output.update(db.energy_convert_from_fe(val)) end)
     avg_out.register(ps, "avg_outflow", avg_out.update)
 
     local ecr_ext_div = Div{parent=ecore_pane,x=2,width=ecore_pane.get_width()-2}
