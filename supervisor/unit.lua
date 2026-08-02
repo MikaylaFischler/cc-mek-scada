@@ -590,19 +590,20 @@ function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
 
             -- check for appropriate energy production
             if self.plc_cache.active and ((now - self.last_rate_change_ms) > 2000) then
-                local db = self.plc_i.get_db()
+                local db  = self.plc_i.get_db()
+                local rct = db.mek_status
 
-                if (not self.db.annunciator.CoolantLevelLow) and (db.mek_status.act_burn_rate > 0) then
-                    local prod = db.mek_status.act_burn_rate * const.mek.JOULES_PER_MB
-                    local loss = db.mek_status.env_loss * db.mek_struct.heat_cap
-                    local heat = db.mek_status.heating_rate * util.trinary(self.num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
+                if (not self.db.annunciator.CoolantLevelLow) and (rct.heating_rate > 0) then
+                    local prod = rct.act_burn_rate * const.mek.JOULES_PER_MB
+                    local loss = rct.env_loss * db.mek_struct.heat_cap
+                    local heat = rct.heating_rate * util.trinary(self.num_boilers > 0, SODIUM_THERM_CONV, WATER_THERM_CONV)
 
                     local mismatch = math.abs(prod - (heat + loss)) > (const.ENERGY_MISMATCH_TOL * prod)
 
-                    if mismatch and (db.mek_status.ccool_amnt > (1.1 * db.mek_status.heating_rate)) then
+                    if mismatch and (rct.ccool_amnt > (1.1 * rct.heating_rate)) then
                         if self.energy_mismatch_start == nil then
                             self.energy_mismatch_start = now
-                        elseif (now - self.energy_mismatch_start) > 2000 then
+                        elseif (now - self.energy_mismatch_start) > 3000 then
                             self.energy_mismatch = true
                         end
                     else
