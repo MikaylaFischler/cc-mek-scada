@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "2.1"
+local CCMSI_VERSION = "2.2"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -344,14 +344,14 @@ if #OPTS == 0 or OPTS[1] == "help" then
 	if IS_PKT then
 		lgray();pln(" check - check latest\n install - fresh install\n update - update app\n uninstall - remove app")
 		blue();pln("<app>")
-		lgray();pln(" reactor-plc\n rtu\n supervisor\n coordinator\n pocket\n installer (update only)")
+		lgray();pln(" pocket\n installer (update only)")
 		blue();pln("<branch>")
 	else
 		lgray();pln(" check       - check latest versions available")
 		yellow();pln("               ccmsi check <branch> (skip <app>)")
 		lgray();pln(" install     - fresh install\n update      - update files\n uninstall   - delete files INCLUDING config/logs")
 		blue();print("<app>");cyan();pln(" omit to auto-detect installed app")
-		lgray();pln(" reactor-plc - reactor PLC firmware\n rtu         - RTU firmware\n supervisor  - supervisor server application\n coordinator - coordinator application\n pocket      - pocket application\n installer   - ccmsi installer (update only)")
+		lgray();pln(" reactor-plc - Fission Reactor PLC firmware\n rtu         - RTU Gateway firmware\n supervisor  - Supervisor server application\n coordinator - Coordinator application\n pocket      - Pocket application\n installer   - CCMSI installer (update only)")
 		blue();print("<branch>");cyan();pln(" omit for 'main'")
 	end
 	lgray();pln(" main (default) | devel");white()
