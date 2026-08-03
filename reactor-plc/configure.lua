@@ -165,7 +165,7 @@ local function config_view(display)
 
     local function exit() os.queueEvent("terminate") end
 
-    TextBox{parent=display,y=1,text="Reactor PLC Configurator",alignment=CENTER,fg_bg=style.header}
+    TextBox{parent=display,y=1,text="Fission Reactor PLC Configurator",alignment=CENTER,fg_bg=style.header}
 
     local root_pane_div = Div{parent=display,y=2}
 
@@ -193,10 +193,10 @@ local function config_view(display)
 
     local y_start = 5
 
-    TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Reactor PLC configurator! Please select one of the following options."}
+    TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the Fission Reactor PLC configurator! Please select one of the following options."}
 
-    if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the reactor PLC. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+    if tool_ctl.ask_config or true then
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the Reactor PLC. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 

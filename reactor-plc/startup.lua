@@ -1,5 +1,5 @@
 --
--- Reactor Programmable Logic Controller
+-- Fission Reactor Programmable Logic Controller
 --
 
 require("/initenv").init_env()
@@ -19,7 +19,7 @@ local plc       = require("reactor-plc.plc")
 local renderer  = require("reactor-plc.renderer")
 local threads   = require("reactor-plc.threads")
 
-local R_PLC_VERSION = "1.12.15"
+local R_PLC_VERSION = "1.12.16"
 
 local println = util.println
 local println_ts = util.println_ts
@@ -53,7 +53,7 @@ log.init(config.LogPath, config.LogMode, config.LogDebug)
 log.info("========================================")
 log.info("BOOTING reactor-plc.startup v" .. R_PLC_VERSION)
 log.info("========================================")
-println(">> Reactor PLC v" .. R_PLC_VERSION .. " <<")
+println(">> Fission Reactor PLC v" .. R_PLC_VERSION .. " <<")
 
 crash.set_env("reactor-plc", R_PLC_VERSION)
 crash.dbg_log_env()
