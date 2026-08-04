@@ -258,15 +258,12 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     fac.radiation,
                     { fac.auto_ready, fac.auto_active, fac.auto_ramping, fac.auto_saturated },
                     { fac.auto_current_waste_product, fac.auto_pu_fallback_active },
-                    util.table_len(fac.tank_data_tbl),
-                    fac.induction_data_tbl[1] ~= nil,   ---@fixme this means nothing
-                    fac.sps_data_tbl[1] ~= nil          ---@fixme this means nothing
+                    util.table_len(fac.tank_data_tbl)
                 }
 
                 _send(CRDN_TYPE.API_GET_FAC, data)
             elseif pkt.type == CRDN_TYPE.API_GET_FAC_DTL then
                 local fac = db.facility
-                local mtx_sps = fac.induction_ps_tbl[1]
 
                 local units = {}
                 local tank_statuses = {}
@@ -279,14 +276,24 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 for i = 1, #fac.tank_ps_tbl do table.insert(tank_statuses, fac.tank_ps_tbl[i].get("computed_status")) end
 
-                local matrix_data = {
-                    mtx_sps.get("eta_string"),
-                    mtx_sps.get("avg_charge"),
-                    mtx_sps.get("avg_inflow"),
-                    mtx_sps.get("avg_outflow"),
-                    mtx_sps.get("is_charging"),
-                    mtx_sps.get("is_discharging"),
-                    mtx_sps.get("at_max_io")
+                local ess_data, ess_ps
+
+                if fac.ess_type == types.ESS.ENERGY_CORE then
+                    ess_data = fac.ecore_data_tbl[1]
+                    ess_ps = fac.ecore_ps_tbl[1]
+                else
+                    ess_data = fac.induction_data_tbl[1]
+                    ess_ps = fac.induction_ps_tbl[1]
+                end
+
+                local power_data = {
+                    ess_ps.get("eta_string"),
+                    ess_ps.get("avg_charge"),
+                    ess_ps.get("avg_inflow"),
+                    ess_ps.get("avg_outflow"),
+                    ess_ps.get("is_charging"),
+                    ess_ps.get("is_discharging"),
+                    ess_ps.get("at_max_io") or false
                 }
 
                 local data = {
@@ -296,9 +303,9 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                     fac.ascram_status,
                     tank_statuses,
                     fac.tank_data_tbl,
-                    fac.induction_ps_tbl[1].get("computed_status") or types.IMATRIX_STATE.OFFLINE,
-                    fac.induction_data_tbl[1],
-                    matrix_data,
+                    ess_ps.get("computed_status") or types.ESS_STATE.OFFLINE,
+                    ess_data,
+                    power_data,
                     fac.sps_ps_tbl[1].get("computed_status") or types.SPS_STATE.OFFLINE,
                     fac.sps_data_tbl[1],
                     units

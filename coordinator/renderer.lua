@@ -39,8 +39,7 @@ local engine = {
         main_display = nil, ---@type DisplayBox|nil
         flow_display = nil, ---@type DisplayBox|nil
         unit_displays = {}  ---@type (DisplayBox|nil)[]
-    },
-    disable_flow_view = false
+    }
 }
 
 -- init a display to the "default", but set text scale to 0.5
@@ -79,7 +78,6 @@ end
 function renderer.configure(config)
     engine.config = config
     engine.color_mode = config.ColorMode
-    engine.disable_flow_view = config.DisableFlowView
 
     style.set_themes(config.MainTheme, config.FrontPanelTheme, config.ColorMode)
 end
@@ -91,7 +89,7 @@ function renderer.init_displays(monitors)
 
     -- init main and flow monitors
     _init_display(engine.monitors.main)
-    if not engine.disable_flow_view then _init_display(engine.monitors.flow) end
+    _init_display(engine.monitors.flow)
 
     -- init unit displays
     for _, monitor in ipairs(engine.monitors.unit_displays) do
@@ -263,10 +261,8 @@ function renderer.close_ui()
     -- clear unit monitors
     for _, monitor in ipairs(engine.monitors.unit_displays) do monitor.clear() end
 
-    if not engine.disable_flow_view then
-        -- clear flow monitor
-        engine.monitors.flow.clear()
-    end
+    -- clear flow monitor
+    engine.monitors.flow.clear()
 
     -- re-draw dmesg
     engine.dmesg_window.setVisible(true)

@@ -15,7 +15,7 @@ local ALARM_STATE = types.ALARM_STATE
 local BLR_STATE = types.BOILER_STATE
 local TRB_STATE = types.TURBINE_STATE
 local TNK_STATE = types.TANK_STATE
-local MTX_STATE = types.IMATRIX_STATE
+local ESS_STATE = types.ESS_STATE
 local SPS_STATE = types.SPS_STATE
 
 local io        ---@type pkt_io
@@ -48,8 +48,6 @@ function iorx.record_facility_data(data)
     end
 
     fac.num_tanks = data[6]
-    fac.has_imatrix = data[7]
-    fac.has_sps = data[8]
 
     return valid
 end
@@ -611,8 +609,8 @@ function iorx.record_process_data(data)
     f_ps.publish("auto_saturated", fac.auto_saturated)
 
     f_ps.publish("auto_scram", fac.auto_scram)
-    f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-    f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
+    f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
     f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
     f_ps.publish("as_radiation", fac.ascram_status.radiation)
     f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
@@ -735,8 +733,8 @@ function iorx.record_fac_detail_data(data)
     f_ps.publish("all_sys_ok", fac.all_sys_ok)
     f_ps.publish("rtu_count", fac.rtu_count)
     f_ps.publish("auto_scram", fac.auto_scram)
-    f_ps.publish("as_matrix_fault", fac.ascram_status.matrix_fault)
-    f_ps.publish("as_matrix_fill", fac.ascram_status.matrix_fill)
+    f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
+    f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
     f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
     f_ps.publish("as_radiation", fac.ascram_status.radiation)
     f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
@@ -818,38 +816,74 @@ function iorx.record_fac_detail_data(data)
         next_t_stat = next_t_stat + 1
     end
 
-    -- induction matrix data
+    -- ess data
 
-    fac.induction_data_tbl[1] = data[8]
+    local ess_ps
 
-    local matrix = fac.induction_data_tbl[1]
-    local m_ps   = fac.induction_ps_tbl[1]
-    local m_stat = data[7]
+    if fac.ess_type == types.ESS.ENERGY_CORE then
+        fac.ecore_data_tbl[1] = data[8]
 
-    local mtx_status = 1
+        ess_ps = fac.ecore_ps_tbl[1]
 
-    if m_stat ~= MTX_STATE.OFFLINE then
-        if m_stat == MTX_STATE.FAULT then
-            mtx_status = 3
-        elseif matrix.formed then
-            mtx_status = 4
-        else
-            mtx_status = 2
+        local e_data = fac.ecore_data_tbl[1]
+        local e_stat = data[7]
+
+        local ecr_status = 1
+
+        if e_stat ~= ESS_STATE.OFFLINE then
+            if e_stat == ESS_STATE.FAULT then
+                ecr_status = 3
+            elseif e_data.formed then
+                ecr_status = 4
+            else
+                ecr_status = 2
+            end
+
+            ess_ps.publish("faulted", e_stat == ESS_STATE.FAULT)
+
+            if e_data.build then
+                for key, val in pairs(e_data.build) do ess_ps.publish(key, val) end
+            end
+
+            for key, val in pairs(e_data.state) do ess_ps.publish(key, val) end
+            for key, val in pairs(e_data.virtual) do ess_ps.publish(key, val) end
         end
 
-        _record_multiblock_status(m_stat == MTX_STATE.FAULT, matrix, m_ps)
+        ess_ps.publish("EnergyCoreStatus", ecr_status)
+        ess_ps.publish("EnergyCoreStateStatus", e_stat)
+    else
+        fac.induction_data_tbl[1] = data[8]
+
+        ess_ps = fac.induction_ps_tbl[1]
+
+        local m_data = fac.induction_data_tbl[1]
+        local m_stat = data[7]
+
+        local mtx_status = 1
+
+        if m_stat ~= ESS_STATE.OFFLINE then
+            if m_stat == ESS_STATE.FAULT then
+                mtx_status = 3
+            elseif m_data.formed then
+                mtx_status = 4
+            else
+                mtx_status = 2
+            end
+
+            _record_multiblock_status(m_stat == ESS_STATE.FAULT, m_data, ess_ps)
+        end
+
+        ess_ps.publish("InductionMatrixStatus", mtx_status)
+        ess_ps.publish("InductionMatrixStateStatus", m_stat)
     end
 
-    m_ps.publish("InductionMatrixStatus", mtx_status)
-    m_ps.publish("InductionMatrixStateStatus", m_stat)
-
-    m_ps.publish("eta_string", data[9][1])
-    m_ps.publish("avg_charge", data[9][2])
-    m_ps.publish("avg_inflow", data[9][3])
-    m_ps.publish("avg_outflow", data[9][4])
-    m_ps.publish("is_charging", data[9][5])
-    m_ps.publish("is_discharging", data[9][6])
-    m_ps.publish("at_max_io", data[9][7])
+    ess_ps.publish("eta_string", data[9][1])
+    ess_ps.publish("avg_charge", data[9][2])
+    ess_ps.publish("avg_inflow", data[9][3])
+    ess_ps.publish("avg_outflow", data[9][4])
+    ess_ps.publish("is_charging", data[9][5])
+    ess_ps.publish("is_discharging", data[9][6])
+    ess_ps.publish("at_max_io", data[9][7])
 
     -- sps data
 

@@ -117,14 +117,15 @@ end
 ---@note this assumes only one type of failure can occur per each RTU gateway session's RTU, which is the case
 ---@param unit unit_session RTU session
 ---@param fail_code integer failure code
----@param msg string description to show the user
-function pgi.create_chk_entry(unit, fail_code, msg)
+---@param msg string description to show
+---@param details string? details to show
+function pgi.create_chk_entry(unit, fail_code, msg, details)
     local gw_session = unit.get_session_id()
 
     if data.chk_list ~= nil and data.chk_entry ~= nil then
         if not data.entries.chk[gw_session] then data.entries.chk[gw_session] = {} end
 
-        local success, result = pcall(data.chk_entry, data.chk_list, msg, fail_code)
+        local success, result = pcall(data.chk_entry, data.chk_list, fail_code, msg, details)
 
         if success then
             data.entries.chk[gw_session][unit.get_unit_id()] = result
@@ -159,8 +160,10 @@ end
 -- add a device ID missing entry to the CHK list
 ---@param message string missing device message
 function pgi.create_missing_entry(message)
-    if data.chk_list ~= nil and data.chk_entry ~= nil then
-        local success, result = pcall(data.chk_entry, data.chk_list, message, 4)
+    if data.entries.missing[message] ~= nil then
+        log.warning(util.c("PGI: tried to create a duplicate missing CHK entry \"", message, "\""))
+    elseif data.chk_list ~= nil and data.chk_entry ~= nil then
+        local success, result = pcall(data.chk_entry, data.chk_list, 4, message)
 
         if success then
             data.entries.missing[message] = result

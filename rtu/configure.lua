@@ -206,10 +206,10 @@ local function config_view(display)
     local y_start = 2
 
     if tool_ctl.ask_config then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the RTU gateway. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the RTU Gateway. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     else
-        TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the RTU gateway configurator! Please select one of the following options."}
+        TextBox{parent=main_page,x=2,y=2,height=2,text="Welcome to the RTU Gateway configurator! Please select one of the following options."}
         y_start = y_start + 3
     end
 

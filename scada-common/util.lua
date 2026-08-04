@@ -24,7 +24,7 @@ local t_pack   = table.pack
 local util = {}
 
 -- scada-common version
-util.version = "1.10.2"
+util.version = "1.10.4"
 
 util.TICK_TIME_S = 0.05
 util.TICK_TIME_MS = 50
@@ -457,25 +457,27 @@ function util.power_format(e, label, combine_label, format)
 
     if type(format) ~= "string" then format = "%.2f" end
 
-    if e < 1000.0 then
+    local a = math.abs(e)
+
+    if a < 1000.0 then
         unit = ""
         value = e
-    elseif e < 1000000.0 then
+    elseif a < 1000000.0 then
         unit = "k"
         value = e / 1000.0
-    elseif e < 1000000000.0 then
+    elseif a < 1000000000.0 then
         unit = "M"
         value = e / 1000000.0
-    elseif e < 1000000000000.0 then
+    elseif a < 1000000000000.0 then
         unit = "G"
         value = e / 1000000000.0
-    elseif e < 1000000000000000.0 then
+    elseif a < 1000000000000000.0 then
         unit = "T"
         value = e / 1000000000000.0
-    elseif e < 1000000000000000000.0 then
+    elseif a < 1000000000000000000.0 then
         unit = "P"
         value = e / 1000000000000000.0
-    elseif e < 1000000000000000000000.0 then
+    elseif a < 1000000000000000000000.0 then
         -- if you accomplish this please touch grass
         unit = "E"
         value = e / 1000000000000000000.0

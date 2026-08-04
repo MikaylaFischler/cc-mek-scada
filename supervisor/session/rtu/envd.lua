@@ -80,14 +80,8 @@ function envd.new(session_id, unit_id, advert, out_queue)
                 self.db.last_update   = util.time_ms()
                 self.db.radiation     = adu.data[1]
                 self.db.radiation_raw = adu.data[2]
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
-        elseif txn_type == nil then
-            log.error(log_tag .. "unknown transaction reply")
-        else
-            log.error(log_tag .. "unknown transaction type " .. txn_type)
-        end
+            else self.session.log_length_mismatch(txn_type) end
+        else self.session.log_resolve_fail(txn_type) end
     end
 
     -- update this runner

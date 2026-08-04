@@ -175,7 +175,7 @@ local function init(panel, config)
     local comp_id = util.sprintf("%03d", os.getComputerID())
 
     TextBox{parent=hw_labels,text="FW "..ps.get("version"),fg_bg=s_hi_box}
-    TextBox{parent=hw_labels,text="NT v"..ps.get("comms_version"),fg_bg=s_hi_box}
+    TextBox{parent=hw_labels,text="NT "..ps.get("comms_version"),fg_bg=s_hi_box}
     TextBox{parent=hw_labels,text="SN "..comp_id.."-CRD",fg_bg=s_hi_box}
 
     --

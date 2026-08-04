@@ -14,7 +14,7 @@ rps.MAX_DAMAGE_PERCENT      = 90   -- damage >= 90%
 rps.MAX_DAMAGE_TEMPERATURE  = 1200 -- temp >= 1200K
 rps.MIN_COOLANT_FILL        = 0.10 -- fill < 10%
 rps.MAX_WASTE_FILL          = 0.95 -- fill > 95%
-rps.MAX_HEATED_COLLANT_FILL = 0.95 -- fill > 95%
+rps.MAX_HEATED_COOLANT_FILL = 0.95 -- fill > 95%
 
 constants.RPS_LIMITS = rps
 
@@ -69,10 +69,10 @@ constants.ALARM_LIMITS = alarms
 ---@class _rs_threshold_constants
 local rs = {}
 
-rs.IMATRIX_CHARGE_LOW  = 0.05 -- activation threshold (less than) for F_MATRIX_LOW
-rs.IMATRIX_CHARGE_HIGH = 0.95 -- activation threshold (greater than) for F_MATRIX_HIGH
-rs.AUX_COOL_ENABLE     = 0.85 -- actiation threshold (less than or equal) for U_AUX_COOL
-rs.AUX_COOL_DISABLE    = 1.00 -- deactivation threshold (greater than or equal) for U_AUX_COOL
+rs.ENERGY_CHARGE_LOW  = 0.05 -- activation threshold (less than) for F_CHARGE_LOW
+rs.ENERGY_CHARGE_HIGH = 0.95 -- activation threshold (greater than) for F_CHARGE_HIGH
+rs.AUX_COOL_ENABLE    = 0.85 -- actiation threshold (less than or equal) for U_AUX_COOL
+rs.AUX_COOL_DISABLE   = 1.00 -- deactivation threshold (greater than or equal) for U_AUX_COOL
 
 constants.RS_THRESHOLDS = rs
 

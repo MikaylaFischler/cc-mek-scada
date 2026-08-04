@@ -221,8 +221,8 @@ types.TANK_STATE = {
     HIGH_FILL = 6
 }
 
----@enum IMATRIX_STATE
-types.IMATRIX_STATE = {
+---@enum ESS_STATE
+types.ESS_STATE = {
     OFFLINE = 1,
     UNFORMED = 2,
     FAULT = 3,
@@ -253,7 +253,8 @@ types.RTU_UNIT_TYPE = {
     IMATRIX = 5,        -- induction matrix
     SPS = 6,            -- SPS
     SNA = 7,            -- SNA
-    ENV_DETECTOR = 8    -- environment detector
+    ENV_DETECTOR = 8,   -- environment detector
+    ENERGY_CORE = 9     -- draconic energy core
 }
 
 types.RTU_UNIT_NAMES = {
@@ -264,7 +265,8 @@ types.RTU_UNIT_NAMES = {
     "induction_matrix",
     "sps",
     "sna",
-    "environment_detector"
+    "environment_detector",
+    "energy_core"
 }
 
 -- safe conversion of RTU UNIT TYPE to string
@@ -281,7 +283,8 @@ function types.rtu_type_to_string(utype)
        utype == types.RTU_UNIT_TYPE.IMATRIX or
        utype == types.RTU_UNIT_TYPE.SPS or
        utype == types.RTU_UNIT_TYPE.SNA or
-       utype == types.RTU_UNIT_TYPE.ENV_DETECTOR then
+       utype == types.RTU_UNIT_TYPE.ENV_DETECTOR or
+       utype == types.RTU_UNIT_TYPE.ENERGY_CORE then
         return types.RTU_UNIT_NAMES[utype]
     else
         return ""
@@ -313,7 +316,7 @@ types.PROCESS = {
     CHARGE = 3,
     GEN_RATE = 4,
     RANGE_CONTROL = 5,
-    MATRIX_FAULT_IDLE = 6,
+    ESS_FAULT_IDLE = 6,
     SYSTEM_ALARM_IDLE = 7,
     GEN_RATE_FAULT_IDLE = 8
 }
@@ -325,7 +328,7 @@ types.PROCESS_NAMES = {
     "CHARGE",
     "GEN_RATE",
     "RANGE_CONTROL",
-    "MATRIX_FAULT_IDLE",
+    "ESS_FAULT_IDLE",
     "SYSTEM_ALARM_IDLE",
     "GEN_RATE_FAULT_IDLE"
 }
@@ -442,6 +445,12 @@ types.ALARM_STATE_NAMES = {
     "TRIPPED",
     "ACKED",
     "RING_BACK"
+}
+
+---@enum ESS
+types.ESS = {
+    INDUCTION_MATRIX = 1,
+    ENERGY_CORE = 2
 }
 
 --#endregion

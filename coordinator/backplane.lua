@@ -62,7 +62,7 @@ function backplane.init_displays(config)
     local mon_cfv = util.new_validator()
 
     mon_cfv.assert_type_str(config.MainDisplay)
-    if not config.DisableFlowView then mon_cfv.assert_type_str(config.FlowDisplay) end
+    mon_cfv.assert_type_str(config.FlowDisplay)
 
     mon_cfv.assert_eq(#config.UnitDisplays, config.UnitCount)
     for i = 1, #config.UnitDisplays do
@@ -100,27 +100,25 @@ function backplane.init_displays(config)
 
     -- flow display
 
-    if not config.DisableFlowView then
-        disp, iface = ppm.get_periph(config.FlowDisplay), config.FlowDisplay
+    disp, iface = ppm.get_periph(config.FlowDisplay), config.FlowDisplay
 
-        ---@cast disp Monitor
-        displays.flow = disp
-        displays.flow_iface = iface
+    ---@cast disp Monitor
+    displays.flow = disp
+    displays.flow_iface = iface
 
-        log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " FLOW/" .. iface)
+    log.info("BKPLN: DISPLAY LINK_" .. util.trinary(disp, "UP", "DOWN") .. " FLOW/" .. iface)
 
-        ioctl.fp_monitor_state("flow", util.trinary(disp, 2, 1))
+    ioctl.fp_monitor_state("flow", util.trinary(disp, 2, 1))
 
-        if not disp then
-            return false, "Flow monitor is not connected."
-        end
+    if not disp then
+        return false, "Flow monitor is not connected."
+    end
 
-        disp.setTextScale(0.5)
-        w, _ = ppm.monitor_block_size(disp.getSize())
-        if w ~= 8 then
-            log.info("BKPLN: DISPLAY FLOW/" .. iface .. " BAD RESOLUTION")
-            return false, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
-        end
+    disp.setTextScale(0.5)
+    w, _ = ppm.monitor_block_size(disp.getSize())
+    if w ~= 8 then
+        log.info("BKPLN: DISPLAY FLOW/" .. iface .. " BAD RESOLUTION")
+        return false, util.c("Flow monitor width is incorrect (was ", w, ", must be 8).")
     end
 
     -- unit display(s)

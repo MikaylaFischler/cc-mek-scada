@@ -487,7 +487,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             try_set(range, ini_cfg.TrustedRange)
             try_set(key, ini_cfg.AuthKey)
             try_set(tool_ctl.num_units, ini_cfg.UnitCount)
-            try_set(tool_ctl.dis_flow_view, ini_cfg.DisableFlowView)
             try_set(tool_ctl.s_vol, ini_cfg.SpeakerVolume)
             try_set(tool_ctl.pellet_color, ini_cfg.GreenPuPellet)
             try_set(tool_ctl.clock_fmt, tri(ini_cfg.Time24Hour, 1, 2))
@@ -573,7 +572,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
         tmp_cfg.AuthKey = config.AUTH_KEY or ""
 
         tmp_cfg.UnitCount = config.NUM_UNITS
-        tmp_cfg.DisableFlowView = config.DISABLE_FLOW_VIEW
         tmp_cfg.SpeakerVolume = config.SOUNDER_VOLUME
         tmp_cfg.Time24Hour = config.TIME_24_HOUR
 

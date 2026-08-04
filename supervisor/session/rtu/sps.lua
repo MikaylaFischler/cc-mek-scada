@@ -144,9 +144,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 self.db.formed = adu.data[1]
 
                 if not self.db.formed then self.has_build = false end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
@@ -164,18 +162,14 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
             if adu.length == 1 then
                 self.db.state.last_update  = util.time_ms()
                 self.db.state.process_rate = adu.data[1]
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             -- load in data if correct length
@@ -190,14 +184,8 @@ function sps.new(session_id, unit_id, advert, out_queue)
                 self.db.tanks.energy      = adu.data[7]
                 self.db.tanks.energy_need = adu.data[8]
                 self.db.tanks.energy_fill = adu.data[9]
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
-        elseif txn_type == nil then
-            log.error(log_tag .. "unknown transaction reply")
-        else
-            log.error(log_tag .. "unknown transaction type " .. txn_type)
-        end
+            else self.session.log_length_mismatch(txn_type) end
+        else self.session.log_resolve_fail(txn_type) end
     end
 
     -- update this runner

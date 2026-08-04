@@ -12,6 +12,7 @@ local threads      = require("rtu.threads")
 
 local boilerv_rtu  = require("rtu.dev.boilerv_rtu")
 local dynamicv_rtu = require("rtu.dev.dynamicv_rtu")
+local ecore_rtu    = require("rtu.dev.ecore_rtu")
 local envd_rtu     = require("rtu.dev.envd_rtu")
 local imatrix_rtu  = require("rtu.dev.imatrix_rtu")
 local redstone_rtu = require("rtu.dev.redstone_rtu")
@@ -364,6 +365,12 @@ return function(config, __shared_memory)
 
             rtu_type = RTU_UNIT_TYPE.ENV_DETECTOR
             rtu_iface, faulted = envd_rtu.new(device)
+        elseif type == "draconic_rf_storage" then
+            -- draconic evolution energy core
+            if not validate_assign(true) then return false end
+
+            rtu_type = RTU_UNIT_TYPE.ENERGY_CORE
+            rtu_iface, faulted = ecore_rtu.new(device)
         elseif type == ppm.VIRTUAL_DEVICE_TYPE then
             -- placeholder device
             rtu_type = RTU_UNIT_TYPE.VIRTUAL

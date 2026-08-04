@@ -152,9 +152,9 @@ style.dtank = {
     }
 }
 
-style.imatrix = {
-    -- induction matrix states<br>
-    ---@see IMATRIX_STATE
+style.ess = {
+    -- induction matrix and energy core states<br>
+    ---@see ESS_STATE
     states = {
         { color = cpair(colors.black, colors.yellow), text = "OFF-LINE" },
         { color = cpair(colors.black, colors.orange), text = "NOT FORMED" },

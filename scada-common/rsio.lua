@@ -52,8 +52,8 @@ local IO_PORT = {
     -- facility
     F_ALARM       = 7,  -- active high, facility-wide alarm (any high priority unit alarm)
     F_ALARM_ANY   = 8,  -- active high, any alarm regardless of priority
-    F_MATRIX_LOW  = 27, -- active high, induction matrix charge low
-    F_MATRIX_HIGH = 28, -- active high, induction matrix charge high
+    F_CHARGE_LOW  = 27, -- active high, energy storage charge low
+    F_CHARGE_HIGH = 28, -- active high, energy storage charge high
 
     F_WASTE_PU    = 31, -- active low, waste -> plutonium -> pellets route
     F_WASTE_PO    = 32, -- active low, waste -> polonium route
@@ -87,7 +87,7 @@ local IO_PORT = {
     -- analog outputs --
 
     -- facility
-    F_MATRIX_CHG  = 29  -- analog charge level of the induction matrix
+    F_ENERGY_CHG  = 29  -- analog charge level of the energy storage system
 }
 
 rsio.IO_LVL = IO_LVL
@@ -134,8 +134,8 @@ local MODES = {
     [IO.U_ACK]         = IO_MODE.DIGITAL_IN,
     [IO.F_ALARM]       = IO_MODE.DIGITAL_OUT,
     [IO.F_ALARM_ANY]   = IO_MODE.DIGITAL_OUT,
-    [IO.F_MATRIX_LOW]  = IO_MODE.DIGITAL_OUT,
-    [IO.F_MATRIX_HIGH] = IO_MODE.DIGITAL_OUT,
+    [IO.F_CHARGE_LOW]  = IO_MODE.DIGITAL_OUT,
+    [IO.F_CHARGE_HIGH] = IO_MODE.DIGITAL_OUT,
     [IO.F_WASTE_PU]    = IO_MODE.DIGITAL_OUT,
     [IO.F_WASTE_PO]    = IO_MODE.DIGITAL_OUT,
     [IO.F_WASTE_POPL]  = IO_MODE.DIGITAL_OUT,
@@ -159,7 +159,7 @@ local MODES = {
     [IO.R_INSUFF_FUEL] = IO_MODE.DIGITAL_OUT,
     [IO.R_PLC_FAULT]   = IO_MODE.DIGITAL_OUT,
     [IO.R_PLC_TIMEOUT] = IO_MODE.DIGITAL_OUT,
-    [IO.F_MATRIX_CHG]  = IO_MODE.ANALOG_OUT
+    [IO.F_ENERGY_CHG]  = IO_MODE.ANALOG_OUT
 }
 
 assert(rsio.NUM_PORTS == #PORT_NAMES, "port names length incorrect")
@@ -194,8 +194,8 @@ local RS_DIO_MAP = {
 
     [IO.F_ALARM]       = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
     [IO.F_ALARM_ANY]   = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    [IO.F_MATRIX_LOW]  = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
-    [IO.F_MATRIX_HIGH] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_CHARGE_LOW]  = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
+    [IO.F_CHARGE_HIGH] = { _in = _I_ACTIVE_HIGH, _out = _O_ACTIVE_HIGH, mode = IO_DIR.OUT },
 
     [IO.F_WASTE_PU]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },
     [IO.F_WASTE_PO]    = { _in = _I_ACTIVE_LOW,  _out = _O_ACTIVE_LOW,  mode = IO_DIR.OUT },

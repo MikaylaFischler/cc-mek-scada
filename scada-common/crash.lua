@@ -16,7 +16,7 @@ local has_lockbox, lockbox = pcall(require, "lockbox")
 local crash = {}
 
 local app = "unknown"
-local ver = "v0.0.0"
+local ver = "0.0.0"
 local err = ""
 
 -- set crash environment

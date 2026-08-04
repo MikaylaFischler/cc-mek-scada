@@ -37,7 +37,8 @@ local changes = {
     { "v1.3.3", { "Added standard with black off state color mode", "Added blue indicator color modes" } },
     { "v1.5.1", { "Added energy scale options" } },
     { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
-    { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } }
+    { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } },
+    { "v1.9.7", { "Removed Disable Flow View option" } }
 }
 
 ---@class crd_configurator
@@ -77,7 +78,6 @@ local tool_ctl = {
     load_legacy = nil,        ---@type function
 
     -- settings elements from hmi
-    dis_flow_view = nil,      ---@type Checkbox
     s_vol = nil,              ---@type NumberField
     pellet_color = nil,       ---@type RadioButton
     clock_fmt = nil,          ---@type RadioButton
@@ -108,7 +108,6 @@ local tmp_cfg = {
     GreenPuPellet = false,
     TempScale = 1,          ---@type TEMP_SCALE
     EnergyScale = 1,        ---@type ENERGY_SCALE
-    DisableFlowView = false,
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
@@ -147,7 +146,6 @@ local fields = {
     { "GreenPuPellet", "Pellet Colors", false },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
-    { "DisableFlowView", "Disable Flow Monitor (legacy, discouraged)", false },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
@@ -169,8 +167,6 @@ local fields = {
 
 -- load tmp_cfg fields from ini_cfg fields for displays
 local function preset_monitor_fields()
-    tmp_cfg.DisableFlowView = ini_cfg.DisableFlowView
-
     tmp_cfg.MainDisplay = ini_cfg.MainDisplay
     tmp_cfg.FlowDisplay = ini_cfg.FlowDisplay
     for i = 1, ini_cfg.UnitCount do
@@ -239,7 +235,7 @@ local function config_view(display)
         TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text=msg,fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     elseif tool_ctl.start_fail > 0 then
-        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the coordinator. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
+        TextBox{parent=main_page,x=2,y=y_start,height=4,width=49,text="Notice: This device is not configured for this version of the Coordinator. If you previously had a valid config, it's not lost. You may want to check the Change Log to see what changed.",fg_bg=cpair(colors.red,colors.lightGray)}
         y_start = y_start + 5
     end
 

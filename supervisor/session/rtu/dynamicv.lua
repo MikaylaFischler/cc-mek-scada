@@ -193,9 +193,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
                 self.db.formed = adu.data[1]
 
                 if not self.db.formed then self.has_build = false end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             if adu.length == 7 then
@@ -210,9 +208,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             if adu.length == 1 then
@@ -222,25 +218,17 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
                 if self.mode_cmd == nil then
                     self.mode_cmd = self.db.state.container_mode
                 end
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
             if adu.length == 2 then
                 self.db.tanks.last_update = util.time_ms()
                 self.db.tanks.stored      = adu.data[1]
                 self.db.tanks.fill        = adu.data[2]
-            else
-                log.debug(log_tag .. "MODBUS transaction reply length mismatch (" .. TXN_TAGS[txn_type] .. ")")
-            end
+            else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.INC_CONT or txn_type == TXN_TYPES.DEC_CONT or txn_type == TXN_TYPES.SET_CONT then
             -- successful acknowledgement
-        elseif txn_type == nil then
-            log.error(log_tag .. "unknown transaction reply")
-        else
-            log.error(log_tag .. "unknown transaction type " .. txn_type)
-        end
+        else self.session.log_resolve_fail(txn_type) end
     end
 
     -- update this runner

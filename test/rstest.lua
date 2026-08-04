@@ -121,8 +121,8 @@ for i = 1, rsio.NUM_PORTS do
     end
 end
 
-assert(rsio.digital_is_active(IO.F_MATRIX_CHG, IO_LVL.LOW) == nil, "ANA_DIG_READ_LOW")
-assert(rsio.digital_is_active(IO.F_MATRIX_CHG, IO_LVL.HIGH) == nil, "ANA_DIG_READ_HIGH")
+assert(rsio.digital_is_active(IO.F_ENERGY_CHG, IO_LVL.LOW) == nil, "ANA_DIG_READ_LOW")
+assert(rsio.digital_is_active(IO.F_ENERGY_CHG, IO_LVL.HIGH) == nil, "ANA_DIG_READ_HIGH")
 
 println("PASS")
 
@@ -139,8 +139,8 @@ for i = 1, rsio.NUM_PORTS do
     end
 end
 
-assert(rsio.digital_write_active(IO.F_MATRIX_CHG, true) == false, "ANA_DIG_WRITE_TRUE")
-assert(rsio.digital_write_active(IO.F_MATRIX_CHG, false) == false, "ANA_DIG_WRITE_FALSE")
+assert(rsio.digital_write_active(IO.F_ENERGY_CHG, true) == false, "ANA_DIG_WRITE_TRUE")
+assert(rsio.digital_write_active(IO.F_ENERGY_CHG, false) == false, "ANA_DIG_WRITE_FALSE")
 
 println("PASS")
 

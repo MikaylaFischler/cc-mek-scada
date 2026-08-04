@@ -3,10 +3,6 @@ name: Deploy Installation Data
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - devel
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
@@ -48,7 +44,7 @@ jobs:
       - name: Generate manifest and shields for main branch
         id: manifest-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
-        run: python build/imgen.py shields
+        run: python build/gen_manifest.py --shields
       - name: Save main's manifest
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/main
@@ -63,14 +59,14 @@ jobs:
       - name: Generate manifest for devel
         id: manifest-devel
         if: ${{ (success() || failure()) && steps.checkout-devel.outcome == 'success' }}
-        run: python build/imgen.py
+        run: python build/gen_manifest.py
       - name: Save devel's manifest
         if: ${{ (success() || failure()) && steps.manifest-devel.outcome == 'success' }}
         run: mv install_manifest.json deploy/manifests/devel
       # All artifacts ready now, upload deploy directory
       - name: Upload artifacts
         id: upload-artifacts
-        if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-latest.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
+        if: ${{ (success() || failure()) && (steps.manifest-main.outcome == 'success' || steps.manifest-devel.outcome == 'success') }}
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload manifest JSON
