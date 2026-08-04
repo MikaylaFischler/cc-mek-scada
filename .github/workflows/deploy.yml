@@ -38,7 +38,7 @@ jobs:
       - name: Create Deployment Directories
         if: success() || failure()
         shell: bash
-        run: mkdir -p deploy/{builds,manifests}/{main,devel,deploy-test}
+        run: mkdir -p deploy/{builds,manifests}/{main,devel}
       # Generate manifest + shields files for main branch
       - name: Checkout Main Branch
         id: checkout-main
@@ -47,26 +47,26 @@ jobs:
           ref: 'main'
           path: branch-main
           clean: false
-      - name: Legacy Temp Directory
-        if: success() || failure()
-        working-directory: branch-main
-        shell: bash
-        run: mkdir -p deploy/
-      - name: "[MAIN] (LEGACY) Generate Installation Manifest and Shields JSON"
-        id: manifest-main
+      - name: "[MAIN] Generate Minified Code"
+        id: minify-main
         if: ${{ (success() || failure()) && steps.checkout-main.outcome == 'success' }}
         working-directory: branch-main
-        run: python build/imgen.py shields
+        run: python build/gen_minified.py ../deploy/builds/main --deployment
+      - name: "[MAIN] Generate Installation Manifest and Shields JSON"
+        id: manifest-main
+        if: ${{ (success() || failure()) && steps.minify-main.outcome == 'success' }}
+        working-directory: branch-main
+        run: python build/gen_manifest.py ../deploy/builds/main --shields
       - name: "[MAIN] Save Installation Manifest"
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         working-directory: branch-main
         run: mv install_manifest.json ../deploy/manifests/main
-      - name: "[MAIN] (LEGACY) Save Shields"
+      - name: "[MAIN] Save Shields"
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         working-directory: branch-main
         run: mv deploy/*.json ../deploy/
       # Generate manifest and build for devel branch
-      - name: Checkout Development
+      - name: Checkout Development Branch
         id: checkout-devel
         if: success() || failure()
         uses: actions/checkout@v7.0.0
