@@ -64,7 +64,7 @@ jobs:
       - name: "[MAIN] Save Shields"
         if: ${{ (success() || failure()) && steps.manifest-main.outcome == 'success' }}
         working-directory: branch-main
-        run: mv deploy/*.json ../deploy/
+        run: mv shields/*.json ../deploy/
       # Generate manifest and build for devel branch
       - name: Checkout Development Branch
         id: checkout-devel

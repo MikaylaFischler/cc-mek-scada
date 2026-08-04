@@ -131,8 +131,10 @@ if __name__ == "__main__":
 
     # write all the JSON files for shields.io if requested
     if gen_shields:
+        os.makedirs(ini_dir + "/shields", exist_ok=True)
+
         for key, version in manifest["versions"].items():
-            shields_file = open(ini_dir + "/deploy/" + key + ".json", "w")
+            shields_file = open(ini_dir + "/shields/" + key + ".json", "w")
 
             # color based on release type
             if version.find("alpha") >= 0:
