@@ -51,7 +51,7 @@ local function new_view(root)
 
     app.set_sidebar({ { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home } })
 
-    local btn_fg_bg = cpair(colors.lightBlue, colors.black)
+    local btn_fg_bg = cpair(colors.pink, colors.black)
     local btn_active = cpair(colors.white, colors.black)
 
     local page_div = nil ---@type Div|nil
@@ -59,7 +59,6 @@ local function new_view(root)
     -- load the app (create the elements)
     local function load()
         local fac  = db.facility
-        local f_ps = fac.ps
 
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
@@ -96,20 +95,21 @@ local function new_view(root)
         TextBox{parent=rct_div,y=1,height=2,text="Fission Reactors",alignment=ALIGN.CENTER}
 
         for i = 1, fac.num_units do
-            local u_pane = Div{parent=page_div}
-            local u_div = Div{parent=u_pane}
-            table.insert(panes, u_div)
+            local pane = Div{parent=page_div}
+            local div = Div{parent=pane}
+            table.insert(panes, div)
 
-            local u_page = app.new_page(rct_page, #panes)
-            u_page.tasks = { update }
+            local page = app.new_page(rct_page, #panes)
+            page.tasks = { update }
 
             local u_ps = db.units[i].unit_ps
 
-            PushButton{parent=rct_div,text="Unit "..i.." Reactor      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=u_page.nav_to}
+            PushButton{parent=rct_div,text="Unit "..i.." Reactor      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
-            TextBox{parent=u_div,y=1,text="Unit "..i.." Reactor",alignment=ALIGN.CENTER}
+            TextBox{parent=div,y=1,text="Unit "..i.." Reactor",alignment=ALIGN.CENTER}
+            PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=rct_page.nav_to}
 
-            local list_box = ListBox{parent=u_div,x=2,y=3,scroll_height=40,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=40,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=39}
 
             TextBox{parent=list,text="Maximum Burn Rate",fg_bg=label_fg_bg}
@@ -208,6 +208,7 @@ local function new_view(root)
                 PushButton{parent=blr_div,text="Unit "..i.." Boiler "..b.."     >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
                 TextBox{parent=div,y=1,text="Unit "..i.." Boiler "..b,alignment=ALIGN.CENTER}
+                PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=blr_page.nav_to}
 
                 local list_box = ListBox{parent=div,x=2,y=3,scroll_height=37,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
                 local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=36}
@@ -304,6 +305,7 @@ local function new_view(root)
                 PushButton{parent=tbn_div,text="Unit "..i.." Turbine "..t.."    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
                 TextBox{parent=div,y=1,text="Unit "..i.." Turbine "..t,alignment=ALIGN.CENTER}
+                PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=tbn_page.nav_to}
 
                 local list_box = ListBox{parent=div,x=2,y=3,scroll_height=52,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
                 local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=51}
@@ -441,6 +443,7 @@ local function new_view(root)
             PushButton{parent=tnk_div,text=t_name.."   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
             TextBox{parent=div,y=1,text=t_name,alignment=ALIGN.CENTER}
+            PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=tnk_page.nav_to}
 
             local list_box = ListBox{parent=div,x=2,y=3,scroll_height=22,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=21}
@@ -508,6 +511,7 @@ local function new_view(root)
             PushButton{parent=sps_div,text="Facility SPS        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
             TextBox{parent=div,y=1,text="Facility SPS",alignment=ALIGN.CENTER}
+            PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=sps_page.nav_to}
 
             local list_box = ListBox{parent=div,x=2,y=3,scroll_height=28,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=27}
@@ -585,6 +589,7 @@ local function new_view(root)
             PushButton{parent=ess_div,text="Energy Core         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
             TextBox{parent=div,y=1,text="Energy Core",alignment=ALIGN.CENTER}
+            PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=ess_page.nav_to}
 
             local list_box = ListBox{parent=div,x=2,y=3,scroll_height=6,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=5}
