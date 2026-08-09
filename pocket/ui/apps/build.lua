@@ -304,8 +304,8 @@ local function new_view(root)
 
                 TextBox{parent=div,y=1,text="Unit "..i.." Turbine "..t,alignment=ALIGN.CENTER}
 
-                local list_box = ListBox{parent=div,x=2,y=3,scroll_height=46,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-                local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=45}
+                local list_box = ListBox{parent=div,x=2,y=3,scroll_height=52,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+                local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=51}
 
                 TextBox{parent=list,text="Blades",fg_bg=label_fg_bg}
                 local blades = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
@@ -350,6 +350,18 @@ local function new_view(root)
                 TextBox{parent=list,text="Max Water Return Rate",fg_bg=label_fg_bg}
                 local max_water_output = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
                 max_water_output.register(t_ps, "max_water_output", max_water_output.update)
+
+                list.line_break()
+                TextBox{parent=list,text="Generator Efficiency",fg_bg=label_fg_bg}
+                local gen_eff = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="%",format="%.6f",value=0,width=20,fg_bg=text_fg}
+                gen_eff.register(t_ps, "max_production", function (prod) gen_eff.update((prod / u.turbine_data_tbl[t].build.max_flow_rate) / 4.0 * 100.0) end)
+                gen_eff.register(t_ps, "max_flow_rate", function (flow) gen_eff.update((u.turbine_data_tbl[t].build.max_production / flow) / 4.0 * 100.0) end)
+
+                list.line_break()
+                TextBox{parent=list,text="Generator Multiplier",fg_bg=label_fg_bg}
+                local gen_mult = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%.6f",value=0,width=20,fg_bg=text_fg}
+                gen_mult.register(t_ps, "max_production", function (prod) gen_mult.update(prod / u.turbine_data_tbl[t].build.max_flow_rate) end)
+                gen_mult.register(t_ps, "max_flow_rate", function (flow) gen_mult.update(u.turbine_data_tbl[t].build.max_production / flow) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Steam Capacity",fg_bg=label_fg_bg}
