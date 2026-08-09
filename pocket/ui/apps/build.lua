@@ -483,7 +483,83 @@ local function new_view(root)
 
         --#endregion
 
-        local sps_page = app.new_page(nil, 6)
+        --#region SPS
+
+        local sps_pane = Div{parent=page_div}
+        local sps_div = Div{parent=sps_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, sps_div)
+
+        local sps_page = app.new_page(nil, #panes)
+        sps_page.tasks = { update }
+
+        TextBox{parent=sps_div,x=2,y=1,height=3,text="Supercritical Phase Shifters",alignment=ALIGN.CENTER}
+
+        for s = 1, #fac.sps_data_tbl do
+            local pane = Div{parent=page_div}
+            local div = Div{parent=pane}
+            table.insert(panes, div)
+
+            local page = app.new_page(tnk_page, #panes)
+            page.tasks = { update }
+
+            local s_ps = fac.sps_ps_tbl[s]
+
+            PushButton{parent=sps_div,text="Facility SPS        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
+
+            TextBox{parent=div,y=1,text="Facility SPS",alignment=ALIGN.CENTER}
+
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=28,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=27}
+
+            TextBox{parent=list,text="Supercharged Coils",fg_bg=label_fg_bg}
+            local coils = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            coils.register(s_ps, "coils", coils.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Input Capacity",fg_bg=label_fg_bg}
+            local input_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            input_cap.register(s_ps, "input_cap", input_cap.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Output Capacity",fg_bg=label_fg_bg}
+            local output_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            output_cap.register(s_ps, "output_cap", output_cap.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(s_ps, "max_energy", max_energy.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            l.register(s_ps, "length", l.update)
+            w.register(s_ps, "width", w.update)
+            h.register(s_ps, "height", h.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            x1.register(s_ps, "min_pos", function (crd)
+                x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
+            end)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            x2.register(s_ps, "min_pos", function (crd)
+                x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
+            end)
+        end
+
+        --#endregion
+
         local ess_page = app.new_page(nil, 7)
 
         -- setup multipane
