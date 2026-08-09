@@ -399,7 +399,90 @@ local function new_view(root)
 
         --#endregion
 
-        local tnk_page = app.new_page(nil, 5)
+        --#region dynamic tanks
+
+        local tnk_pane = Div{parent=page_div}
+        local tnk_div = Div{parent=tnk_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, tnk_div)
+
+        local tnk_page = app.new_page(nil, #panes)
+        tnk_page.tasks = { update }
+
+        local tanks = {}
+
+        TextBox{parent=tnk_div,y=1,height=2,text="Dynamic Tanks",alignment=ALIGN.CENTER}
+
+        local f_tank_id = 1
+        for t = 1, #fac.tank_list do
+            if fac.tank_list[t] == 2 then
+                table.insert(tanks, { "F-" .. t .. " Facility Tank", fac.tank_ps_tbl[f_tank_id] })
+                f_tank_id = f_tank_id + 1
+            end
+        end
+
+        for i = 1, fac.num_units do
+            local u = db.units[i]
+            if u.tank_data_tbl[1] then
+                table.insert(tanks, { "U-" .. i .. " Unit Tank    ", u.tank_ps_tbl[1] })
+            end
+        end
+
+        for t = 1, #tanks do
+            local pane = Div{parent=page_div}
+            local div = Div{parent=pane}
+            table.insert(panes, div)
+
+            local page = app.new_page(tnk_page, #panes)
+            page.tasks = { update }
+
+            local t_name, t_ps = tanks[t][1], tanks[t][2]
+
+            PushButton{parent=tnk_div,text=t_name.."   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
+
+            TextBox{parent=div,y=1,text=t_name,alignment=ALIGN.CENTER}
+
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=22,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=21}
+
+            TextBox{parent=list,text="Fluid Capacity",fg_bg=label_fg_bg}
+            local tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            tank_capacity.register(t_ps, "tank_capacity", tank_capacity.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Chemical Capacity",fg_bg=label_fg_bg}
+            local chem_tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            chem_tank_capacity.register(t_ps, "chem_tank_capacity", chem_tank_capacity.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            l.register(t_ps, "length", l.update)
+            w.register(t_ps, "width", w.update)
+            h.register(t_ps, "height", h.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            x1.register(t_ps, "min_pos", function (crd)
+                x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
+            end)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            x2.register(t_ps, "min_pos", function (crd)
+                x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
+            end)
+        end
+
+        --#endregion
+
         local sps_page = app.new_page(nil, 6)
         local ess_page = app.new_page(nil, 7)
 
