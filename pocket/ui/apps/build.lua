@@ -3,6 +3,7 @@
 --
 
 local comms      = require("scada-common.comms")
+local types      = require("scada-common.types")
 local util       = require("scada-common.util")
 
 local ioctl      = require("pocket.ioctl")
@@ -560,7 +561,46 @@ local function new_view(root)
 
         --#endregion
 
-        local ess_page = app.new_page(nil, 7)
+        --#region ESS
+
+        local ess_pane = Div{parent=page_div}
+        local ess_div = Div{parent=ess_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, ess_div)
+
+        local ess_page = app.new_page(nil, #panes)
+        ess_page.tasks = { update }
+
+        TextBox{parent=ess_div,x=2,y=1,height=3,text="Energy Storage Systems",alignment=ALIGN.CENTER}
+
+        if fac.ess_type == types.ESS.ENERGY_CORE then
+            local pane = Div{parent=page_div}
+            local div = Div{parent=pane}
+            table.insert(panes, div)
+
+            local page = app.new_page(ess_page, #panes)
+            page.tasks = { update }
+
+            local e_ps = fac.ecore_ps_tbl[1]
+
+            PushButton{parent=ess_div,text="Energy Core         >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
+
+            TextBox{parent=div,y=1,text="Energy Core",alignment=ALIGN.CENTER}
+
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=6,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=5}
+
+            TextBox{parent=list,text="Tier",fg_bg=label_fg_bg}
+            local tier = TextBox{parent=list,text="Unknown",fg_bg=text_fg}
+            tier.register(e_ps, "tier", tier.set_value)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(e_ps, "max_energy", max_energy.update)
+        elseif fac.ess_type == types.ESS.INDUCTION_MATRIX then
+        end
+
+        --#endregion
 
         -- setup multipane
         local f_pane = MultiPane{parent=page_div,y=1,panes=panes}
