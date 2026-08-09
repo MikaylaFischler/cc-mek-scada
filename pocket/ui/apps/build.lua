@@ -195,20 +195,20 @@ local function new_view(root)
             local u = db.units[i]
 
             for b = 1, u.num_boilers do
-                local u_pane = Div{parent=page_div}
-                local u_div = Div{parent=u_pane}
-                table.insert(panes, u_div)
+                local pane = Div{parent=page_div}
+                local div = Div{parent=pane}
+                table.insert(panes, div)
 
-                local u_page = app.new_page(blr_page, #panes)
-                u_page.tasks = { update }
+                local page = app.new_page(blr_page, #panes)
+                page.tasks = { update }
 
                 local b_ps = u.boiler_ps_tbl[b]
 
-                PushButton{parent=blr_div,text="Unit "..i.." Boiler "..b.."     >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=u_page.nav_to}
+                PushButton{parent=blr_div,text="Unit "..i.." Boiler "..b.."     >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
-                TextBox{parent=u_div,y=1,text="Unit "..i.." Boiler "..b,alignment=ALIGN.CENTER}
+                TextBox{parent=div,y=1,text="Unit "..i.." Boiler "..b,alignment=ALIGN.CENTER}
 
-                local list_box = ListBox{parent=u_div,x=2,y=3,scroll_height=37,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+                local list_box = ListBox{parent=div,x=2,y=3,scroll_height=37,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
                 local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=36}
 
                 TextBox{parent=list,text="Superheating Elements",fg_bg=label_fg_bg}
