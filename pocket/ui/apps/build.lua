@@ -500,7 +500,7 @@ local function new_view(root)
             local div = Div{parent=pane}
             table.insert(panes, div)
 
-            local page = app.new_page(tnk_page, #panes)
+            local page = app.new_page(sps_page, #panes)
             page.tasks = { update }
 
             local s_ps = fac.sps_ps_tbl[s]
@@ -673,12 +673,12 @@ local function new_view(root)
         local list = {
             { label = " # ", tall = true, color = core.cpair(colors.black, colors.green), callback = db.nav.go_home },
             { label = " \x08 ", color = core.cpair(colors.black, colors.lightGray), callback = main_page.nav_to },
-            { label = "RCT", color = core.cpair(colors.black, colors.cyan), callback = rct_page.nav_to },
-            { label = "BLR", color = core.cpair(colors.black, colors.orange), callback = blr_page.nav_to },
-            { label = "TRB", color = core.cpair(colors.black, colors.white), callback = trb_page.nav_to },
-            { label = "TNK", color = core.cpair(colors.black, colors.blue), callback = tnk_page.nav_to },
-            { label = "SPS", color = core.cpair(colors.black, colors.purple), callback = sps_page.nav_to },
-            { label = "ESS", color = core.cpair(colors.black, colors.green), callback = ess_page.nav_to }
+            { label = "RCT", color = core.cpair(colors.black, colors.white), callback = rct_page.nav_to },
+            { label = "BLR", color = core.cpair(colors.black, colors.white), callback = blr_page.nav_to },
+            { label = "TBN", color = core.cpair(colors.black, colors.white), callback = tbn_page.nav_to },
+            { label = "TNK", color = core.cpair(colors.black, colors.white), callback = tnk_page.nav_to },
+            { label = "SPS", color = core.cpair(colors.black, colors.white), callback = sps_page.nav_to },
+            { label = "ESS", color = core.cpair(colors.black, colors.white), callback = ess_page.nav_to }
         }
 
         app.set_sidebar(list)
