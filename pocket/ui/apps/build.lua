@@ -109,8 +109,8 @@ local function new_view(root)
             TextBox{parent=div,y=1,text="Unit "..i.." Reactor",alignment=ALIGN.CENTER}
             PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=rct_page.nav_to}
 
-            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=40,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=39}
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=48,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=47}
 
             TextBox{parent=list,text="Maximum Burn Rate",fg_bg=label_fg_bg}
             local max_burn = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
@@ -150,6 +150,16 @@ local function new_view(root)
             TextBox{parent=list,text="Heat Capacity",fg_bg=label_fg_bg}
             local heat_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="J",format="%d",value=0,width=20,fg_bg=text_fg}
             heat_cap.register(u_ps, "heat_cap", heat_cap.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Operating Temp (Water Cooled)",fg_bg=label_fg_bg}
+            local water_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%d",value=0,width=20,fg_bg=text_fg}
+            water_op.register(u_ps, "max_op_temp_h2o", water_op.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Operating Temp (Sodium Cooled)",fg_bg=label_fg_bg}
+            local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%d",value=0,width=20,fg_bg=text_fg}
+            sodium_op.register(u_ps, "max_op_temp_na", sodium_op.update)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
@@ -278,7 +288,7 @@ local function new_view(root)
 
         --#endregion
 
-        --#region boilers
+        --#region turbines
 
         local tbn_pane = Div{parent=page_div}
         local tbn_div = Div{parent=tbn_pane,x=2,width=main.get_width()-2}
