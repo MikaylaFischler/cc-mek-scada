@@ -152,27 +152,27 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
-            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
             l.register(u_ps, "length", l.update)
             w.register(u_ps, "width", w.update)
             h.register(u_ps, "height", h.update)
 
             list.line_break()
             TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
-            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x1.register(u_ps, "min_pos", function (crd)
                 x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
             end)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
-            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x2.register(u_ps, "min_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
@@ -247,27 +247,27 @@ local function new_view(root)
 
                 list.line_break()
                 TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
-                local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+                local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
                 l.register(b_ps, "length", l.update)
                 w.register(b_ps, "width", w.update)
                 h.register(b_ps, "height", h.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
-                local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
                 x1.register(b_ps, "min_pos", function (crd)
                     x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
                 end)
 
                 list.line_break()
                 TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
-                local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
                 x2.register(b_ps, "min_pos", function (crd)
                     x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
                 end)
@@ -370,27 +370,27 @@ local function new_view(root)
 
                 list.line_break()
                 TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
-                local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+                local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
                 l.register(t_ps, "length", l.update)
                 w.register(t_ps, "width", w.update)
                 h.register(t_ps, "height", h.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
-                local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
                 x1.register(t_ps, "min_pos", function (crd)
                     x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
                 end)
 
                 list.line_break()
                 TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
-                local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-                local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+                local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+                local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
                 x2.register(t_ps, "min_pos", function (crd)
                     x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
                 end)
@@ -455,27 +455,27 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
-            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
             l.register(t_ps, "length", l.update)
             w.register(t_ps, "width", w.update)
             h.register(t_ps, "height", h.update)
 
             list.line_break()
             TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
-            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x1.register(t_ps, "min_pos", function (crd)
                 x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
             end)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
-            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x2.register(t_ps, "min_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
@@ -532,27 +532,27 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
-            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
             l.register(s_ps, "length", l.update)
             w.register(s_ps, "width", w.update)
             h.register(s_ps, "height", h.update)
 
             list.line_break()
             TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
-            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x1.register(s_ps, "min_pos", function (crd)
                 x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
             end)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
-            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
-            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,commas=true,width=13,fg_bg=text_fg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
             x2.register(s_ps, "min_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
