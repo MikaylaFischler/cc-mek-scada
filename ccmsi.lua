@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "2.2"
+local CCMSI_VERSION = "2.3"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -40,6 +40,7 @@ local function orange() tsc(colors.orange) end
 local function yellow() tsc(colors.yellow) end
 local function green() tsc(colors.green) end
 local function cyan() tsc(colors.cyan) end
+local function lblue() tsc(colors.lightBlue) end
 local function blue() tsc(colors.blue) end
 local function purple() tsc(colors.purple) end
 local function white() tsc(colors.white) end
@@ -113,6 +114,15 @@ local function show_progress(p)
 	term.setCursorPos(1, y);lgray()
 end
 
+-- hide progress and percentage at the bottom of the screen
+local function hide_progress()
+	local _, y = term.getCursorPos()
+	term.setCursorPos(1, out_h)
+	tbc(colors.black);white()
+	term.clearLine()
+	term.setCursorPos(1, y)
+end
+
 -- get command line option in list
 local function get_opt(opt, options)
 	for _, v in pairs(options) do if opt == v then return v end end
@@ -141,9 +151,9 @@ local function v_nums(v)
 end
 
 -- 1 = update, 0 = same, -1 = downgrade
-local function is_update(v)
-	local l1, l2, l3 = v_nums(v.v_local)
-	local r1, r2, r3 = v_nums(v.v_remote)
+local function is_update(l, r)
+	local l1, l2, l3 = v_nums(l)
+	local r1, r2, r3 = v_nums(r)
 
 	if r1 ~= l1 then return (r1 > l1 and 1) or -1 end
 	if r2 ~= l2 then return (r2 > l2 and 1) or -1 end
@@ -153,7 +163,9 @@ end
 
 -- package version message
 local function pkg_v_msg(n, m, va, vb)
-	purple();print("["..n.."] ");white();print(m.." ");blue()
+	purple();print("["..n.."] ");white()
+	if m == "\x1e" then cyan() elseif m == "\x1f" then red() end
+	print(m.." ");blue()
 	if vb then print(va);white();print(" \x1a ");blue();pln(vb) else pln(va) end
 	white()
 end
@@ -168,14 +180,14 @@ end
 -- indicate actions to be taken based on package differences for installs/updates
 local function show_pkg_change(name, v)
 	if v.v_local then
-		local is_up = is_update(v)
+		local is_up = is_update(v.v_local, v.v_remote)
 		if is_up ~= 0 then
-			local updn = (is_up > 0) and "updating" or "downgrading"
+			local updn = (is_up > 0) and (IS_PKT and "\x1e" or "updating") or (IS_PKT and "\x1f" or "downgrading")
 			pkg_v_msg(name, updn, v.v_local, v.v_remote)
 		elseif mode == "install" then
-			pkg_v_msg(name, "reinstalling", v.v_local)
+			pkg_v_msg(name, IS_PKT and "reinstall" or "reinstalling", v.v_local)
 		end
-	else pkg_v_msg(name, "new install of", v.v_remote) end
+	else pkg_v_msg(name, IS_PKT and "install" or "new install of", v.v_remote) end
 
 	return v.v_local ~= v.v_remote
 end
@@ -412,18 +424,27 @@ if mode == "check" then
 	if not IS_PKT then pln("") end
 
 	-- list all versions
-	for k, v in pairs(r_manifest.versions) do
+	for k, r_v in pairs(r_manifest.versions) do
+		local l_v, tag = l_manifest.versions[k], string.format("%-14s", "["..k.."]")
 		purple()
-		local tag = string.format("%-14s", "["..k.."]")
-		if not IS_PKT then print(tag) end
-		if k == "installer" or (ok and (l_manifest.versions[k] ~= nil)) then
-			if IS_PKT then pln(tag) end
-			blue();print(l_manifest.versions[k])
-			if v ~= l_manifest.versions[k] then
-				white();print(" (");cyan();print(v);white();pln(" available)")
-			else green();pln(" (up to date)") end
-		elseif not IS_PKT then
-			lgray();print("not installed");white();print(" (latest ");cyan();print(v);white();pln(")")
+
+		if k == "installer" or (ok and (l_v ~= nil)) then
+			if IS_PKT then
+				print("["..k.."] ");blue();pln(l_v)
+			else print(tag);blue();print(l_v);white();print(" -") end
+
+			if r_v ~= l_v then
+				if is_update(l_v, r_v) > 0 then
+					cyan();print(" \x1e ")
+				else red();print(" \x1f ") end
+				print(r_v);white();pln(" available")
+			else green();print(" \x07");white();pln(" up to date") end
+		elseif not (IS_PKT and _in_array(k, { "reactor-plc", "rtu", "supervisor", "coordinator" })) then
+			if IS_PKT then
+				print("["..k.."] ");lgray();pln("not installed")
+			else print(tag);lgray();print("not installed");white();print(" -") end
+
+			lblue();print(" \x04 "..r_v);white();pln(" available")
 		end
 	end
 
@@ -499,7 +520,7 @@ elseif mode == "install" or mode == "update" then
 	if mode == "install" then print("Installing ") else print("Updating ") end
 	pln(app.." files...");white()
 
-	ver.boot.changed = show_pkg_change("bootldr", ver.boot)
+	ver.boot.changed = show_pkg_change("bootloader", ver.boot)
 	ver.common.changed = show_pkg_change("common", ver.common)
 	ver.comms.changed = show_pkg_change("comms", ver.comms)
 	if ver.comms.changed and ver.comms.v_local ~= nil then
@@ -616,7 +637,7 @@ elseif mode == "install" or mode == "update" then
 				pkg_msg(dep, "skipping install of unchanged package", true)
 				sf_deps[k] = nil
 			else
-				pkg_msg(dep, "installing package...")
+				pkg_msg(dep, IS_PKT and "installing..." or "installing package...")
 				lgray()
 
 				-- beginning on the second try, delete the directory before starting
@@ -649,6 +670,7 @@ elseif mode == "install" or mode == "update" then
 					print_reset(s)
 				end
 
+				hide_progress()
 				if not abort_attempt then pkg_msg(dep, "installed!");sf_deps[k] = nil end
 				term.clearLine()
 			end
@@ -666,7 +688,7 @@ elseif mode == "install" or mode == "update" then
 			if mode == "update" and unchanged(dep) then
 				pkg_msg(dep, "skipping download of unchanged package", true)
 			else
-				pkg_msg(dep, "downloading package...")
+				pkg_msg(dep, IS_PKT and "downloading..." or "downloading package...")
 				lgray()
 
 				local files, n = file_list[dep], 1
@@ -691,7 +713,8 @@ elseif mode == "install" or mode == "update" then
 					print_reset(s)
 				end
 
-				if success then pkg_msg(dep, "download complete!") end
+				hide_progress()
+				if success then pkg_msg(dep, IS_PKT and "downloaded!" or "download complete!") end
 				term.clearLine()
 			end
 			if not success then break end
@@ -703,7 +726,7 @@ elseif mode == "install" or mode == "update" then
 				if mode == "update" and unchanged(dep) then
 					pkg_msg(dep, "skipping install of unchanged package", true)
 				else
-					pkg_msg(dep, "installing package...")
+					pkg_msg(dep, IS_PKT and "installing..." or "installing package...")
 					lgray()
 
 					local files = file_list[dep]
