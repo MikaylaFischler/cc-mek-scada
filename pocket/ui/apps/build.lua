@@ -279,14 +279,14 @@ local function new_view(root)
 
         --#region boilers
 
-        local trb_pane = Div{parent=page_div}
-        local trb_div = Div{parent=trb_pane,x=2,width=main.get_width()-2}
-        table.insert(panes, trb_div)
+        local tbn_pane = Div{parent=page_div}
+        local tbn_div = Div{parent=tbn_pane,x=2,width=main.get_width()-2}
+        table.insert(panes, tbn_div)
 
-        local trb_page = app.new_page(nil, #panes)
-        trb_page.tasks = { update }
+        local tbn_page = app.new_page(nil, #panes)
+        tbn_page.tasks = { update }
 
-        TextBox{parent=trb_div,y=1,height=2,text="Steam Turbines",alignment=ALIGN.CENTER}
+        TextBox{parent=tbn_div,y=1,height=2,text="Steam Turbines",alignment=ALIGN.CENTER}
 
         for i = 1, fac.num_units do
             local u = db.units[i]
@@ -296,12 +296,12 @@ local function new_view(root)
                 local div = Div{parent=pane}
                 table.insert(panes, div)
 
-                local page = app.new_page(trb_page, #panes)
+                local page = app.new_page(tbn_page, #panes)
                 page.tasks = { update }
 
                 local t_ps = u.turbine_ps_tbl[t]
 
-                PushButton{parent=trb_div,text="Unit "..i.." Turbine "..t.."    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
+                PushButton{parent=tbn_div,text="Unit "..i.." Turbine "..t.."    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
 
                 TextBox{parent=div,y=1,text="Unit "..i.." Turbine "..t,alignment=ALIGN.CENTER}
 
