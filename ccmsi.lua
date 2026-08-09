@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "2.3"
+local CCMSI_VERSION = "2.4"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -429,21 +429,17 @@ if mode == "check" then
 		purple()
 
 		if k == "installer" or (ok and (l_v ~= nil)) then
-			if IS_PKT then
-				print("["..k.."] ");blue();pln(l_v)
+			if IS_PKT then print("["..k.."] ");blue();pln(l_v)
 			else print(tag);blue();print(l_v);white();print(" -") end
 
 			if r_v ~= l_v then
-				if is_update(l_v, r_v) > 0 then
-					cyan();print(" \x1e ")
+				if is_update(l_v, r_v) > 0 then cyan();print(" \x1e ")
 				else red();print(" \x1f ") end
 				print(r_v);white();pln(" available")
 			else green();print(" \x07");white();pln(" up to date") end
 		elseif not (IS_PKT and _in_array(k, { "reactor-plc", "rtu", "supervisor", "coordinator" })) then
-			if IS_PKT then
-				print("["..k.."] ");lgray();pln("not installed")
+			if IS_PKT then print("["..k.."] ");lgray();pln("not installed")
 			else print(tag);lgray();print("not installed");white();print(" -") end
-
 			lblue();print(" \x04 "..r_v);white();pln(" available")
 		end
 	end
