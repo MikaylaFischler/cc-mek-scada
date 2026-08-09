@@ -598,6 +598,68 @@ local function new_view(root)
             local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
             max_energy.register(e_ps, "max_energy", max_energy.update)
         elseif fac.ess_type == types.ESS.INDUCTION_MATRIX then
+            local pane = Div{parent=page_div}
+            local div = Div{parent=pane}
+            table.insert(panes, div)
+
+            local page = app.new_page(ess_page, #panes)
+            page.tasks = { update }
+
+            local i_ps = fac.induction_ps_tbl[1]
+
+            PushButton{parent=ess_div,text="Induction Matrix    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=page.nav_to}
+
+            TextBox{parent=div,y=1,text="Induction Matrix",alignment=ALIGN.CENTER}
+            PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=ess_page.nav_to}
+
+            local list_box = ListBox{parent=div,x=2,y=3,scroll_height=28,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+            local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=27}
+
+            TextBox{parent=list,text="Induction Cells",fg_bg=label_fg_bg}
+            local cells = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            cells.register(i_ps, "cells", cells.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Induction Providers",fg_bg=label_fg_bg}
+            local providers = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            providers.register(i_ps, "providers", providers.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(i_ps, "max_energy", max_energy.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Transfer Capacity",fg_bg=label_fg_bg}
+            local transfer_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE/t",format="%d",value=0,width=20,fg_bg=text_fg}
+            transfer_cap.register(i_ps, "transfer_cap", transfer_cap.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
+            local l = DataIndicator{parent=list,lu_colors=lu_col,label="Length:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local w = DataIndicator{parent=list,lu_colors=lu_col,label="Width: ",format="%d",value=0,width=13,fg_bg=text_fg}
+            local h = DataIndicator{parent=list,lu_colors=lu_col,label="Height:",format="%d",value=0,width=13,fg_bg=text_fg}
+            l.register(i_ps, "length", l.update)
+            w.register(i_ps, "width", w.update)
+            h.register(i_ps, "height", h.update)
+
+            list.line_break()
+            TextBox{parent=list,text="Minimum Position",fg_bg=label_fg_bg}
+            local x1 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y1 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z1 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
+            x1.register(i_ps, "min_pos", function (crd)
+                x1.update(crd.x); y1.update(crd.y); z1.update(crd.z)
+            end)
+
+            list.line_break()
+            TextBox{parent=list,text="Maximum Position",fg_bg=label_fg_bg}
+            local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
+            local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
+            x2.register(i_ps, "min_pos", function (crd)
+                x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
+            end)
         end
 
         --#endregion
