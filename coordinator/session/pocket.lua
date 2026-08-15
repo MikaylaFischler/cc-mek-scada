@@ -495,7 +495,7 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
 
                 if fac.ess_type == types.ESS.ENERGY_CORE then
                     for e = 1, #fac.ecore_data_tbl do
-                        table.insert(ess_build, fac.ecore_data_tbl[e].build)
+                        table.insert(ess_build, { fac.ecore_data_tbl[e].build, fac.ecore_data_tbl[e].virtual })
                     end
                 else
                     for i = 1, #fac.induction_data_tbl do

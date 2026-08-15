@@ -611,8 +611,8 @@ local function new_view(root)
             tier.register(e_ps, "tier", tier.set_value)
 
             list.line_break()
-            TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            TextBox{parent=list,text="Maximum Energy ("..db.energy_label..")",fg_bg=label_fg_bg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
             max_energy.register(e_ps, "max_energy", function (e) max_energy.update(db.energy_convert_from_fe(e)) end)
         elseif fac.ess_type == types.ESS.INDUCTION_MATRIX then
             local pane = Div{parent=page_div}

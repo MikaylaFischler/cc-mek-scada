@@ -783,7 +783,10 @@ function iorx.record_build_data(data)
 
     if fac.ess_type == types.ESS.ENERGY_CORE then
         for e = 1, #fac.ecore_data_tbl do
-            _record_multiblock_build(e, ess_build[e], fac.ecore_data_tbl, fac.ecore_ps_tbl)
+            _record_multiblock_build(e, ess_build[e][1], fac.ecore_data_tbl, fac.ecore_ps_tbl)
+
+            fac.ecore_data_tbl[e].virtual = ess_build[e][2]
+            for k, v in pairs(fac.ecore_data_tbl[e].virtual) do fac.ecore_ps_tbl[e].publish(k, v) end
         end
     else
         for i = 1, #fac.induction_data_tbl do
