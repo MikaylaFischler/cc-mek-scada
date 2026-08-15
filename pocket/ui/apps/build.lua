@@ -345,13 +345,13 @@ local function new_view(root)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Energy",fg_bg=label_fg_bg}
-                local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
-                max_energy.register(t_ps, "max_energy", max_energy.update)
+                local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+                max_energy.register(t_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Production",fg_bg=label_fg_bg}
-                local max_production = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE/t",format="%d",value=0,width=20,fg_bg=text_fg}
-                max_production.register(t_ps, "max_production", max_production.update)
+                local max_production = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
+                max_production.register(t_ps, "max_production", function (e) max_production.update(db.energy_convert(e)) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Flow Rate",fg_bg=label_fg_bg}
@@ -544,8 +544,8 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
-            max_energy.register(s_ps, "max_energy", max_energy.update)
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(s_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
@@ -612,8 +612,8 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
-            max_energy.register(e_ps, "max_energy", max_energy.update)
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(e_ps, "max_energy", function (e) max_energy.update(db.energy_convert_from_fe(e)) end)
         elseif fac.ess_type == types.ESS.INDUCTION_MATRIX then
             local pane = Div{parent=page_div}
             local div = Div{parent=pane}
@@ -643,13 +643,13 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE",format="%d",value=0,width=20,fg_bg=text_fg}
-            max_energy.register(i_ps, "max_energy", max_energy.update)
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            max_energy.register(i_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
             list.line_break()
             TextBox{parent=list,text="Transfer Capacity",fg_bg=label_fg_bg}
-            local transfer_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="FE/t",format="%d",value=0,width=20,fg_bg=text_fg}
-            transfer_cap.register(i_ps, "transfer_cap", transfer_cap.update)
+            local transfer_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
+            transfer_cap.register(i_ps, "transfer_cap", function (e) transfer_cap.update(db.energy_convert(e)) end)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
