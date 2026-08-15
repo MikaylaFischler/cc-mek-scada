@@ -24,8 +24,8 @@ local max_distance = nil
 local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
-comms.version = "3.4.0"
-comms.api_version = "0.1.4"
+comms.version = "3.4.1"
+comms.api_version = "0.1.5"
 
 ---@alias frame scada_frame|authd_frame
 ---@alias packet_container modbus_container|rplc_container|mgmt_container|crdn_container
@@ -88,10 +88,11 @@ local CRDN_TYPE = {
     API_GET_FAC = 8,     -- API: get the facility general data
     API_GET_FAC_DTL = 9, -- API: get (detailed) data for the facility app
     API_GET_UNIT = 10,   -- API: get reactor unit data
-    API_GET_CTRL = 11,   -- API: get data for the control app
-    API_GET_PROC = 12,   -- API: get data for the process app
-    API_GET_WASTE = 13,  -- API: get data for the waste app
-    API_GET_RAD = 14     -- API: get data for the radiation monitor app
+    API_GET_BUILD = 11,  -- API: get data for the build app
+    API_GET_CTRL = 12,   -- API: get data for the control app
+    API_GET_PROC = 13,   -- API: get data for the process app
+    API_GET_WASTE = 14,  -- API: get data for the waste app
+    API_GET_RAD = 15     -- API: get data for the radiation monitor app
 }
 
 ---@enum ESTABLISH_ACK

@@ -95,12 +95,13 @@ function ioctl.init_core(pkt_comms, nav, cfg)
     -- API access
     ---@class pocket_ioctl_api
     io.api = {
-        get_fac = function () comms.api__get_facility() end,
-        get_unit = function (unit) comms.api__get_unit(unit) end,
-        get_ctrl = function () comms.api__get_control() end,
-        get_proc = function () comms.api__get_process() end,
+        get_fac   = function () comms.api__get_facility() end,
+        get_unit  = function (unit) comms.api__get_unit(unit) end,
+        get_ctrl  = function () comms.api__get_control() end,
+        get_proc  = function () comms.api__get_process() end,
         get_waste = function () comms.api__get_waste() end,
-        get_rad = function () comms.api__get_rad() end
+        get_rad   = function () comms.api__get_rad() end,
+        get_build = function () comms.api__get_build() end
     }
 end
 
@@ -277,6 +278,12 @@ function ioctl.init_fac(conf)
 ---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
+            ---@type unit_properties
+            properties = {
+                flow_perf = {}, ---@type number[] turbine flow performance
+                generators = {} ---@type generator_properties[] turbine generator properties
+            },
+
             unit_ps = psil.create(),
             reactor_data = types.new_reactor_db(),
 
@@ -305,6 +312,7 @@ function ioctl.init_fac(conf)
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
+            table.insert(entry.properties.generators, { { multiplier = 0, efficiency = 0 } })
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
         end
