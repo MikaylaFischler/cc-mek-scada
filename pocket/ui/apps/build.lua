@@ -249,12 +249,12 @@ local function new_view(root)
                 list.line_break()
                 TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
                 local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-                ccool_cap.register(b_ps, "ccool_cap", ccool_cap.update)
+                ccool_cap.register(b_ps, "ccoolant_cap", ccool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
                 local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-                hcool_cap.register(b_ps, "hcool_cap", hcool_cap.update)
+                hcool_cap.register(b_ps, "hcoolant_cap", hcool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
@@ -365,17 +365,17 @@ local function new_view(root)
 
                 list.line_break()
                 TextBox{parent=list,text="Flow Performance",fg_bg=label_fg_bg}
-                local flow_perf = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local flow_perf = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%f",value=0,width=20,fg_bg=text_fg}
                 flow_perf.register(t_ps, "flow_perf", flow_perf.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Generator Efficiency",fg_bg=label_fg_bg}
-                local gen_eff = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="%",format="%.6f",value=0,width=20,fg_bg=text_fg}
+                local gen_eff = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="%",format="%.2f",value=0,width=20,fg_bg=text_fg}
                 gen_eff.register(t_ps, "gen_eff", function (eff) gen_eff.update(eff * 100.0) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Generator Multiplier",fg_bg=label_fg_bg}
-                local gen_mult = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%.6f",value=0,width=20,fg_bg=text_fg}
+                local gen_mult = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%f",value=0,width=20,fg_bg=text_fg}
                 gen_mult.register(t_ps, "gen_mult", gen_mult.update)
 
                 list.line_break()

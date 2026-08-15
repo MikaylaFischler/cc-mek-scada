@@ -597,7 +597,7 @@ function ioctl.record_unit_builds(builds)
                         valid = false
                     end
 
-                    if #build.turbine_props == 2 then
+                    if #build.turbine_props[t_id] == 2 then
                         local ps, props = unit.turbine_ps_tbl[t_id], unit.properties
 
                         props.flow_perf[t_id]  = build.turbine_props[t_id][1]
