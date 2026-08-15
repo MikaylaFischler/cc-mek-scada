@@ -72,13 +72,13 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 water_cap = 0,
                 hcoolant_cap = 0,
                 ccoolant_cap = 0,
-                superheaters = 0,
-                max_boil_rate = 0.0,
+                superheaters = 0
             },
             state = {
                 last_update = 0,
                 temperature = 0.0,
                 boil_rate = 0.0,
+                max_boil_rate = 0.0,
                 env_loss = 0.0
             },
             tanks = {
@@ -116,8 +116,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     -- query the build of the device
     ---@param time_now integer
     local function _request_build(time_now)
-        -- read input registers 1 through 12 (start = 1, count = 12)
-        if self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 12 }) ~= false then
+        -- read input registers 1 through 11 (start = 1, count = 11)
+        if self.session.send_request(TXN_TYPES.BUILD, MODBUS_FCODE.READ_INPUT_REGS, { 1, 11 }) ~= false then
             self.periodics.next_build_req = time_now + PERIODICS.BUILD
         end
     end
@@ -125,8 +125,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
     -- query the state of the device
     ---@param time_now integer
     local function _request_state(time_now)
-        -- read input registers 13 through 15 (start = 13, count = 3)
-        if self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 13, 3 }) ~= false then
+        -- read input registers 12 through 15 (start = 12, count = 4)
+        if self.session.send_request(TXN_TYPES.STATE, MODBUS_FCODE.READ_INPUT_REGS, { 12, 4 }) ~= false then
             self.periodics.next_state_req = time_now + PERIODICS.STATE
         end
     end
@@ -159,20 +159,19 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.BUILD then
             -- build response
             -- load in data if correct length
-            if adu.length == 12 then
-                self.db.build.last_update   = util.time_ms()
-                self.db.build.length        = adu.data[1]
-                self.db.build.width         = adu.data[2]
-                self.db.build.height        = adu.data[3]
-                self.db.build.min_pos       = adu.data[4]
-                self.db.build.max_pos       = adu.data[5]
-                self.db.build.boil_cap      = adu.data[6]
-                self.db.build.steam_cap     = adu.data[7]
-                self.db.build.water_cap     = adu.data[8]
-                self.db.build.hcoolant_cap  = adu.data[9]
-                self.db.build.ccoolant_cap  = adu.data[10]
-                self.db.build.superheaters  = adu.data[11]
-                self.db.build.max_boil_rate = adu.data[12]
+            if adu.length == 11 then
+                self.db.build.last_update  = util.time_ms()
+                self.db.build.length       = adu.data[1]
+                self.db.build.width        = adu.data[2]
+                self.db.build.height       = adu.data[3]
+                self.db.build.min_pos      = adu.data[4]
+                self.db.build.max_pos      = adu.data[5]
+                self.db.build.boil_cap     = adu.data[6]
+                self.db.build.steam_cap    = adu.data[7]
+                self.db.build.water_cap    = adu.data[8]
+                self.db.build.hcoolant_cap = adu.data[9]
+                self.db.build.ccoolant_cap = adu.data[10]
+                self.db.build.superheaters = adu.data[11]
                 self.has_build = true
 
                 out_queue.push_data(unit_session.RTU_US_DATA.BUILD_CHANGED, { unit = advert.reactor, type = advert.type })
@@ -180,11 +179,12 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
         elseif txn_type == TXN_TYPES.STATE then
             -- state response
             -- load in data if correct length
-            if adu.length == 3 then
-                self.db.state.last_update = util.time_ms()
-                self.db.state.temperature = adu.data[1]
-                self.db.state.boil_rate   = adu.data[2]
-                self.db.state.env_loss    = adu.data[3]
+            if adu.length == 4 then
+                self.db.state.last_update   = util.time_ms()
+                self.db.state.temperature   = adu.data[1]
+                self.db.state.boil_rate     = adu.data[2]
+                self.db.state.max_boil_rate = adu.data[3]
+                self.db.state.env_loss      = adu.data[4]
             else self.session.log_length_mismatch(txn_type) end
         elseif txn_type == TXN_TYPES.TANKS then
             -- tanks response
