@@ -455,6 +455,57 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout)
                 data[#db.units + 1] = db.facility.rad_monitors
 
                 _send(CRDN_TYPE.API_GET_RAD, data)
+            elseif pkt.type == CRDN_TYPE.API_GET_BUILD then
+                local data = {}
+
+                -- unit builds
+                for i = 1, #db.units do
+                    local u = db.units[i]
+                    local r = u.reactor_data
+
+                    local rct_build = { r.mek_struct, r.max_op_temp_H2O, r.max_op_temp_Na }
+                    local blr_build, tbn_build, tnk_build = {}, {}, {}
+
+                    for b = 1, #u.boiler_data_tbl do
+                        table.insert(blr_build, u.boiler_data_tbl[b].build)
+                    end
+
+                    for t = 1, #u.turbine_data_tbl do
+                        table.insert(tbn_build, { u.turbine_data_tbl[t].build, u.properties.flow_perf[t], u.properties.generators[t] })
+                    end
+
+                    for t = 1, #u.tank_data_tbl do
+                        table.insert(tnk_build, u.tank_data_tbl[t].build)
+                    end
+
+                    data[i] = { rct_build, blr_build, tbn_build, tnk_build }
+                end
+
+                -- facility builds
+                local fac = db.facility
+                local tnk_build, sps_build, ess_build = {}, {}, {}
+
+                for t = 1, #fac.tank_data_tbl do
+                    table.insert(tnk_build, fac.tank_data_tbl[t].build)
+                end
+
+                for s = 1, #fac.sps_data_tbl do
+                    table.insert(sps_build, fac.sps_data_tbl[s].build)
+                end
+
+                if fac.ess_type == types.ESS.ENERGY_CORE then
+                    for e = 1, #fac.ecore_data_tbl do
+                        table.insert(ess_build, fac.ecore_data_tbl[e].build)
+                    end
+                else
+                    for i = 1, #fac.induction_data_tbl do
+                        table.insert(ess_build, fac.induction_data_tbl[i].build)
+                    end
+                end
+
+                data[#db.units + 1] = { tnk_build, sps_build, ess_build }
+
+                _send(CRDN_TYPE.API_GET_BUILD, data)
             else
                 log.debug(log_tag .. "handler received unsupported CRDN packet type " .. pkt.type)
             end

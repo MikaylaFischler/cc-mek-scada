@@ -21,6 +21,26 @@ local SPS_STATE = types.SPS_STATE
 local io        ---@type pkt_io
 local iorx = {} ---@class iorx
 
+local function tripped(state) return state == ALARM_STATE.TRIPPED or state == ALARM_STATE.ACKED end
+
+local function _record_multiblock_build(id, build, data, ps)
+    data[id].build = build
+
+    for k, v in pairs(data[id].build) do ps[id].publish(k, v) end
+end
+
+local function _record_multiblock_status(faulted, data, ps)
+    ps.publish("formed", data.formed)
+    ps.publish("faulted", faulted)
+
+    if data.build then
+        for key, val in pairs(data.build) do ps.publish(key, val) end
+    end
+
+    for key, val in pairs(data.state) do ps.publish(key, val) end
+    for key, val in pairs(data.tanks) do ps.publish(key, val) end
+end
+
 -- populate facility data from API_GET_FAC
 ---@param data table
 ---@return boolean valid
@@ -52,18 +72,201 @@ function iorx.record_facility_data(data)
     return valid
 end
 
-local function tripped(state) return state == ALARM_STATE.TRIPPED or state == ALARM_STATE.ACKED end
+-- update facility app with facility and unit data from API_GET_FAC_DTL
+---@param data table
+function iorx.record_fac_detail_data(data)
+    local fac = io.facility
+    local f_ps = fac.ps
 
-local function _record_multiblock_status(faulted, data, ps)
-    ps.publish("formed", data.formed)
-    ps.publish("faulted", faulted)
+    local tank_statuses = data[5]
+    local next_t_stat = 1
 
-    if data.build then
-        for key, val in pairs(data.build) do ps.publish(key, val) end
+    -- annunciator
+
+    fac.all_sys_ok = data[1]
+    fac.rtu_count = data[2]
+    fac.auto_scram = data[3]
+    fac.ascram_status = data[4]
+
+    f_ps.publish("all_sys_ok", fac.all_sys_ok)
+    f_ps.publish("rtu_count", fac.rtu_count)
+    f_ps.publish("auto_scram", fac.auto_scram)
+    f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
+    f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
+    f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
+    f_ps.publish("as_radiation", fac.ascram_status.radiation)
+    f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
+
+    -- unit data
+
+    local units = data[12]
+
+    for i = 1, io.facility.num_units do
+        local unit = io.units[i]
+        local u_rx = units[i]
+
+        unit.connected    = u_rx[1]
+        unit.annunciator  = u_rx[2]
+        unit.reactor_data = u_rx[3]
+
+        local control_status = 1
+        if unit.connected then
+            if unit.reactor_data.rps_tripped then control_status = 2 end
+            if unit.reactor_data.mek_status.status then
+                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
+            end
+        end
+
+        unit.unit_ps.publish("U_ControlStatus", control_status)
+
+        unit.tank_data_tbl = u_rx[4]
+
+        for id = 1, #unit.tank_data_tbl do
+            local tank   = unit.tank_data_tbl[id]
+            local ps     = unit.tank_ps_tbl[id]
+            local c_stat = tank_statuses[next_t_stat]
+
+            local tank_status = 1
+
+            if c_stat ~= TNK_STATE.OFFLINE then
+                if c_stat == TNK_STATE.FAULT then
+                    tank_status = 3
+                elseif tank.formed then
+                    tank_status = 4
+                else
+                    tank_status = 2
+                end
+            end
+
+            ps.publish("DynamicTankStatus", tank_status)
+            ps.publish("DynamicTankStateStatus", c_stat)
+
+            next_t_stat = next_t_stat + 1
+        end
     end
 
-    for key, val in pairs(data.state) do ps.publish(key, val) end
-    for key, val in pairs(data.tanks) do ps.publish(key, val) end
+    -- facility dynamic tank data
+
+    fac.tank_data_tbl = data[6]
+
+    for id = 1, #fac.tank_data_tbl do
+        local tank   = fac.tank_data_tbl[id]
+        local ps     = fac.tank_ps_tbl[id]
+        local c_stat = tank_statuses[next_t_stat]
+
+        local tank_status = 1
+
+        if c_stat ~= TNK_STATE.OFFLINE then
+            if c_stat == TNK_STATE.FAULT then
+                tank_status = 3
+            elseif tank.formed then
+                tank_status = 4
+            else
+                tank_status = 2
+            end
+
+            _record_multiblock_status(c_stat == TNK_STATE.FAULT, tank, ps)
+        end
+
+        ps.publish("DynamicTankStatus", tank_status)
+        ps.publish("DynamicTankStateStatus", c_stat)
+
+        next_t_stat = next_t_stat + 1
+    end
+
+    -- ess data
+
+    local ess_ps
+
+    if fac.ess_type == types.ESS.ENERGY_CORE then
+        fac.ecore_data_tbl[1] = data[8]
+
+        ess_ps = fac.ecore_ps_tbl[1]
+
+        local e_data = fac.ecore_data_tbl[1]
+        local e_stat = data[7]
+
+        local ecr_status = 1
+
+        if e_stat ~= ESS_STATE.OFFLINE then
+            if e_stat == ESS_STATE.FAULT then
+                ecr_status = 3
+            elseif e_data.formed then
+                ecr_status = 4
+            else
+                ecr_status = 2
+            end
+
+            ess_ps.publish("faulted", e_stat == ESS_STATE.FAULT)
+
+            if e_data.build then
+                for key, val in pairs(e_data.build) do ess_ps.publish(key, val) end
+            end
+
+            for key, val in pairs(e_data.state) do ess_ps.publish(key, val) end
+            for key, val in pairs(e_data.virtual) do ess_ps.publish(key, val) end
+        end
+
+        ess_ps.publish("EnergyCoreStatus", ecr_status)
+        ess_ps.publish("EnergyCoreStateStatus", e_stat)
+    else
+        fac.induction_data_tbl[1] = data[8]
+
+        ess_ps = fac.induction_ps_tbl[1]
+
+        local m_data = fac.induction_data_tbl[1]
+        local m_stat = data[7]
+
+        local mtx_status = 1
+
+        if m_stat ~= ESS_STATE.OFFLINE then
+            if m_stat == ESS_STATE.FAULT then
+                mtx_status = 3
+            elseif m_data.formed then
+                mtx_status = 4
+            else
+                mtx_status = 2
+            end
+
+            _record_multiblock_status(m_stat == ESS_STATE.FAULT, m_data, ess_ps)
+        end
+
+        ess_ps.publish("InductionMatrixStatus", mtx_status)
+        ess_ps.publish("InductionMatrixStateStatus", m_stat)
+    end
+
+    ess_ps.publish("eta_string", data[9][1])
+    ess_ps.publish("avg_charge", data[9][2])
+    ess_ps.publish("avg_inflow", data[9][3])
+    ess_ps.publish("avg_outflow", data[9][4])
+    ess_ps.publish("is_charging", data[9][5])
+    ess_ps.publish("is_discharging", data[9][6])
+    ess_ps.publish("at_max_io", data[9][7])
+
+    -- sps data
+
+    fac.sps_data_tbl[1] = data[11]
+
+    local sps    = fac.sps_data_tbl[1]
+    local s_ps   = fac.sps_ps_tbl[1]
+    local s_stat = data[10]
+
+    local sps_status = 1
+
+    if s_stat ~= SPS_STATE.OFFLINE then
+        if s_stat == SPS_STATE.FAULT then
+            sps_status = 3
+        elseif sps.formed then
+            sps_status = 4
+        else
+            sps_status = 2
+        end
+
+        _record_multiblock_status(s_stat == SPS_STATE.FAULT, sps, s_ps)
+    end
+
+    s_ps.publish("SPSStatus", sps_status)
+    s_ps.publish("SPSStateStatus", s_stat)
 end
 
 -- update unit status data from API_GET_UNIT
@@ -514,6 +717,81 @@ function iorx.record_unit_data(data)
     --#endregion
 end
 
+-- update the builds app with build data from API_GET_BUILD
+---@param data table
+function iorx.record_build_data(data)
+    -- unit builds
+
+    for u_id = 1, #io.units do
+        local unit = io.units[u_id]
+
+        local u_data = data[u_id]
+        local rct_build, blr_build, tbn_build, tnk_build = table.unpack(u_data)
+
+        -- reactor build
+        local r_data = unit.reactor_data
+
+        r_data.mek_struct = rct_build[1]
+        r_data.max_op_temp_H2O = rct_build[2]
+        r_data.max_op_temp_Na = rct_build[3]
+
+        for k, v in pairs(r_data.mek_struct) do
+            unit.unit_ps.publish(k, v)
+        end
+
+        unit.unit_ps.publish("max_op_temp_H2O", r_data.max_op_temp_H2O)
+        unit.unit_ps.publish("max_op_temp_Na", r_data.max_op_temp_Na)
+
+        -- boiler builds
+        for b = 1, #unit.boiler_data_tbl do
+            _record_multiblock_build(b, blr_build[b], unit.boiler_data_tbl, unit.boiler_ps_tbl)
+        end
+
+        -- turbine builds
+        for t = 1, #unit.turbine_data_tbl do
+            _record_multiblock_build(t, tbn_build[t][1], unit.turbine_data_tbl, unit.turbine_ps_tbl)
+
+            local ps, props = unit.turbine_ps_tbl[t], unit.properties
+
+            props.flow_perf[t] = tbn_build[t][2]
+            props.generators[t] = tbn_build[t][3]
+
+            ps.publish("flow_perf", props.flow_perf[t])
+            ps.publish("gen_mult", props.generators[t].multiplier)
+            ps.publish("gen_eff", props.generators[t].efficiency)
+        end
+
+        -- tank builds
+        for t = 1, #unit.tank_data_tbl do
+            _record_multiblock_build(t, tnk_build[t], unit.tank_data_tbl, unit.tank_ps_tbl)
+        end
+    end
+
+    -- facility builds
+
+    local fac = io.facility
+
+    local tnk_build, sps_build, ess_build = table.unpack(data[#io.units + 1])
+
+    for t = 1, #fac.tank_data_tbl do
+        _record_multiblock_build(t, tnk_build[t], fac.tank_data_tbl, fac.tank_ps_tbl)
+    end
+
+    for s = 1, #fac.sps_data_tbl do
+        _record_multiblock_build(s, sps_build[s], fac.sps_data_tbl, fac.sps_ps_tbl)
+    end
+
+    if fac.ess_type == types.ESS.ENERGY_CORE then
+        for e = 1, #fac.ecore_data_tbl do
+            _record_multiblock_build(e, ess_build[e], fac.ecore_data_tbl, fac.ecore_ps_tbl)
+        end
+    else
+        for i = 1, #fac.induction_data_tbl do
+            _record_multiblock_build(i, ess_build[i], fac.induction_data_tbl, fac.induction_ps_tbl)
+        end
+    end
+end
+
 -- update control app with unit data from API_GET_CTRL
 ---@param data table
 function iorx.record_control_data(data)
@@ -712,203 +990,6 @@ function iorx.record_waste_data(data)
         f_ps.publish("sna_in_rate", fac.sna_in_rate)
         f_ps.publish("sna_out_rate", fac.sna_out_rate)
     end
-end
-
--- update facility app with facility and unit data from API_GET_FAC_DTL
----@param data table
-function iorx.record_fac_detail_data(data)
-    local fac = io.facility
-    local f_ps = fac.ps
-
-    local tank_statuses = data[5]
-    local next_t_stat = 1
-
-    -- annunciator
-
-    fac.all_sys_ok = data[1]
-    fac.rtu_count = data[2]
-    fac.auto_scram = data[3]
-    fac.ascram_status = data[4]
-
-    f_ps.publish("all_sys_ok", fac.all_sys_ok)
-    f_ps.publish("rtu_count", fac.rtu_count)
-    f_ps.publish("auto_scram", fac.auto_scram)
-    f_ps.publish("as_ess_fault", fac.ascram_status.ess_fault)
-    f_ps.publish("as_ess_fill", fac.ascram_status.ess_fill)
-    f_ps.publish("as_crit_alarm", fac.ascram_status.crit_alarm)
-    f_ps.publish("as_radiation", fac.ascram_status.radiation)
-    f_ps.publish("as_gen_fault", fac.ascram_status.gen_fault)
-
-    -- unit data
-
-    local units = data[12]
-
-    for i = 1, io.facility.num_units do
-        local unit = io.units[i]
-        local u_rx = units[i]
-
-        unit.connected    = u_rx[1]
-        unit.annunciator  = u_rx[2]
-        unit.reactor_data = u_rx[3]
-
-        local control_status = 1
-        if unit.connected then
-            if unit.reactor_data.rps_tripped then control_status = 2 end
-            if unit.reactor_data.mek_status.status then
-                control_status = util.trinary(unit.annunciator.AutoControl, 4, 3)
-            end
-        end
-
-        unit.unit_ps.publish("U_ControlStatus", control_status)
-
-        unit.tank_data_tbl = u_rx[4]
-
-        for id = 1, #unit.tank_data_tbl do
-            local tank   = unit.tank_data_tbl[id]
-            local ps     = unit.tank_ps_tbl[id]
-            local c_stat = tank_statuses[next_t_stat]
-
-            local tank_status = 1
-
-            if c_stat ~= TNK_STATE.OFFLINE then
-                if c_stat == TNK_STATE.FAULT then
-                    tank_status = 3
-                elseif tank.formed then
-                    tank_status = 4
-                else
-                    tank_status = 2
-                end
-            end
-
-            ps.publish("DynamicTankStatus", tank_status)
-            ps.publish("DynamicTankStateStatus", c_stat)
-
-            next_t_stat = next_t_stat + 1
-        end
-    end
-
-    -- facility dynamic tank data
-
-    fac.tank_data_tbl = data[6]
-
-    for id = 1, #fac.tank_data_tbl do
-        local tank   = fac.tank_data_tbl[id]
-        local ps     = fac.tank_ps_tbl[id]
-        local c_stat = tank_statuses[next_t_stat]
-
-        local tank_status = 1
-
-        if c_stat ~= TNK_STATE.OFFLINE then
-            if c_stat == TNK_STATE.FAULT then
-                tank_status = 3
-            elseif tank.formed then
-                tank_status = 4
-            else
-                tank_status = 2
-            end
-
-            _record_multiblock_status(c_stat == TNK_STATE.FAULT, tank, ps)
-        end
-
-        ps.publish("DynamicTankStatus", tank_status)
-        ps.publish("DynamicTankStateStatus", c_stat)
-
-        next_t_stat = next_t_stat + 1
-    end
-
-    -- ess data
-
-    local ess_ps
-
-    if fac.ess_type == types.ESS.ENERGY_CORE then
-        fac.ecore_data_tbl[1] = data[8]
-
-        ess_ps = fac.ecore_ps_tbl[1]
-
-        local e_data = fac.ecore_data_tbl[1]
-        local e_stat = data[7]
-
-        local ecr_status = 1
-
-        if e_stat ~= ESS_STATE.OFFLINE then
-            if e_stat == ESS_STATE.FAULT then
-                ecr_status = 3
-            elseif e_data.formed then
-                ecr_status = 4
-            else
-                ecr_status = 2
-            end
-
-            ess_ps.publish("faulted", e_stat == ESS_STATE.FAULT)
-
-            if e_data.build then
-                for key, val in pairs(e_data.build) do ess_ps.publish(key, val) end
-            end
-
-            for key, val in pairs(e_data.state) do ess_ps.publish(key, val) end
-            for key, val in pairs(e_data.virtual) do ess_ps.publish(key, val) end
-        end
-
-        ess_ps.publish("EnergyCoreStatus", ecr_status)
-        ess_ps.publish("EnergyCoreStateStatus", e_stat)
-    else
-        fac.induction_data_tbl[1] = data[8]
-
-        ess_ps = fac.induction_ps_tbl[1]
-
-        local m_data = fac.induction_data_tbl[1]
-        local m_stat = data[7]
-
-        local mtx_status = 1
-
-        if m_stat ~= ESS_STATE.OFFLINE then
-            if m_stat == ESS_STATE.FAULT then
-                mtx_status = 3
-            elseif m_data.formed then
-                mtx_status = 4
-            else
-                mtx_status = 2
-            end
-
-            _record_multiblock_status(m_stat == ESS_STATE.FAULT, m_data, ess_ps)
-        end
-
-        ess_ps.publish("InductionMatrixStatus", mtx_status)
-        ess_ps.publish("InductionMatrixStateStatus", m_stat)
-    end
-
-    ess_ps.publish("eta_string", data[9][1])
-    ess_ps.publish("avg_charge", data[9][2])
-    ess_ps.publish("avg_inflow", data[9][3])
-    ess_ps.publish("avg_outflow", data[9][4])
-    ess_ps.publish("is_charging", data[9][5])
-    ess_ps.publish("is_discharging", data[9][6])
-    ess_ps.publish("at_max_io", data[9][7])
-
-    -- sps data
-
-    fac.sps_data_tbl[1] = data[11]
-
-    local sps    = fac.sps_data_tbl[1]
-    local s_ps   = fac.sps_ps_tbl[1]
-    local s_stat = data[10]
-
-    local sps_status = 1
-
-    if s_stat ~= SPS_STATE.OFFLINE then
-        if s_stat == SPS_STATE.FAULT then
-            sps_status = 3
-        elseif sps.formed then
-            sps_status = 4
-        else
-            sps_status = 2
-        end
-
-        _record_multiblock_status(s_stat == SPS_STATE.FAULT, sps, s_ps)
-    end
-
-    s_ps.publish("SPSStatus", sps_status)
-    s_ps.publish("SPSStateStatus", s_stat)
 end
 
 -- update the radiation monitor app with radiation monitor data from API_GET_RAD

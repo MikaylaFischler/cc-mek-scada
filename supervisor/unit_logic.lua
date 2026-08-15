@@ -324,11 +324,18 @@ function logic.update_annunciator(self)
 
         local energy_per_steam = turbine.build.max_production / turbine.build.max_flow_rate
 
+        local props = self.db.properties
+
+        props.generators[i].multiplier = energy_per_steam
+        props.generators[i].efficiency = energy_per_steam / 4
+
         if ctrl.generator_mult then
             ctrl.generator_mismatch = ctrl.generator_mismatch or (ctrl.generator_mult ~= energy_per_steam)
         else ctrl.generator_mult = energy_per_steam end
 
         local flow_perf = turbine.build.steam_cap / turbine.build.max_flow_rate
+
+        props.flow_perf[i] = flow_perf
 
         if ctrl.turbine_flow_perf then
             ctrl.turbine_mismatch = ctrl.turbine_mismatch or (ctrl.turbine_flow_perf ~= flow_perf)

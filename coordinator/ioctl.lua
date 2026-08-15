@@ -254,6 +254,12 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 ---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
+            ---@type unit_properties
+            properties = {
+                flow_perf = {}, ---@type number[] turbine flow performance
+                generators = {} ---@type generator_properties[] turbine generator properties
+            },
+
             unit_ps = psil.create(),
             reactor_data = types.new_reactor_db(),
 
@@ -282,6 +288,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
+            table.insert(entry.properties.generators, { { multiplier = 0, efficiency = 0 } })
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
         end
@@ -554,12 +561,17 @@ function ioctl.record_unit_builds(builds)
             log.debug(log_header .. "invalid unit id")
             valid = false
         else
-            -- reactor build
-            if type(build.reactor) == "table" then
+            -- reactor build and properties
+            if type(build.reactor) == "table" and type(build.reactor_props) == "table" and #build.reactor_props == 2 then
                 unit.reactor_data.mek_struct = build.reactor
                 for key, val in pairs(unit.reactor_data.mek_struct) do
                     unit.unit_ps.publish(key, val)
                 end
+
+                unit.reactor_data.max_op_temp_H2O = build.reactor_props[1]
+                unit.reactor_data.max_op_temp_Na  = build.reactor_props[2]
+                unit.unit_ps.publish("max_op_temp_H2O", unit.reactor_data.max_op_temp_H2O)
+                unit.unit_ps.publish("max_op_temp_Na", unit.reactor_data.max_op_temp_Na)
 
                 if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
                     (type(unit.reactor_data.mek_struct.width) == "number") and (unit.reactor_data.mek_struct.width ~= 0) then
@@ -577,13 +589,22 @@ function ioctl.record_unit_builds(builds)
                 end
             end
 
-            -- turbine builds
-            if type(build.turbines) == "table" then
+            -- turbine builds and properties
+            if type(build.turbines) == "table" and type(build.turbine_props) == "table" and #build.turbine_props == 2 then
                 for t_id, turbine in pairs(build.turbines) do
                     if not _record_multiblock_build(t_id, turbine, unit.turbine_data_tbl, unit.turbine_ps_tbl) then
                         log.debug(util.c(log_header, "invalid turbine id ", t_id))
                         valid = false
                     end
+
+                    local ps, props = unit.turbine_ps_tbl[t_id], unit.properties
+
+                    props.flow_perf[t_id]  = build.turbine_props[t_id][1]
+                    props.generators[t_id] = build.turbine_props[t_id][2]
+
+                    ps.publish("flow_perf", props.flow_perf[t_id])
+                    ps.publish("gen_mult", props.generators[t_id].multiplier)
+                    ps.publish("gen_eff", props.generators[t_id].efficiency)
                 end
             end
 
