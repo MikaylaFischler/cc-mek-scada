@@ -34,11 +34,11 @@ local function _record_multiblock_status(faulted, data, ps)
     ps.publish("faulted", faulted)
 
     if data.build then
-        for key, val in pairs(data.build) do ps.publish(key, val) end
+        for k, v in pairs(data.build) do ps.publish(k, v) end
     end
 
-    for key, val in pairs(data.state) do ps.publish(key, val) end
-    for key, val in pairs(data.tanks) do ps.publish(key, val) end
+    for k, v in pairs(data.state) do ps.publish(k, v) end
+    for k, v in pairs(data.tanks) do ps.publish(k, v) end
 end
 
 -- populate facility data from API_GET_FAC
