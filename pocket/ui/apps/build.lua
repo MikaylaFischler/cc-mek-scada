@@ -219,17 +219,12 @@ local function new_view(root)
                 TextBox{parent=div,y=1,text="Unit "..i.." Boiler "..b,alignment=ALIGN.CENTER}
                 PushButton{parent=div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=blr_page.nav_to}
 
-                local list_box = ListBox{parent=div,x=2,y=3,scroll_height=37,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
-                local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=36}
+                local list_box = ListBox{parent=div,x=2,y=3,scroll_height=34,nav_fg_bg=cpair(colors.lightGray,colors.gray),nav_active=cpair(colors.white,colors.gray)}
+                local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=33}
 
                 TextBox{parent=list,text="Superheating Elements",fg_bg=label_fg_bg}
                 local superheaters = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
                 superheaters.register(b_ps, "superheaters", superheaters.update)
-
-                list.line_break()
-                TextBox{parent=list,text="Max Boil Rate",fg_bg=label_fg_bg}
-                local max_boil_rate = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
-                max_boil_rate.register(b_ps, "max_boil_rate", max_boil_rate.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Boil Capacity",fg_bg=label_fg_bg}
