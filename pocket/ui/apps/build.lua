@@ -151,12 +151,12 @@ local function new_view(root)
             heat_cap.register(u_ps, "heat_cap", heat_cap.update)
 
             list.line_break()
-            TextBox{parent=list,text="Maximum Operating Temp (Water Cooled)",fg_bg=label_fg_bg}
+            TextBox{parent=list,text="Maximum Operational Temp (Water Cooled)",fg_bg=label_fg_bg}
             local water_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
             water_op.register(u_ps, "max_op_temp_H2O", water_op.update)
 
             list.line_break()
-            TextBox{parent=list,text="Maximum Operating Temp (Sodium Cooled)",fg_bg=label_fg_bg}
+            TextBox{parent=list,text="Maximum Operational Temp (Sodium Cooled)",fg_bg=label_fg_bg}
             local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
             sodium_op.register(u_ps, "max_op_temp_Na", sodium_op.update)
 
