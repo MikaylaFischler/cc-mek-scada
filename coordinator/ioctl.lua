@@ -590,21 +590,23 @@ function ioctl.record_unit_builds(builds)
             end
 
             -- turbine builds and properties
-            if type(build.turbines) == "table" and type(build.turbine_props) == "table" and #build.turbine_props == 2 then
+            if type(build.turbines) == "table" and type(build.turbine_props) == "table" then
                 for t_id, turbine in pairs(build.turbines) do
                     if not _record_multiblock_build(t_id, turbine, unit.turbine_data_tbl, unit.turbine_ps_tbl) then
                         log.debug(util.c(log_header, "invalid turbine id ", t_id))
                         valid = false
                     end
 
-                    local ps, props = unit.turbine_ps_tbl[t_id], unit.properties
+                    if #build.turbine_props == 2 then
+                        local ps, props = unit.turbine_ps_tbl[t_id], unit.properties
 
-                    props.flow_perf[t_id]  = build.turbine_props[t_id][1]
-                    props.generators[t_id] = build.turbine_props[t_id][2]
+                        props.flow_perf[t_id]  = build.turbine_props[t_id][1]
+                        props.generators[t_id] = build.turbine_props[t_id][2]
 
-                    ps.publish("flow_perf", props.flow_perf[t_id])
-                    ps.publish("gen_mult", props.generators[t_id].multiplier)
-                    ps.publish("gen_eff", props.generators[t_id].efficiency)
+                        ps.publish("flow_perf", props.flow_perf[t_id])
+                        ps.publish("gen_mult", props.generators[t_id].multiplier)
+                        ps.publish("gen_eff", props.generators[t_id].efficiency)
+                    end
                 end
             end
 
