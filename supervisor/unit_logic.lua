@@ -327,7 +327,7 @@ function logic.update_annunciator(self)
         local props = self.db.properties
 
         props.generators[i].multiplier = energy_per_steam
-        props.generators[i].efficiency = turbine.build.max_production / 10 / turbine.build.max_flow_rate
+        props.generators[i].efficiency = energy_per_steam / 10
 
         if ctrl.generator_mult then
             ctrl.generator_mismatch = ctrl.generator_mismatch or (ctrl.generator_mult ~= energy_per_steam)
