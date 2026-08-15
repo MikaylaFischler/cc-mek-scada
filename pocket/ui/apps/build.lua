@@ -19,8 +19,9 @@ local TextBox       = require("graphics.elements.TextBox")
 
 local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
-local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 local PushButton    = require("graphics.elements.controls.PushButton")
+
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -57,7 +58,7 @@ local function new_view(root)
 
     -- load the app (create the elements)
     local function load()
-        local fac  = db.facility
+        local fac = db.facility
 
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
