@@ -55,7 +55,6 @@ local function new_view(root)
     App{parent=apps_2,x=9,y=2,text="@",title="Comps",callback=function()open(APP_ID.COMPS)end,app_fg_bg=cpair(colors.black,colors.orange),active_fg_bg=active_fg_bg}
     App{parent=apps_2,x=16,y=2,text="\x1e",title="Rad",callback=function()open(APP_ID.RADMON)end,app_fg_bg=cpair(colors.black,colors.yellow),active_fg_bg=active_fg_bg}
     App{parent=apps_2,x=2,y=7,text="\x08",title="Build",callback=function()open(APP_ID.BUILD)end,app_fg_bg=cpair(colors.black,colors.pink),active_fg_bg=active_fg_bg}
-    App{parent=apps_2,x=9,y=7,text="\x99",title="Designr",callback=function()open(APP_ID.BUILD)end,app_fg_bg=cpair(colors.black,colors.lightBlue),active_fg_bg=active_fg_bg}
 
     return main
 end
