@@ -2,26 +2,25 @@
 -- About Page
 --
 
-local comms      = require("scada-common.comms")
-local types      = require("scada-common.types")
-local util       = require("scada-common.util")
+local types         = require("scada-common.types")
+local util          = require("scada-common.util")
 
-local ioctl      = require("pocket.ioctl")
-local pocket     = require("pocket.pocket")
+local ioctl         = require("pocket.ioctl")
+local pocket        = require("pocket.pocket")
 
-local style      = require("pocket.ui.style")
+local style         = require("pocket.ui.style")
 
-local core       = require("graphics.core")
+local core          = require("graphics.core")
 
-local Div        = require("graphics.elements.Div")
-local ListBox    = require("graphics.elements.ListBox")
-local MultiPane  = require("graphics.elements.MultiPane")
-local TextBox    = require("graphics.elements.TextBox")
+local Div           = require("graphics.elements.Div")
+local ListBox       = require("graphics.elements.ListBox")
+local MultiPane     = require("graphics.elements.MultiPane")
+local TextBox       = require("graphics.elements.TextBox")
 
-local WaitingAnim = require("graphics.elements.animations.Waiting")
+local WaitingAnim   = require("graphics.elements.animations.Waiting")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
-local PushButton = require("graphics.elements.controls.PushButton")
+local PushButton    = require("graphics.elements.controls.PushButton")
 
 local ALIGN = core.ALIGN
 local cpair = core.cpair
@@ -138,8 +137,8 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
-            local cool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-            cool_cap.register(u_ps, "cool_cap", cool_cap.update)
+            local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            ccool_cap.register(u_ps, "ccool_cap", ccool_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
@@ -153,13 +152,13 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Operating Temp (Water Cooled)",fg_bg=label_fg_bg}
-            local water_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%d",value=0,width=20,fg_bg=text_fg}
-            water_op.register(u_ps, "max_op_temp_h2o", water_op.update)
+            local water_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
+            water_op.register(u_ps, "max_op_temp_H2O", water_op.update)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Operating Temp (Sodium Cooled)",fg_bg=label_fg_bg}
-            local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%d",value=0,width=20,fg_bg=text_fg}
-            sodium_op.register(u_ps, "max_op_temp_na", sodium_op.update)
+            local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
+            sodium_op.register(u_ps, "max_op_temp_Na", sodium_op.update)
 
             list.line_break()
             TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
@@ -184,7 +183,7 @@ local function new_view(root)
             local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
             local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
             local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-            x2.register(u_ps, "min_pos", function (crd)
+            x2.register(u_ps, "max_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
         end
@@ -249,8 +248,8 @@ local function new_view(root)
 
                 list.line_break()
                 TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
-                local cool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-                cool_cap.register(b_ps, "cool_cap", cool_cap.update)
+                local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                ccool_cap.register(b_ps, "ccool_cap", ccool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
@@ -280,7 +279,7 @@ local function new_view(root)
                 local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
                 local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
                 local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-                x2.register(b_ps, "min_pos", function (crd)
+                x2.register(b_ps, "max_pos", function (crd)
                     x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
                 end)
             end
@@ -407,7 +406,7 @@ local function new_view(root)
                 local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
                 local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
                 local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-                x2.register(t_ps, "min_pos", function (crd)
+                x2.register(t_ps, "max_pos", function (crd)
                     x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
                 end)
             end
@@ -493,7 +492,7 @@ local function new_view(root)
             local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
             local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
             local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-            x2.register(t_ps, "min_pos", function (crd)
+            x2.register(t_ps, "max_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
         end
@@ -571,7 +570,7 @@ local function new_view(root)
             local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
             local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
             local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-            x2.register(s_ps, "min_pos", function (crd)
+            x2.register(s_ps, "max_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
         end
@@ -675,7 +674,7 @@ local function new_view(root)
             local x2 = DataIndicator{parent=list,lu_colors=lu_col,label="X:",format="%d",value=0,width=13,fg_bg=text_fg}
             local y2 = DataIndicator{parent=list,lu_colors=lu_col,label="Y:",format="%d",value=0,width=13,fg_bg=text_fg}
             local z2 = DataIndicator{parent=list,lu_colors=lu_col,label="Z:",format="%d",value=0,width=13,fg_bg=text_fg}
-            x2.register(i_ps, "min_pos", function (crd)
+            x2.register(i_ps, "max_pos", function (crd)
                 x2.update(crd.x); y2.update(crd.y); z2.update(crd.z)
             end)
         end
