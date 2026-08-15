@@ -328,7 +328,7 @@ local function init(main)
 
         waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
-        local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
+        local waste_rate = DataIndicator{parent=waste,x=4,y=3,lu_colors=lu_c,unit="mB/t",format="%8.2f",value=0,width=13,fg_bg=s_field}
         waste_rate.register(fac.ps, "burn_sum", waste_rate.update)
 
         PipeNetwork{parent=waste,x=3,y=2,pipes={pipe(0,0,14,0,colors.brown,true)},bg=style.theme.bg}
@@ -423,8 +423,8 @@ local function init(main)
             local status = StateIndicator{parent=tank_box,x=3,y=1,states=style.dtank.states,value=1,min_width=14}
 
             TextBox{parent=tank_box,x=2,y=3,text="Fill",width=10,fg_bg=style.label}
-            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_c,width=8,fg_bg=text_c}
-            local tank_amnt = DataIndicator{parent=tank_box,x=2,label="",format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_c,width=16,fg_bg=s_field}
+            local tank_pcnt = DataIndicator{parent=tank_box,x=10,y=3,format="%5.2f",value=100,unit="%",lu_colors=lu_c,width=8,fg_bg=text_c}
+            local tank_amnt = DataIndicator{parent=tank_box,x=2,format="%13d",value=0,commas=true,unit="mB",lu_colors=lu_c,width=16,fg_bg=s_field}
 
             local is_water = tank_types[i] == COOLANT_TYPE.WATER
 
@@ -479,12 +479,12 @@ local function init(main)
     status.register(fac.sps_ps_tbl[1], "computed_status", status.update)
 
     TextBox{parent=sps_box,x=2,y=3,text="Input Rate",width=10,fg_bg=style.label}
-    local sps_in = DataIndicator{parent=sps_box,x=2,label="",format="%15.2f",value=0,unit="mB/t",lu_colors=lu_c,width=20,fg_bg=s_field}
+    local sps_in = DataIndicator{parent=sps_box,x=2,format="%15.2f",value=0,unit="mB/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_in.register(fac.ps, "po_am_rate", sps_in.update)
 
     TextBox{parent=sps_box,x=2,y=6,text="Production Rate",width=15,fg_bg=style.label}
-    local sps_rate = DataIndicator{parent=sps_box,x=2,label="",format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_c,width=20,fg_bg=s_field}
+    local sps_rate = DataIndicator{parent=sps_box,x=2,format="%15d",value=0,unit="\xb5B/t",lu_colors=lu_c,width=20,fg_bg=s_field}
 
     sps_rate.register(fac.sps_ps_tbl[1], "process_rate", function (r) sps_rate.update(r * 1000) end)
 

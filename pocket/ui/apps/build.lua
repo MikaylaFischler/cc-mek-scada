@@ -113,52 +113,52 @@ local function new_view(root)
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=47}
 
             TextBox{parent=list,text="Maximum Burn Rate",fg_bg=label_fg_bg}
-            local max_burn = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local max_burn = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             max_burn.register(u_ps, "max_burn", max_burn.update)
 
             list.line_break()
             TextBox{parent=list,text="Fuel Assemblies",fg_bg=label_fg_bg}
-            local fuel_asm = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local fuel_asm = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             fuel_asm.register(u_ps, "fuel_asm", fuel_asm.update)
 
             list.line_break()
             TextBox{parent=list,text="Fuel Surface Area",fg_bg=label_fg_bg}
-            local fuel_sa = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="m\xb2",format="%d",value=0,width=20,fg_bg=text_fg}
+            local fuel_sa = DataIndicator{parent=list,lu_colors=lu_col,unit="m\xb2",format="%d",value=0,width=20,fg_bg=text_fg}
             fuel_sa.register(u_ps, "fuel_sa", fuel_sa.update)
 
             list.line_break()
             TextBox{parent=list,text="Fuel Capacity",fg_bg=label_fg_bg}
-            local fuel_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local fuel_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             fuel_cap.register(u_ps, "fuel_cap", fuel_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Waste Capacity",fg_bg=label_fg_bg}
-            local waste_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local waste_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             waste_cap.register(u_ps, "waste_cap", waste_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
-            local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             ccool_cap.register(u_ps, "ccool_cap", ccool_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
-            local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             hcool_cap.register(u_ps, "hcool_cap", hcool_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Heat Capacity",fg_bg=label_fg_bg}
-            local heat_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="J",format="%d",value=0,width=20,fg_bg=text_fg}
+            local heat_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="J",format="%d",value=0,width=20,fg_bg=text_fg}
             heat_cap.register(u_ps, "heat_cap", heat_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Operational Temp (Water Cooled)",fg_bg=label_fg_bg}
-            local water_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
+            local water_op = DataIndicator{parent=list,lu_colors=lu_col,unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
             water_op.register(u_ps, "max_op_temp_H2O", water_op.update)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Operational Temp (Sodium Cooled)",fg_bg=label_fg_bg}
-            local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
+            local sodium_op = DataIndicator{parent=list,lu_colors=lu_col,unit="K",format="%.2f",value=0,width=20,fg_bg=text_fg}
             sodium_op.register(u_ps, "max_op_temp_Na", sodium_op.update)
 
             list.line_break()
@@ -224,32 +224,32 @@ local function new_view(root)
                 local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=33}
 
                 TextBox{parent=list,text="Superheating Elements",fg_bg=label_fg_bg}
-                local superheaters = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local superheaters = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 superheaters.register(b_ps, "superheaters", superheaters.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Boil Capacity",fg_bg=label_fg_bg}
-                local boil_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
+                local boil_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
                 boil_cap.register(b_ps, "boil_cap", boil_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Steam Capacity",fg_bg=label_fg_bg}
-                local steam_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                local steam_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
                 steam_cap.register(b_ps, "steam_cap", steam_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Water Capacity",fg_bg=label_fg_bg}
-                local water_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                local water_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
                 water_cap.register(b_ps, "water_cap", water_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
-                local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
                 ccool_cap.register(b_ps, "ccoolant_cap", ccool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
-                local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
                 hcool_cap.register(b_ps, "hcoolant_cap", hcool_cap.update)
 
                 list.line_break()
@@ -316,67 +316,67 @@ local function new_view(root)
                 local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=54}
 
                 TextBox{parent=list,text="Blades",fg_bg=label_fg_bg}
-                local blades = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local blades = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 blades.register(t_ps, "blades", blades.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Coils",fg_bg=label_fg_bg}
-                local coils = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local coils = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 coils.register(t_ps, "coils", coils.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Vents",fg_bg=label_fg_bg}
-                local vents = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local vents = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 vents.register(t_ps, "vents", vents.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Dispersers",fg_bg=label_fg_bg}
-                local dispersers = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local dispersers = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 dispersers.register(t_ps, "dispersers", dispersers.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Condensers",fg_bg=label_fg_bg}
-                local condensers = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+                local condensers = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
                 condensers.register(t_ps, "condensers", condensers.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Energy",fg_bg=label_fg_bg}
-                local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+                local max_energy = DataIndicator{parent=list,lu_colors=lu_col,unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
                 max_energy.register(t_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Production",fg_bg=label_fg_bg}
-                local max_production = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
+                local max_production = DataIndicator{parent=list,lu_colors=lu_col,unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
                 max_production.register(t_ps, "max_production", function (e) max_production.update(db.energy_convert(e)) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Flow Rate",fg_bg=label_fg_bg}
-                local max_flow_rate = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
+                local max_flow_rate = DataIndicator{parent=list,lu_colors=lu_col,unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
                 max_flow_rate.register(t_ps, "max_flow_rate", max_flow_rate.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Max Water Return Rate",fg_bg=label_fg_bg}
-                local max_water_output = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
+                local max_water_output = DataIndicator{parent=list,lu_colors=lu_col,unit="mB/t",format="%d",value=0,width=20,fg_bg=text_fg}
                 max_water_output.register(t_ps, "max_water_output", max_water_output.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Flow Performance",fg_bg=label_fg_bg}
-                local flow_perf = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%f",value=0,width=20,fg_bg=text_fg}
+                local flow_perf = DataIndicator{parent=list,lu_colors=lu_col,format="%f",value=0,width=20,fg_bg=text_fg}
                 flow_perf.register(t_ps, "flow_perf", flow_perf.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Generator Efficiency",fg_bg=label_fg_bg}
-                local gen_eff = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="%",format="%.2f",value=0,width=20,fg_bg=text_fg}
+                local gen_eff = DataIndicator{parent=list,lu_colors=lu_col,unit="%",format="%.2f",value=0,width=20,fg_bg=text_fg}
                 gen_eff.register(t_ps, "gen_eff", function (eff) gen_eff.update(eff * 100.0) end)
 
                 list.line_break()
                 TextBox{parent=list,text="Generator Multiplier",fg_bg=label_fg_bg}
-                local gen_mult = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%f",value=0,width=20,fg_bg=text_fg}
+                local gen_mult = DataIndicator{parent=list,lu_colors=lu_col,format="%f",value=0,width=20,fg_bg=text_fg}
                 gen_mult.register(t_ps, "gen_mult", gen_mult.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Steam Capacity",fg_bg=label_fg_bg}
-                local steam_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+                local steam_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
                 steam_cap.register(t_ps, "steam_cap", steam_cap.update)
 
                 list.line_break()
@@ -457,12 +457,12 @@ local function new_view(root)
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=21}
 
             TextBox{parent=list,text="Fluid Capacity",fg_bg=label_fg_bg}
-            local tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             tank_capacity.register(t_ps, "tank_capacity", tank_capacity.update)
 
             list.line_break()
             TextBox{parent=list,text="Chemical Capacity",fg_bg=label_fg_bg}
-            local chem_tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local chem_tank_capacity = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             chem_tank_capacity.register(t_ps, "chem_tank_capacity", chem_tank_capacity.update)
 
             list.line_break()
@@ -525,22 +525,22 @@ local function new_view(root)
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=27}
 
             TextBox{parent=list,text="Supercharged Coils",fg_bg=label_fg_bg}
-            local coils = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local coils = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             coils.register(s_ps, "coils", coils.update)
 
             list.line_break()
             TextBox{parent=list,text="Input Capacity",fg_bg=label_fg_bg}
-            local input_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local input_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             input_cap.register(s_ps, "input_cap", input_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Output Capacity",fg_bg=label_fg_bg}
-            local output_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
+            local output_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
             output_cap.register(s_ps, "output_cap", output_cap.update)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
             max_energy.register(s_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
             list.line_break()
@@ -608,7 +608,7 @@ local function new_view(root)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy ("..db.energy_label..")",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             max_energy.register(e_ps, "max_energy", function (e) max_energy.update(db.energy_convert_from_fe(e)) end)
         elseif fac.ess_type == types.ESS.INDUCTION_MATRIX then
             local pane = Div{parent=page_div}
@@ -629,22 +629,22 @@ local function new_view(root)
             local list = Div{parent=list_box,y=2,width=main.get_width()-2,height=27}
 
             TextBox{parent=list,text="Induction Cells",fg_bg=label_fg_bg}
-            local cells = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local cells = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             cells.register(i_ps, "cells", cells.update)
 
             list.line_break()
             TextBox{parent=list,text="Induction Providers",fg_bg=label_fg_bg}
-            local providers = DataIndicator{parent=list,lu_colors=lu_col,label="",format="%d",value=0,width=20,fg_bg=text_fg}
+            local providers = DataIndicator{parent=list,lu_colors=lu_col,format="%d",value=0,width=20,fg_bg=text_fg}
             providers.register(i_ps, "providers", providers.update)
 
             list.line_break()
             TextBox{parent=list,text="Maximum Energy",fg_bg=label_fg_bg}
-            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
+            local max_energy = DataIndicator{parent=list,lu_colors=lu_col,unit=db.energy_label,format="%d",value=0,width=20,fg_bg=text_fg}
             max_energy.register(i_ps, "max_energy", function (e) max_energy.update(db.energy_convert(e)) end)
 
             list.line_break()
             TextBox{parent=list,text="Transfer Capacity",fg_bg=label_fg_bg}
-            local transfer_cap = DataIndicator{parent=list,lu_colors=lu_col,label="",unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
+            local transfer_cap = DataIndicator{parent=list,lu_colors=lu_col,unit=db.energy_label.."/t",format="%d",value=0,width=20,fg_bg=text_fg}
             transfer_cap.register(i_ps, "transfer_cap", function (e) transfer_cap.update(db.energy_convert(e)) end)
 
             list.line_break()

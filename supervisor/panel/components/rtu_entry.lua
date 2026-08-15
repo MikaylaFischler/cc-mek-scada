@@ -39,7 +39,7 @@ local function init(parent, id)
     rtu_addr.register(databus.ps, ps_prefix .. "addr", rtu_addr.set_value)
 
     TextBox{parent=entry,x=10,y=2,text="UNITS:",width=7}
-    local unit_count = DataIndicator{parent=entry,x=17,y=2,label="",unit="",format="%2d",value=0,width=2,fg_bg=style.fp.label_d_fg}
+    local unit_count = DataIndicator{parent=entry,x=17,y=2,unit="",format="%2d",value=0,width=2,fg_bg=style.fp.label_d_fg}
     unit_count.register(databus.ps, ps_prefix .. "units", unit_count.set_value)
 
     TextBox{parent=entry,x=term_w-30,y=2,text="FW:",width=3}
@@ -47,7 +47,7 @@ local function init(parent, id)
     rtu_fw_v.register(databus.ps, ps_prefix .. "fw", rtu_fw_v.set_value)
 
     TextBox{parent=entry,x=term_w-15,y=2,text="RTT:",width=4}
-    local rtu_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
+    local rtu_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
     TextBox{parent=entry,x=term_w-5,y=2,text="ms",width=4,fg_bg=label_fg}
     rtu_rtt.register(databus.ps, ps_prefix .. "rtt", rtu_rtt.update)
     rtu_rtt.register(databus.ps, ps_prefix .. "rtt_color", rtu_rtt.recolor)

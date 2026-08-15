@@ -29,8 +29,8 @@ local function new_view(root, x, y, ps)
     local turbine = Rectangle{parent=root,border=border(1,colors.gray,true),width=23,height=7,x=x,y=y}
 
     local status    = StateIndicator{parent=turbine,x=7,y=1,states=style.turbine.states,value=1,min_width=12}
-    local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,label="",unit=db.energy_label,format="%10.2f",value=0,rate=true,width=16,fg_bg=text_fg}
-    local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,label="",unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg}
+    local prod_rate = PowerIndicator{parent=turbine,x=5,y=3,lu_colors=lu_col,unit=db.energy_label,format="%10.2f",value=0,rate=true,width=16,fg_bg=text_fg}
+    local flow_rate = DataIndicator{parent=turbine,x=5,y=4,lu_colors=lu_col,unit="mB/t",format="%10.0f",value=0,commas=true,width=16,fg_bg=text_fg}
 
     status.register(ps, "computed_status", status.update)
     prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(db.energy_convert(val)) end)

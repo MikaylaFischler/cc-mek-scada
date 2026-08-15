@@ -6,7 +6,7 @@ local util    = require("scada-common.util")
 local element = require("graphics.element")
 
 ---@class rad_indicator_args
----@field label string indicator label
+---@field label? string indicator label
 ---@field format string data format (lua string format)
 ---@field commas? boolean whether to use commas if a number is given (default to false)
 ---@field lu_colors? cpair label foreground color (a), unit foreground color (b)
@@ -24,7 +24,6 @@ local element = require("graphics.element")
 ---@param args rad_indicator_args
 ---@return RadIndicator element, element_id id
 return function (args)
-    element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.format) == "string", "format is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
 
@@ -35,7 +34,7 @@ return function (args)
 
     e.value = args.value or types.new_zero_radiation_reading()
 
-    local label_len = string.len(args.label)
+    local label_len = string.len(args.label or "")
     local data_start = 1
     local clear_width = args.width
 
@@ -78,7 +77,10 @@ return function (args)
     function e.redraw()
         if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
         e.w_set_cur(1, 1)
-        e.w_write(args.label)
+
+        if args.label then
+            e.w_write(args.label)
+        end
 
         e.on_update(e.value)
     end

@@ -114,11 +114,11 @@ local function new_view(root, x, y)
     cfg_warn.register(facility.ps, "config_warning", cfg_warn.update)
 
     TextBox{parent=main,y=23,text="Radiation",width=13,fg_bg=style.label}
-    local radiation = RadIndicator{parent=main,label="",format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
+    local radiation = RadIndicator{parent=main,format="%9.3f",lu_colors=lu_cpair,width=13,fg_bg=s_field}
     radiation.register(facility.ps, "radiation", radiation.update)
 
     TextBox{parent=main,x=15,y=23,text="Linked RTUs",width=11,fg_bg=style.label}
-    local rtu_count = DataIndicator{parent=main,x=15,y=24,label="",format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=s_field}
+    local rtu_count = DataIndicator{parent=main,x=15,y=24,format="%11d",value=0,lu_colors=lu_cpair,width=11,fg_bg=s_field}
     rtu_count.register(facility.ps, "rtu_count", rtu_count.update)
 
     ---------------------
@@ -139,7 +139,7 @@ local function new_view(root, x, y)
     local burn_target = Div{parent=targets,x=9,y=1,width=23,height=3,fg_bg=s_hi_box}
     local b_target = NumericSpinbox{parent=burn_target,x=11,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=burn_target,x=18,y=2,text="mB/t",fg_bg=style.theme.label_fg}
-    local burn_sum = DataIndicator{parent=targets,x=9,y=4,label="",format="%18.1f",value=0,unit="mB/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    local burn_sum = DataIndicator{parent=targets,x=9,y=4,format="%18.1f",value=0,unit="mB/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     b_target.register(facility.ps, "process_burn_target", b_target.set_value)
     burn_sum.register(facility.ps, "burn_sum", burn_sum.update)
@@ -163,8 +163,8 @@ local function new_view(root, x, y)
     range_stop = NumericSpinbox{parent=chg_range,x=20,y=1,whole_num_precision=3,fractional_precision=0,min=1,max=100,callback=_update_start_val,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=chg_range,x=23,y=2,text="%",fg_bg=style.theme.label_fg}
 
-    local cur_charge = DataIndicator{parent=targets,x=11,y=9,label="",format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
-    local cur_percent = DataIndicator{parent=targets,x=11,y=9,label="",format="%19.2f",value=0,unit="%",lu_colors=black,width=23,fg_bg=blk_brn,hidden=true}
+    local cur_charge = DataIndicator{parent=targets,x=11,y=9,format="%17d",value=0,unit="M"..db.energy_label,commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    local cur_percent = DataIndicator{parent=targets,x=11,y=9,format="%19.2f",value=0,unit="%",lu_colors=black,width=23,fg_bg=blk_brn,hidden=true}
     local chg_mode = SwitchButton{parent=targets,x=9,y=9,text="\x12T",active_text="\x12R",callback=function(v)facility.ps.publish("process_alt_mode", v)end,fg_bg=cpair(colors.black,colors.pink),dis_fg_bg=dis_colors}
 
     c_target.register(facility.ps, "process_charge_target", c_target.set_value)
@@ -196,7 +196,7 @@ local function new_view(root, x, y)
     local gen_target = Div{parent=targets,x=9,y=11,width=23,height=3,fg_bg=s_hi_box}
     local g_target = NumericSpinbox{parent=gen_target,x=8,y=1,whole_num_precision=9,fractional_precision=0,min=0,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled}
     TextBox{parent=gen_target,x=18,y=2,text="k"..db.energy_label.."/t",fg_bg=style.theme.label_fg}
-    local cur_gen = DataIndicator{parent=targets,x=9,y=14,label="",format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
+    local cur_gen = DataIndicator{parent=targets,x=9,y=14,format="%17d",value=0,unit="k"..db.energy_label.."/t",commas=true,lu_colors=black,width=23,fg_bg=blk_brn}
 
     g_target.register(facility.ps, "process_gen_target", g_target.set_value)
     cur_gen.register(facility.ps, "auto_gen_rate", function (r) cur_gen.update(util.round(db.energy_convert_from_fe(r) / 1000)) end)
@@ -235,7 +235,7 @@ local function new_view(root, x, y)
         local lim = NumericSpinbox{parent=lim_ctl,x=2,y=1,whole_num_precision=4,fractional_precision=1,min=0.1,arrow_fg_bg=arrow_fg_bg,arrow_disable=style.theme.disabled,fg_bg=lim_fg_bg}
         TextBox{parent=lim_ctl,x=9,y=2,text="mB/t",width=4,fg_bg=label_fg}
 
-        local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,label="",format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}
+        local cur_burn = DataIndicator{parent=limit_div,x=9,y=_y+3,format="%7.1f",value=0,unit="mB/t",commas=false,lu_colors=cpair(cur_lu,cur_lu),width=14,fg_bg=cur_fg_bg}
 
         if i <= facility.num_units then
             rate_limits[i] = lim

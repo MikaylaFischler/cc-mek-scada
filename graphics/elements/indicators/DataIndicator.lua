@@ -5,7 +5,7 @@ local util    = require("scada-common.util")
 local element = require("graphics.element")
 
 ---@class data_indicator_args
----@field label string indicator label
+---@field label? string indicator label
 ---@field unit? string indicator unit
 ---@field format string data format (lua string format)
 ---@field commas? boolean whether to use commas if a number is given (default to false)
@@ -24,7 +24,6 @@ local element = require("graphics.element")
 ---@param args data_indicator_args
 ---@return DataIndicator element, element_id id
 return function (args)
-    element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.format) == "string", "format is a required field")
     element.assert(args.value ~= nil, "value is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
@@ -37,7 +36,7 @@ return function (args)
     e.value = args.value
 
     local value_color = e.fg_bg.fgd
-    local label_len   = string.len(args.label)
+    local label_len   = string.len(args.label or "")
     local data_start  = 1
     local clear_width = args.width
 
@@ -89,7 +88,10 @@ return function (args)
     function e.redraw()
         if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
         e.w_set_cur(1, 1)
-        e.w_write(args.label)
+
+        if args.label then
+            e.w_write(args.label)
+        end
 
         e.on_update(e.value)
     end

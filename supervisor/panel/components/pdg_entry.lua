@@ -43,7 +43,7 @@ local function init(parent, id)
     pdg_fw_v.register(databus.ps, ps_prefix .. "fw", pdg_fw_v.set_value)
 
     TextBox{parent=entry,x=term_w-16,y=2,text="RTT:",width=4}
-    local pdg_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
+    local pdg_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
     TextBox{parent=entry,x=term_w-5,y=2,text="ms",width=4,fg_bg=label_fg}
     pdg_rtt.register(databus.ps, ps_prefix .. "rtt", pdg_rtt.update)
     pdg_rtt.register(databus.ps, ps_prefix .. "rtt_color", pdg_rtt.recolor)

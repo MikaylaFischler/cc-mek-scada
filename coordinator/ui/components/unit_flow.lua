@@ -122,8 +122,8 @@ local function make(parent, x, y, wide, com_waste, unit_id)
     PipeNetwork{parent=root,x=20,y=1,pipes=rc_pipes,bg=style.theme.bg}
 
     if unit.num_boilers > 0 then
-        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
-        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local cc_rate = DataIndicator{parent=root,x=_wide(25,22),y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local hc_rate = DataIndicator{parent=root,x=_wide(25,22),y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
         cc_rate.register(unit.unit_ps, "boiler_boil_sum", function (sum) cc_rate.update(sum * 10) end)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
@@ -134,14 +134,14 @@ local function make(parent, x, y, wide, com_waste, unit_id)
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
-        local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
-        local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
         wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "boiler_boil_sum", st_rate.update)
     else
-        local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
-        local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
+        local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
         wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
@@ -167,7 +167,7 @@ local function make(parent, x, y, wide, com_waste, unit_id)
 
     PipeNetwork{parent=waste,y=1,pipes={pipe(0,0,13,1,colors.brown,true)},bg=style.theme.bg}
 
-    local waste_rate = DataIndicator{parent=waste,x=util.trinary(com_waste,2,1),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local waste_rate = DataIndicator{parent=waste,x=util.trinary(com_waste,2,1),y=3,lu_colors=lu_c,unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
     waste_rate.register(unit.unit_ps, "act_burn_rate", waste_rate.update)
 
     if com_waste then

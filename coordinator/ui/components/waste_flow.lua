@@ -85,11 +85,11 @@ local function make(parent, x, y, wide, com_waste, v_fields, v_names, ps)
         TextBox{parent=root,x=mx,y=my+1,text=name,alignment=ALIGN.CENTER,fg_bg=style.theme.header,width=l}
     end
 
-    local pu_rate = DataIndicator{parent=root,x=_wide(69,57),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
-    local po_rate = DataIndicator{parent=root,x=_wide(40,33),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local popl_rate = DataIndicator{parent=root,x=_wide(70,58),y=6,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local poam_rate = DataIndicator{parent=root,x=_wide(70,58),y=10,lu_colors=lu_c,label="",unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
-    local spent_rate = DataIndicator{parent=root,x=_wide(105,86),y=3,lu_colors=lu_c,label="",unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
+    local pu_rate = DataIndicator{parent=root,x=_wide(69,57),y=3,lu_colors=lu_c,unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
+    local po_rate = DataIndicator{parent=root,x=_wide(40,33),y=6,lu_colors=lu_c,unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local popl_rate = DataIndicator{parent=root,x=_wide(70,58),y=6,lu_colors=lu_c,unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local poam_rate = DataIndicator{parent=root,x=_wide(70,58),y=10,lu_colors=lu_c,unit="mB/t",format="%7.2f",value=0,width=12,fg_bg=s_field}
+    local spent_rate = DataIndicator{parent=root,x=_wide(105,86),y=3,lu_colors=lu_c,unit="mB/t",format="%8.3f",value=0,width=13,fg_bg=s_field}
 
     pu_rate.register(ps, "pu_rate", pu_rate.update)
     po_rate.register(ps, "po_rate", po_rate.update)
@@ -113,8 +113,8 @@ local function make(parent, x, y, wide, com_waste, v_fields, v_names, ps)
     local sna_cnt = DataIndicator{parent=sna_po,x=12,y=1,lu_colors=lu_c_d,label="CNT",unit="",format="%2d",value=0,width=7}
     TextBox{parent=sna_po,y=3,text="PEAK\x1a",width=5,fg_bg=cpair(style.theme.label_dark,colors._INHERIT)}
     TextBox{parent=sna_po,text="MAX \x1a",width=5,fg_bg=cpair(style.theme.label_dark,colors._INHERIT)}
-    local sna_pk = DataIndicator{parent=sna_po,x=6,y=3,lu_colors=lu_c_d,label="",unit="mB/t",format="%7.2f",value=0,width=17}
-    local sna_max_o = DataIndicator{parent=sna_po,x=6,lu_colors=lu_c_d,label="",unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_pk = DataIndicator{parent=sna_po,x=6,y=3,lu_colors=lu_c_d,unit="mB/t",format="%7.2f",value=0,width=17}
+    local sna_max_o = DataIndicator{parent=sna_po,x=6,lu_colors=lu_c_d,unit="mB/t",format="%7.2f",value=0,width=17}
     local sna_max_i = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="\x1aMAX",unit="mB/t",format="%7.2f",value=0,width=17}
     local sna_in = DataIndicator{parent=sna_po,lu_colors=lu_c_d,label="\x1aIN",unit="mB/t",format="%8.2f",value=0,width=17}
 
