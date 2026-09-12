@@ -1163,6 +1163,8 @@ function ioctl.update_unit_statuses(statuses)
 
                     if next(mek_status) then
                         unit.reactor_data.mek_status = mek_status
+
+                        unit.unit_ps.publish("env_loss_J", unit.reactor_data.mek_struct.heat_cap * mek_status.env_loss)
                         for key, val in pairs(mek_status) do
                             unit.unit_ps.publish(key, val)
                         end
