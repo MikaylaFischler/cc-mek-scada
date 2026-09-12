@@ -9,9 +9,10 @@ local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
-local unit_flow      = require("coordinator.ui.components.unit_flow")
-local waste_flow     = require("coordinator.ui.components.waste_flow")
-local flow_reactor   = require("coordinator.ui.components.flow_reactor")
+local unit_flow      = require("coordinator.ui.components.flow.unit_flow")
+local waste_flow     = require("coordinator.ui.components.flow.waste_flow")
+
+local reactor_dtls   = require("coordinator.ui.components.flow.reactor")
 
 local core           = require("graphics.core")
 
@@ -330,7 +331,7 @@ local function init(main)
         })
 
         -- detail windows
-        flow_reactor(panes[cb_ofs], i, function () view_pane.set_value(1) end)
+        reactor_dtls(panes[cb_ofs], i, function () view_pane.set_value(1) end)
 
         if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
