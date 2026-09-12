@@ -11,10 +11,12 @@ local style          = require("coordinator.ui.style")
 
 local unit_flow      = require("coordinator.ui.components.unit_flow")
 local waste_flow     = require("coordinator.ui.components.waste_flow")
+local flow_reactor   = require("coordinator.ui.components.flow_reactor")
 
 local core           = require("graphics.core")
 
 local Div            = require("graphics.elements.Div")
+local MultiPane      = require("graphics.elements.MultiPane")
 local PipeNetwork    = require("graphics.elements.PipeNetwork")
 local Rectangle      = require("graphics.elements.Rectangle")
 local TextBox        = require("graphics.elements.TextBox")
@@ -63,8 +65,13 @@ local function init(main)
 
     datetime.register(fac.ps, "date_time", datetime.set_value)
 
-    local po_pipes = {}
-    local emcool_pipes = {}
+    local flow = Div{parent=main,y=3}
+    local r1 = Div{parent=main,y=3}
+
+    local view_pane = MultiPane{parent=main,y=3,panes={flow,r1}}
+    view_pane.set_value(2)
+
+    flow_reactor(r1, 1, function () view_pane.set_value(1) end)
 
     -- determine display characteristics
 
@@ -117,6 +124,9 @@ local function init(main)
 
     -- a little extra padding for single unit to not conflict with SPS block
     local com_waste_y_ofs = tri(#units > 1, y_ofs(#units + 1), 13)
+
+    local po_pipes = {}
+    local emcool_pipes = {}
 
     if fac.tank_mode == 0 or fac.tank_mode == 8 then
         -- (0) tanks belong to reactor units OR (8) 4 total facility tanks (A B C D)
@@ -304,13 +314,13 @@ local function init(main)
     local flow_x = 3
     if #emcool_pipes > 0 then
         flow_x = 25
-        PipeNetwork{parent=main,x=2,y=3,pipes=emcool_pipes,bg=style.theme.bg}
+        PipeNetwork{parent=flow,x=2,y=1,pipes=emcool_pipes,bg=style.theme.bg}
     end
 
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
 
-        unit_flow(main, flow_x, 5 + y_offset, no_tanks, com_waste, i)
+        unit_flow(flow, flow_x, 3 + y_offset, no_tanks, com_waste, i, function () view_pane.set_value(2) end)
 
         if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
@@ -324,7 +334,7 @@ local function init(main)
     ---------------------------------
 
     if com_waste then
-        local waste = Div{parent=main,x=flow_x,y=com_waste_y_ofs+tri(compressed_view,3,-6),width=tri(no_tanks,139,117),height=11}
+        local waste = Div{parent=flow,x=flow_x,y=com_waste_y_ofs+tri(compressed_view,1,-8),width=tri(no_tanks,139,117),height=11}
 
         waste_flow(waste, 18, 1, no_tanks, com_waste, { "pu", "po", "pl", "am" }, { "PV01-PU", "PV02-PO", "PV03-PL", "PV04-AM" }, fac.ps)
 
@@ -335,9 +345,9 @@ local function init(main)
 
         TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
 
-        PipeNetwork{parent=main,x=141,y=15,pipes={pipe(0,com_waste_y_ofs-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
+        PipeNetwork{parent=flow,x=141,y=13,pipes={pipe(0,com_waste_y_ofs-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
     else
-        PipeNetwork{parent=main,x=139,y=15,pipes=po_pipes,bg=style.theme.bg}
+        PipeNetwork{parent=flow,x=139,y=13,pipes=po_pipes,bg=style.theme.bg}
     end
 
     -----------------
@@ -348,14 +358,14 @@ local function init(main)
 
     for i = 1, #tank_defs do
         if tank_defs[i] > 0 then
-            local vy = 3 + y_ofs(i)
+            local vy = 1 + y_ofs(i)
 
-            TextBox{parent=main,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
+            TextBox{parent=flow,x=12,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
 
             local v_idx = tri(com_waste, 4 + ((i * 2) - 1), (i * 6) - 1)
 
-            local conn = IndicatorLight{parent=main,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", v_idx),colors=style.ind_grn}
-            local open = IndicatorLight{parent=main,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
+            local conn = IndicatorLight{parent=flow,x=9,y=vy+1,label=util.sprintf("PV%02d-EMC", v_idx),colors=style.ind_grn}
+            local open = IndicatorLight{parent=flow,x=9,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_emc_conn", conn.update)
             open.register(units[i].unit_ps, "V_emc_state", open.update)
@@ -369,7 +379,7 @@ local function init(main)
     for i = 1, fac.num_units do
         if units[i].aux_coolant then
             local vx
-            local vy = 3 + y_ofs(i)
+            local vy = 1 + y_ofs(i)
 
             if no_tanks then
                 vx = tri(units[i].num_boilers == 0, 36, 79)
@@ -378,15 +388,15 @@ local function init(main)
                 vx = tri(units[i].num_boilers == 0, 58, tri(units[i].has_tank and em_water, 94, 91))
             end
 
-            PipeNetwork{parent=main,x=vx-6,y=vy,pipes={pipe(0,1,9,0,colors.blue,true)},bg=style.theme.bg}
+            PipeNetwork{parent=flow,x=vx-6,y=vy,pipes={pipe(0,1,9,0,colors.blue,true)},bg=style.theme.bg}
 
-            TextBox{parent=main,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
-            TextBox{parent=main,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
+            TextBox{parent=flow,x=vx,y=vy,text="\x10\x11",fg_bg=text_c,width=2}
+            TextBox{parent=flow,x=vx+5,y=vy,text="\x1b",fg_bg=cpair(colors.blue,text_c.bkg),width=1}
 
             local v_idx = tri(com_waste, 4 + (i * 2), i * 6)
 
-            local conn = IndicatorLight{parent=main,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", v_idx),colors=style.ind_grn}
-            local open = IndicatorLight{parent=main,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
+            local conn = IndicatorLight{parent=flow,x=vx-3,y=vy+1,label=util.sprintf("PV%02d-AUX", v_idx),colors=style.ind_grn}
+            local open = IndicatorLight{parent=flow,x=vx-3,y=vy+2,label="OPEN",colors=style.ind_wht}
 
             conn.register(units[i].unit_ps, "V_aux_conn", conn.update)
             open.register(units[i].unit_ps, "V_aux_state", open.update)
@@ -413,7 +423,7 @@ local function init(main)
                 y_offset = com_waste_y_ofs - 7
             end
 
-            local tank = Div{parent=main,x=3,y=7+y_offset,width=20,height=14}
+            local tank = Div{parent=flow,x=3,y=5+y_offset,width=20,height=14}
 
             TextBox{parent=tank,text=" ",y=1,fg_bg=style.lg_gray}
             TextBox{parent=tank,text="DYNAMIC TANK "..id,alignment=ALIGN.CENTER,fg_bg=style.wh_gray}
@@ -467,7 +477,7 @@ local function init(main)
     -- SPS --
     ---------
 
-    local sps = Div{parent=main,x=140,y=3,height=12}
+    local sps = Div{parent=flow,x=140,y=1,height=12}
 
     TextBox{parent=sps,text=" ",width=24,y=1,fg_bg=style.lg_gray}
     TextBox{parent=sps,text="SPS",alignment=ALIGN.CENTER,width=24,fg_bg=wh_gray}
@@ -492,14 +502,14 @@ local function init(main)
     -- statistics --
     ----------------
 
-    TextBox{parent=main,x=145,y=16,text="RAW WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local raw_waste  = Rectangle{parent=main,x=145,y=17,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    TextBox{parent=flow,x=145,y=14,text="RAW WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
+    local raw_waste  = Rectangle{parent=flow,x=145,y=15,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
 
     sum_raw_waste.register(fac.ps, "burn_sum", sum_raw_waste.update)
 
-    TextBox{parent=main,x=145,y=21,text="PROC. WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local pr_waste  = Rectangle{parent=main,x=145,y=22,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
+    TextBox{parent=flow,x=145,y=19,text="PROC. WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
+    local pr_waste  = Rectangle{parent=flow,x=145,y=20,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
     local pu = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
     local po = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Po",unit="mB/t",format="%9.2f",value=0,width=17}
     local popl = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="PoPl",unit="mB/t",format="%7.2f",value=0,width=17}
@@ -508,8 +518,8 @@ local function init(main)
     po.register(fac.ps, "po_rate", po.update)
     popl.register(fac.ps, "po_pl_rate", popl.update)
 
-    TextBox{parent=main,x=145,y=28,text="SPENT WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local sp_waste  = Rectangle{parent=main,x=145,y=29,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    TextBox{parent=flow,x=145,y=26,text="SPENT WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
+    local sp_waste  = Rectangle{parent=flow,x=145,y=27,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(fac.ps, "spent_waste_rate", sum_sp_waste.update)
