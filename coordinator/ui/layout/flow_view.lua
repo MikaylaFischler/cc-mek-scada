@@ -66,12 +66,14 @@ local function init(main)
     datetime.register(fac.ps, "date_time", datetime.set_value)
 
     local flow = Div{parent=main,y=3}
-    local r1 = Div{parent=main,y=3}
 
-    local view_pane = MultiPane{parent=main,y=3,panes={flow,r1}}
-    view_pane.set_value(2)
+    local panes = { flow }
+    for _ = 1, fac.num_units * 3 do
+        -- () is to only take the first return value
+        table.insert(panes, (Div{parent=main,y=3}))
+    end
 
-    flow_reactor(r1, 1, function () view_pane.set_value(1) end)
+    local view_pane = MultiPane{parent=main,y=3,panes=panes}
 
     -- determine display characteristics
 
@@ -319,8 +321,16 @@ local function init(main)
 
     for i = 1, fac.num_units do
         local y_offset = y_ofs(i)
+        local cb_ofs = 2 + ((i - 1) * 3)
 
-        unit_flow(flow, flow_x, 3 + y_offset, no_tanks, com_waste, i, function () view_pane.set_value(2) end)
+        unit_flow(flow, flow_x, 3 + y_offset, no_tanks, com_waste, i, {
+            function () view_pane.set_value(cb_ofs) end,
+            function () view_pane.set_value(cb_ofs + 1) end,
+            function () view_pane.set_value(cb_ofs + 2) end
+        })
+
+        -- detail windows
+        flow_reactor(panes[cb_ofs], i, function () view_pane.set_value(1) end)
 
         if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))

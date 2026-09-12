@@ -19,8 +19,9 @@ local TextBox           = require("graphics.elements.TextBox")
 
 local Rectangle         = require("graphics.elements.Rectangle")
 
-local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
+local PushButton        = require("graphics.elements.controls.PushButton")
 
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
 local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
 local COOLANT_TYPE = types.COOLANT_TYPE
@@ -43,7 +44,8 @@ local lg_gray = style.lg_gray
 ---@param wide boolean whether to render wide version
 ---@param com_waste boolean true if using facility waste
 ---@param unit_id integer unit index
-local function make(parent, x, y, wide, com_waste, unit_id)
+---@param detail_callback? function[] detail window open callback
+local function make(parent, x, y, wide, com_waste, unit_id, detail_callback)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -82,6 +84,8 @@ local function make(parent, x, y, wide, com_waste, unit_id)
     TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
     TextBox{parent=root,x=3,y=5,text="\x19",width=1,fg_bg=lg_gray}
+
+    if detail_callback then PushButton{parent=root,x=1,y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callback[1]} end
 
     local rc_pipes = {}
 
