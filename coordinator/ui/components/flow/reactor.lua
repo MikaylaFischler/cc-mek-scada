@@ -1,5 +1,5 @@
 --
--- Basic Unit Flow Overview
+-- Flow Monitor Reactor Detail View
 --
 
 local const         = require("scada-common.constants")
@@ -38,10 +38,11 @@ local h_Na_c  = cpair(colors.orange, gray)
 local water_c = cpair(colors.blue, gray)
 local steam_c = cpair(colors.white, gray)
 
--- make a new unit flow window
+-- make a new reactor detail window
 ---@param parent Container parent
 ---@param unit_id integer unit index
-local function make(parent, unit_id, c)
+---@param close_cb function window close callback
+local function make(parent, unit_id, close_cb)
     local s_field = style.theme.field_box
 
     local lu_c = style.lu_colors
@@ -56,8 +57,8 @@ local function make(parent, unit_id, c)
     TextBox{parent=root,x=1,y=1,height=1,text=string.rep("\x8f",137),fg_bg=cpair(parent.get_fg_bg().bkg,gray)}
     TextBox{parent=root,x=1,y=2,text=" Fission Reactor Details - Unit "..unit_id,fg_bg=cpair(colors.white,gray)}
 
-    PushButton{parent=root,x=138,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=c}
-    PushButton{parent=root,x=138,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=c}
+    PushButton{parent=root,x=138,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=close_cb}
+    PushButton{parent=root,x=138,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=close_cb}
 
     local window = Rectangle{parent=root,x=1,y=3,border=border(1,gray,true),fg_bg=parent.get_fg_bg()}
 
