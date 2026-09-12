@@ -9,8 +9,8 @@ local ioctl          = require("coordinator.ioctl")
 
 local style          = require("coordinator.ui.style")
 
-local unit_flow      = require("coordinator.ui.components.flow.unit_flow")
-local waste_flow     = require("coordinator.ui.components.flow.waste_flow")
+local unit_flow      = require("coordinator.ui.components.flow.unit")
+local waste_flow     = require("coordinator.ui.components.flow.waste")
 
 local reactor_dtls   = require("coordinator.ui.components.flow.reactor")
 
