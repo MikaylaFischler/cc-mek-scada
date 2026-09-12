@@ -577,6 +577,20 @@ function ioctl.record_unit_builds(builds)
                     (type(unit.reactor_data.mek_struct.width) == "number") and (unit.reactor_data.mek_struct.width ~= 0) then
                     unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
                 end
+
+                -- computed flow detail view values
+
+                local struct = unit.reactor_data.mek_struct
+
+                local vol       = struct.length * struct.width * struct.height
+                local ccool_bar = ((struct.ccool_cap / 1000) / vol) * struct.height * 0.1
+                local hcool_bar = ((struct.hcool_cap / 1000) / vol) * 0.1
+                local cool_flow = (struct.ccool_cap / 1000) * 20
+
+                unit.unit_ps.publish("sci_ccool_p_max", ccool_bar)
+                unit.unit_ps.publish("sci_hcool_p_max", hcool_bar)
+                unit.unit_ps.publish("sci_vessel_p_max", ccool_bar + hcool_bar)
+                unit.unit_ps.publish("sci_cool_flow_max", cool_flow)
             end
 
             -- boiler builds
@@ -1163,11 +1177,25 @@ function ioctl.update_unit_statuses(statuses)
 
                     if next(mek_status) then
                         unit.reactor_data.mek_status = mek_status
-
-                        unit.unit_ps.publish("env_loss_J", unit.reactor_data.mek_struct.heat_cap * mek_status.env_loss)
                         for key, val in pairs(mek_status) do
                             unit.unit_ps.publish(key, val)
                         end
+
+                        -- computed flow detail view values
+
+                        local struct = unit.reactor_data.mek_struct
+
+                        unit.unit_ps.publish("env_loss_J", struct.heat_cap * mek_status.env_loss)
+
+                        local vol       = struct.length * struct.width * struct.height
+                        local ccool_bar = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * 0.1
+                        local hcool_bar = ((mek_status.hcool_amnt / 1000) / vol) * 0.1
+                        local cool_flow = (mek_status.heating_rate / 1000) * 20
+
+                        unit.unit_ps.publish("sci_ccool_p", ccool_bar)
+                        unit.unit_ps.publish("sci_hcool_p", hcool_bar)
+                        unit.unit_ps.publish("sci_vessel_p", ccool_bar + hcool_bar)
+                        unit.unit_ps.publish("sci_cool_flow", cool_flow)
                     end
 
                     burn_rate = unit.reactor_data.mek_status.act_burn_rate
