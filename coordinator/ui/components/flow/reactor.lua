@@ -20,8 +20,8 @@ local Rectangle     = require("graphics.elements.Rectangle")
 local PushButton    = require("graphics.elements.controls.PushButton")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
-local VerticalBar   = require("graphics.elements.indicators.VerticalBar")
 local HorizontalBar = require("graphics.elements.indicators.HorizontalBar")
+local VerticalBar   = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN
 
@@ -143,7 +143,7 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region properties
 
-    TextBox{parent=window,x=2,y=19,text=string.rep("\x8c",46),width=47,fg_bg=cpair(gray,colors._INHERIT)}
+    TextBox{parent=window,x=2,y=19,text=string.rep("\x8c",46),width=46,fg_bg=cpair(gray,colors._INHERIT)}
 
     local props_div = Div{parent=window,x=2,y=20,width=90,height=5}
 

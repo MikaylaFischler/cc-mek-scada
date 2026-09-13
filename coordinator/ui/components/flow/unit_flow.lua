@@ -156,7 +156,7 @@ local function make(parent, x, y, wide, com_waste, unit_id, detail_callback)
     TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
-    if detail_callback then PushButton{parent=root,x=_wide(93,79),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callback[2]} end
+    if detail_callback then PushButton{parent=root,x=_wide(93,79),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callback[3]} end
 
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo
