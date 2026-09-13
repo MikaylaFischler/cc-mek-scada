@@ -1301,6 +1301,8 @@ function ioctl.update_unit_statuses(statuses)
                                 else computed_status = TRB_STATE.UNFORMED end
 
                                 unit.turbine_ps_tbl[id].publish("computed_status", computed_status)
+
+                                unit.turbine_ps_tbl[id].publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
                             else
                                 log.debug(util.c(log_header, "invalid turbine id ", id))
                                 valid = false
