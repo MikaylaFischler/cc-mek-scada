@@ -141,13 +141,13 @@ local function make(parent, x, y, wide, com_waste, unit_id, detail_callback)
         local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
         local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
-        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        wt_rate.register(unit.unit_ps, "turbine_water_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "boiler_boil_sum", st_rate.update)
     else
         local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
         local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
-        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        wt_rate.register(unit.unit_ps, "turbine_water_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
     end
 

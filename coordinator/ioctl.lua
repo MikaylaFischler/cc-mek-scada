@@ -1269,7 +1269,7 @@ function ioctl.update_unit_statuses(statuses)
 
                     -- turbine statuses
                     if type(rtu_statuses.turbines) == "table" then
-                        local flow_sum = 0
+                        local water_sum = 0
 
                         computed_status = TRB_STATE.OFFLINE
 
@@ -1289,7 +1289,7 @@ function ioctl.update_unit_statuses(statuses)
                                 if rtu_faulted then
                                     computed_status = TRB_STATE.FAULT
                                 elseif data.formed then
-                                    flow_sum = flow_sum + data.state.flow_rate
+                                    water_sum = water_sum + math.min(data.state.flow_rate, data.build.max_water_output)
 
                                     if data.tanks.energy_fill >= 0.99 then
                                         computed_status = TRB_STATE.TRIPPED
@@ -1307,7 +1307,7 @@ function ioctl.update_unit_statuses(statuses)
                             end
                         end
 
-                        unit.unit_ps.publish("turbine_flow_sum", flow_sum)
+                        unit.unit_ps.publish("turbine_water_sum", water_sum)
                     else
                         log.debug(log_header .. "turbine list not a table")
                         valid = false
