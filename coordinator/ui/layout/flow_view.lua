@@ -13,7 +13,7 @@ local unit_flow      = require("coordinator.ui.components.flow.unit_flow")
 local waste_flow     = require("coordinator.ui.components.flow.waste_flow")
 
 local reactor_dtls   = require("coordinator.ui.components.flow.reactor")
-local turbine_dtls   = require("coordinator.ui.components.flow.turbine")
+local turbine_dtls   = require("coordinator.ui.components.flow.turbines")
 
 local core           = require("graphics.core")
 

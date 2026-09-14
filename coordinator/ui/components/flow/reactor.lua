@@ -235,7 +235,7 @@ local function make(parent, unit_id, close_cb)
     damage_p.register(ps, "damage", damage_p.update)
 
     --#endregion
-    --#region technical details
+    --#region simulation details
 
     local sim = Rectangle{parent=window,x=94,y=1,width=44,height=25,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 

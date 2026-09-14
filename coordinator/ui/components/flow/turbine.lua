@@ -1,9 +1,7 @@
 --
--- Flow Monitor Turbine Detail View
+-- Flow Monitor Single Turbine Detail Block
 --
 
-local const         = require("scada-common.constants")
-local types         = require("scada-common.types")
 local util          = require("scada-common.util")
 
 local ioctl         = require("coordinator.ioctl")
@@ -17,12 +15,9 @@ local TextBox       = require("graphics.elements.TextBox")
 
 local Rectangle     = require("graphics.elements.Rectangle")
 
-local PushButton    = require("graphics.elements.controls.PushButton")
-
 local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
 local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
 local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
-local PowerIndicator = require("graphics.elements.indicators.PowerIndicator")
 local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN
@@ -35,16 +30,14 @@ local cpair = core.cpair
 local wh_gray = style.wh_gray
 local gray = colors.gray
 
-local c_Na_c  = cpair(colors.lightBlue, gray)
-local h_Na_c  = cpair(colors.orange, gray)
 local water_c = cpair(colors.blue, gray)
 local steam_c = cpair(colors.white, gray)
 
--- make a new reactor detail window
----@param parent Container parent
----@param unit_id integer unit index
----@param close_cb function window close callback
-local function make(parent, unit_id, close_cb)
+-- make a new turbine detail row item
+---@param frame Container
+---@param unit crd_io_unit
+---@param tbn_id integer
+return function (frame, unit, tbn_id)
     local s_field = style.theme.field_box
 
     local lu_c = style.lu_colors
@@ -54,45 +47,31 @@ local function make(parent, unit_id, close_cb)
     local ind_wht = style.ind_wht
 
     local db   = ioctl.get_db()
-    local unit = db.units[unit_id]
-    local ps   = unit.turbine_ps_tbl[1]
+    local ps   = unit.turbine_ps_tbl[tbn_id]
 
-    -- bounding box div
-    local root = Div{parent=parent,x=math.floor((parent.get_width()-140)/2),y=1,width=142,height=78}
-
-    local s = (unit.num_turbines > 1) and "s" or ""
-
-    TextBox{parent=root,x=1,y=1,height=1,text=string.rep("\x8f",139),fg_bg=cpair(parent.get_fg_bg().bkg,gray)}
-    TextBox{parent=root,x=1,y=2,text=" Steam Turbine Generator"..s.." Details - Unit "..unit_id,fg_bg=cpair(colors.white,gray)}
-
-    PushButton{parent=root,x=140,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=close_cb}
-    PushButton{parent=root,x=140,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=close_cb}
-
-    local window = Rectangle{parent=root,x=1,y=3,border=border(1,gray,true),fg_bg=parent.get_fg_bg()}
-
-    local id_tag = Rectangle{parent=window,x=2,y=1,width=24,height=3,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
-    TextBox{parent=id_tag,text="Turbine Generator 1",alignment=ALIGN.CENTER}
+    local id_tag = Rectangle{parent=frame,x=2,y=1,width=24,height=3,border=border(1,gray,true),thin=true}
+    TextBox{parent=id_tag,text="Turbine Generator "..tbn_id,alignment=ALIGN.CENTER}
 
     --#region tanks
 
-    local steam_div = Div{parent=window,x=2,y=6,width=22,height=8}
+    local steam_div = Div{parent=frame,x=2,y=6,width=24,height=8}
 
     local steam_bar  = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
     steam_bar.register(ps, "steam_fill", steam_bar.update)
 
-    TextBox{parent=steam_div,x=4,y=1,text="Steam",width=19,fg_bg=style.label}
-    local steam_amnt = DataIndicator{parent=steam_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    TextBox{parent=steam_div,x=4,y=1,text="Steam",width=21,fg_bg=style.label}
+    local steam_amnt = DataIndicator{parent=steam_div,x=4,format="%18d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_amnt.register(ps, "steam", function (x) steam_amnt.update(x.amount) end)
 
-    TextBox{parent=steam_div,x=4,y=4,text="Steam Capacity",width=19,fg_bg=style.label}
-    local steam_cap = DataIndicator{parent=steam_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    TextBox{parent=steam_div,x=4,y=4,text="Steam Capacity",width=21,fg_bg=style.label}
+    local steam_cap = DataIndicator{parent=steam_div,x=4,format="%18d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_cap.register(ps, "steam_cap", steam_cap.update)
 
-    TextBox{parent=steam_div,x=4,y=7,text="Steam Fill",width=19,fg_bg=style.label}
-    local steam_fill = DataIndicator{parent=steam_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    TextBox{parent=steam_div,x=4,y=7,text="Steam Fill",width=21,fg_bg=style.label}
+    local steam_fill = DataIndicator{parent=steam_div,x=4,format="%19.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_fill.register(ps, "steam_fill", function (v) steam_fill.update(v * 100) end)
 
-    local energy_div = Div{parent=window,x=2,y=16,width=24,height=8}
+    local energy_div = Div{parent=frame,x=2,y=16,width=24,height=8}
 
     local energy_bar  = VerticalBar{parent=energy_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
     energy_bar.register(ps, "energy_fill", energy_bar.update)
@@ -112,9 +91,7 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region steam flow
 
-    local s_flow = Rectangle{parent=window,x=27,y=1,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
-    Rectangle{parent=window,x=27,y=26,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
-    Rectangle{parent=window,x=27,y=51,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local s_flow = Rectangle{parent=frame,x=27,y=1,width=21,height=24,border=border(1,gray,true),thin=true}
 
     TextBox{parent=s_flow,text="Steam Flow",alignment=ALIGN.CENTER}
 
@@ -153,7 +130,7 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region generator
 
-    local e_flow = Rectangle{parent=window,x=49,y=1,width=23,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local e_flow = Rectangle{parent=frame,x=49,y=1,width=23,height=24,border=border(1,gray,true),thin=true}
 
     TextBox{parent=e_flow,text="Generator",alignment=ALIGN.CENTER}
 
@@ -196,7 +173,7 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region water flow
 
-    local w_flow = Rectangle{parent=window,x=73,y=1,width=21,height=15,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local w_flow = Rectangle{parent=frame,x=73,y=1,width=21,height=15,border=border(1,gray,true),thin=true}
 
     TextBox{parent=w_flow,text="Water Return",alignment=ALIGN.CENTER}
 
@@ -219,7 +196,7 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region dumping
 
-    local dumping = Rectangle{parent=window,x=73,y=17,width=21,height=8,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local dumping = Rectangle{parent=frame,x=73,y=17,width=21,height=8,border=border(1,gray,true),thin=true}
 
     TextBox{parent=dumping,text="Steam Dumping\nMode",alignment=ALIGN.CENTER}
 
@@ -231,11 +208,11 @@ local function make(parent, unit_id, close_cb)
     d_a.register(ps, "SteamDumpOpen", function (m) d_a.update(m == 3) end)
 
     --#endregion
-    --#region technical details
+    --#region simulation details
 
-    local sim = Rectangle{parent=window,x=95,y=1,width=44,height=26,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local sim = Rectangle{parent=frame,x=95,y=1,width=44,height=24,border=border(1,gray,true),thin=true}
 
-    TextBox{parent=sim,y=1,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
+    TextBox{parent=sim,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
     local inlet_p = DataIndicator{parent=sim,x=30,y=1,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
     inlet_p.register(ps, "phys_inlet_p", inlet_p.update)
 
@@ -261,8 +238,8 @@ local function make(parent, unit_id, close_cb)
     exhaust_p_mid.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
     exhaust_p_max.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    TextBox{parent=sim,y=11,text="Steam Input Rate",width=18,fg_bg=style.label}
-    local inlet_f = DataIndicator{parent=sim,x=20,y=11,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    TextBox{parent=sim,y=12,text="Steam Input Rate",width=18,fg_bg=style.label}
+    local inlet_f = DataIndicator{parent=sim,x=20,y=12,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     inlet_f.register(ps, "phys_inlet_flow", inlet_f.update)
 
     local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
@@ -276,27 +253,24 @@ local function make(parent, unit_id, close_cb)
     local steam_f = DataIndicator{parent=sim,x=20,y=16,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     steam_f.register(ps, "phys_steam_flow", steam_f.update)
 
-    local steam_f_bar = HorizontalBar{parent=sim,y=18,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    local steam_f_bar = HorizontalBar{parent=sim,y=17,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
     steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or 1)) end)
 
-    TextBox{parent=sim,y=19,text="| 0 kg/s",width=8,fg_bg=style.label}
-    local steam_f_max = TextBox{parent=sim,x=22,y=19,text="             ? kg/s |",width=21,fg_bg=style.label}
+    TextBox{parent=sim,y=18,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local steam_f_max = TextBox{parent=sim,x=22,y=18,text="             ? kg/s |",width=21,fg_bg=style.label}
     steam_f_max.register(ps, "phys_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
-    TextBox{parent=sim,y=21,text="Water Return Rate",width=18,fg_bg=style.label}
-    local water_f = DataIndicator{parent=sim,x=20,y=21,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    TextBox{parent=sim,y=20,text="Water Return Rate",width=18,fg_bg=style.label}
+    local water_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     water_f.register(ps, "phys_water_flow", water_f.update)
 
-    local water_f_bar = HorizontalBar{parent=sim,y=23,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
+    local water_f_bar = HorizontalBar{parent=sim,y=21,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
     water_f_bar.register(ps, "phys_water_flow", function (v) water_f_bar.update(v / (ps.get("phys_water_flow_max") or 1)) end)
 
-    TextBox{parent=sim,y=24,text="| 0 kg/s",width=8,fg_bg=style.label}
-    local water_f_max = TextBox{parent=sim,x=22,y=24,text="             ? kg/s |",width=21,fg_bg=style.label}
+    TextBox{parent=sim,y=22,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local water_f_max = TextBox{parent=sim,x=22,y=22,text="             ? kg/s |",width=21,fg_bg=style.label}
     water_f_max.register(ps, "phys_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 
-    return root
 end
-
-return make
