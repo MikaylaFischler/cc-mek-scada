@@ -243,10 +243,10 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=sim,y=3,text="Cooled Coolant Tank Pressure",width=28,fg_bg=style.label}
     local ccool_p = DataIndicator{parent=sim,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    ccool_p.register(ps, "sci_ccool_p", ccool_p.update)
+    ccool_p.register(ps, "phys_ccool_p", ccool_p.update)
 
     local ccool_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    ccool_p_bar.register(ps, "sci_ccool_p", function (v) ccool_p_bar.update(v / (ps.get("sci_ccool_p_max") or 1)) end)
+    ccool_p_bar.register(ps, "phys_ccool_p", function (v) ccool_p_bar.update(v / (ps.get("phys_ccool_p_max") or 1)) end)
 
     ccool_p_bar.register(ps, "ccool_type", function (type)
         ccool_p_bar.recolor((type == types.FLUID.SODIUM) and c_Na_c or water_c)
@@ -255,15 +255,15 @@ local function make(parent, unit_id, close_cb)
     TextBox{parent=sim,y=6,text="| 0 bar",width=7,fg_bg=style.label}
     local cccol_p_mid = TextBox{parent=sim,x=21,y=6,text="| ? bar",width=10,fg_bg=style.label}
     local ccool_p_max = TextBox{parent=sim,x=33,y=6,text="   ? bar |",fg_bg=style.label}
-    cccol_p_mid.register(ps, "sci_ccool_p_max", function (v) cccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    ccool_p_max.register(ps, "sci_ccool_p_max", function (v) ccool_p_max.set_value(sprintf("%4d bar |", v)) end)
+    cccol_p_mid.register(ps, "phys_ccool_p_max", function (v) cccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    ccool_p_max.register(ps, "phys_ccool_p_max", function (v) ccool_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=8,text="Heated Coolant Tank Pressure",width=28,fg_bg=style.label}
     local hcool_p = DataIndicator{parent=sim,x=30,y=8,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    hcool_p.register(ps, "sci_hcool_p", hcool_p.update)
+    hcool_p.register(ps, "phys_hcool_p", hcool_p.update)
 
     local hcool_p_bar = HorizontalBar{parent=sim,y=10,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    hcool_p_bar.register(ps, "sci_hcool_p", function (v) hcool_p_bar.update(v / (ps.get("sci_hcool_p_max") or 1)) end)
+    hcool_p_bar.register(ps, "phys_hcool_p", function (v) hcool_p_bar.update(v / (ps.get("phys_hcool_p_max") or 1)) end)
 
     hcool_p_bar.register(ps, "hcool_type", function (type)
         hcool_p_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
@@ -272,28 +272,28 @@ local function make(parent, unit_id, close_cb)
     TextBox{parent=sim,y=11,text="| 0 bar",width=7,fg_bg=style.label}
     local hccol_p_mid = TextBox{parent=sim,x=21,y=11,text="| ? bar",width=10,fg_bg=style.label}
     local hcool_p_max = TextBox{parent=sim,x=33,y=11,text="   ? bar |",width=10,fg_bg=style.label}
-    hccol_p_mid.register(ps, "sci_hcool_p_max", function (v) hccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    hcool_p_max.register(ps, "sci_hcool_p_max", function (v) hcool_p_max.set_value(sprintf("%4d bar |", v)) end)
+    hccol_p_mid.register(ps, "phys_hcool_p_max", function (v) hccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    hcool_p_max.register(ps, "phys_hcool_p_max", function (v) hcool_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=13,text="Reactor Vessel Pressure",width=28,fg_bg=style.label}
     local vessel_p = DataIndicator{parent=sim,x=30,y=13,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    vessel_p.register(ps, "sci_vessel_p", vessel_p.update)
+    vessel_p.register(ps, "phys_vessel_p", vessel_p.update)
 
     local vessel_p_bar = HorizontalBar{parent=sim,y=15,thin_bar=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=42}
-    vessel_p_bar.register(ps, "sci_vessel_p", function (v) vessel_p_bar.update(v / (ps.get("sci_vessel_p_max") or 1)) end)
+    vessel_p_bar.register(ps, "phys_vessel_p", function (v) vessel_p_bar.update(v / (ps.get("phys_vessel_p_max") or 1)) end)
 
     TextBox{parent=sim,y=16,text="| 0 bar",width=7,fg_bg=style.label}
     local vessel_p_mid = TextBox{parent=sim,x=21,y=16,text="| ? bar",width=10,fg_bg=style.label}
     local vessel_p_max = TextBox{parent=sim,x=33,y=16,text="   ? bar |",width=10,fg_bg=style.label}
-    vessel_p_mid.register(ps, "sci_vessel_p_max", function (v) vessel_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    vessel_p_max.register(ps, "sci_vessel_p_max", function (v) vessel_p_max.set_value(sprintf("%4d bar |", v)) end)
+    vessel_p_mid.register(ps, "phys_vessel_p_max", function (v) vessel_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    vessel_p_max.register(ps, "phys_vessel_p_max", function (v) vessel_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=20,text="Coolant Flow Rate",width=18,fg_bg=style.label}
     local cool_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    cool_f.register(ps, "sci_cool_flow", cool_f.update)
+    cool_f.register(ps, "phys_cool_flow", cool_f.update)
 
     local cool_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    cool_f_bar.register(ps, "sci_cool_flow", function (v) cool_f_bar.update(v / (ps.get("sci_cool_flow_max") or 1)) end)
+    cool_f_bar.register(ps, "phys_cool_flow", function (v) cool_f_bar.update(v / (ps.get("phys_cool_flow_max") or 1)) end)
 
     cool_f_bar.register(ps, "hcool_type", function (type)
         cool_f_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
@@ -301,7 +301,7 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=sim,y=23,text="| 0 kg/s",width=8,fg_bg=style.label}
     local cool_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
-    cool_f_max.register(ps, "sci_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    cool_f_max.register(ps, "phys_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 

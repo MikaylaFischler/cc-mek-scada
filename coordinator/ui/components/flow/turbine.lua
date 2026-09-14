@@ -237,62 +237,62 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=sim,y=1,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
     local inlet_p = DataIndicator{parent=sim,x=30,y=1,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    inlet_p.register(ps, "sci_inlet_p", inlet_p.update)
+    inlet_p.register(ps, "phys_inlet_p", inlet_p.update)
 
     local inlet_p_bar = HorizontalBar{parent=sim,y=3,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    inlet_p_bar.register(ps, "sci_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("sci_inlet_p_max") or 1)) end)
+    inlet_p_bar.register(ps, "phys_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("phys_inlet_p_max") or 1)) end)
 
     TextBox{parent=sim,y=4,text="| 0 bar",width=7,fg_bg=style.label}
     local inlet_p_mid = TextBox{parent=sim,x=21,y=4,text="| ? bar",width=10,fg_bg=style.label}
     local inlet_p_max = TextBox{parent=sim,x=33,y=4,text="   ? bar |",fg_bg=style.label}
-    inlet_p_mid.register(ps, "sci_inlet_p_max", function (v) inlet_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    inlet_p_max.register(ps, "sci_inlet_p_max", function (v) inlet_p_max.set_value(sprintf("%4d bar |", v)) end)
+    inlet_p_mid.register(ps, "phys_inlet_p_max", function (v) inlet_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    inlet_p_max.register(ps, "phys_inlet_p_max", function (v) inlet_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=6,text="Exhaust Gas Pressure",width=28,fg_bg=style.label}
     local exhaust_p = DataIndicator{parent=sim,x=30,y=6,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    exhaust_p.register(ps, "sci_exhaust_p", exhaust_p.update)
+    exhaust_p.register(ps, "phys_exhaust_p", exhaust_p.update)
 
     local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    exhaust_p_bar.register(ps, "sci_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("sci_exhaust_p_max") or 1)) end)
+    exhaust_p_bar.register(ps, "phys_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("phys_exhaust_p_max") or 1)) end)
 
     TextBox{parent=sim,y=9,text="| 0 bar",width=7,fg_bg=style.label}
     local exhaust_p_mid = TextBox{parent=sim,x=21,y=9,text="| ? bar",width=10,fg_bg=style.label}
     local exhaust_p_max = TextBox{parent=sim,x=33,y=9,text="   ? bar |",width=10,fg_bg=style.label}
-    exhaust_p_mid.register(ps, "sci_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    exhaust_p_max.register(ps, "sci_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
+    exhaust_p_mid.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    exhaust_p_max.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=11,text="Steam Input Rate",width=18,fg_bg=style.label}
     local inlet_f = DataIndicator{parent=sim,x=20,y=11,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    inlet_f.register(ps, "sci_inlet_flow", inlet_f.update)
+    inlet_f.register(ps, "phys_inlet_flow", inlet_f.update)
 
     local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    inlet_f_bar.register(ps, "sci_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("sci_inlet_flow_max") or 1)) end)
+    inlet_f_bar.register(ps, "phys_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("phys_inlet_flow_max") or 1)) end)
 
     TextBox{parent=sim,y=14,text="| 0 kg/s",width=8,fg_bg=style.label}
     local inlet_f_max = TextBox{parent=sim,x=22,y=14,text="             ? kg/s |",width=21,fg_bg=style.label}
-    inlet_f_max.register(ps, "sci_inlet_flow_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    inlet_f_max.register(ps, "phys_inlet_flow_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     TextBox{parent=sim,y=16,text="Steam Flow Rate",width=18,fg_bg=style.label}
     local steam_f = DataIndicator{parent=sim,x=20,y=16,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    steam_f.register(ps, "sci_steam_flow", steam_f.update)
+    steam_f.register(ps, "phys_steam_flow", steam_f.update)
 
     local steam_f_bar = HorizontalBar{parent=sim,y=18,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    steam_f_bar.register(ps, "sci_steam_flow", function (v) steam_f_bar.update(v / (ps.get("sci_steam_flow_max") or 1)) end)
+    steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or 1)) end)
 
     TextBox{parent=sim,y=19,text="| 0 kg/s",width=8,fg_bg=style.label}
     local steam_f_max = TextBox{parent=sim,x=22,y=19,text="             ? kg/s |",width=21,fg_bg=style.label}
-    steam_f_max.register(ps, "sci_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    steam_f_max.register(ps, "phys_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     TextBox{parent=sim,y=21,text="Water Return Rate",width=18,fg_bg=style.label}
     local water_f = DataIndicator{parent=sim,x=20,y=21,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    water_f.register(ps, "sci_water_flow", water_f.update)
+    water_f.register(ps, "phys_water_flow", water_f.update)
 
     local water_f_bar = HorizontalBar{parent=sim,y=23,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
-    water_f_bar.register(ps, "sci_water_flow", function (v) water_f_bar.update(v / (ps.get("sci_water_flow_max") or 1)) end)
+    water_f_bar.register(ps, "phys_water_flow", function (v) water_f_bar.update(v / (ps.get("phys_water_flow_max") or 1)) end)
 
     TextBox{parent=sim,y=24,text="| 0 kg/s",width=8,fg_bg=style.label}
     local water_f_max = TextBox{parent=sim,x=22,y=24,text="             ? kg/s |",width=21,fg_bg=style.label}
-    water_f_max.register(ps, "sci_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    water_f_max.register(ps, "phys_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 
