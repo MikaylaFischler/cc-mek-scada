@@ -217,7 +217,7 @@ return function (frame, unit, tbn_id)
     inlet_p.register(ps, "phys_inlet_p", inlet_p.update)
 
     local inlet_p_bar = HorizontalBar{parent=sim,y=3,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    inlet_p_bar.register(ps, "phys_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("phys_inlet_p_max") or 1)) end)
+    inlet_p_bar.register(ps, "phys_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("phys_inlet_p_max") or math.huge)) end)
 
     TextBox{parent=sim,y=4,text="| 0 bar",width=7,fg_bg=style.label}
     local inlet_p_mid = TextBox{parent=sim,x=21,y=4,text="| ? bar",width=10,fg_bg=style.label}
@@ -230,7 +230,7 @@ return function (frame, unit, tbn_id)
     exhaust_p.register(ps, "phys_exhaust_p", exhaust_p.update)
 
     local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    exhaust_p_bar.register(ps, "phys_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("phys_exhaust_p_max") or 1)) end)
+    exhaust_p_bar.register(ps, "phys_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("phys_exhaust_p_max") or math.huge)) end)
 
     TextBox{parent=sim,y=9,text="| 0 bar",width=7,fg_bg=style.label}
     local exhaust_p_mid = TextBox{parent=sim,x=21,y=9,text="| ? bar",width=10,fg_bg=style.label}
@@ -243,7 +243,7 @@ return function (frame, unit, tbn_id)
     inlet_f.register(ps, "phys_inlet_flow", inlet_f.update)
 
     local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    inlet_f_bar.register(ps, "phys_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("phys_inlet_flow_max") or 1)) end)
+    inlet_f_bar.register(ps, "phys_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("phys_inlet_flow_max") or math.huge)) end)
 
     TextBox{parent=sim,y=14,text="| 0 kg/s",width=8,fg_bg=style.label}
     local inlet_f_max = TextBox{parent=sim,x=22,y=14,text="             ? kg/s |",width=21,fg_bg=style.label}
@@ -254,7 +254,7 @@ return function (frame, unit, tbn_id)
     steam_f.register(ps, "phys_steam_flow", steam_f.update)
 
     local steam_f_bar = HorizontalBar{parent=sim,y=17,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or 1)) end)
+    steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or math.huge)) end)
 
     TextBox{parent=sim,y=18,text="| 0 kg/s",width=8,fg_bg=style.label}
     local steam_f_max = TextBox{parent=sim,x=22,y=18,text="             ? kg/s |",width=21,fg_bg=style.label}
@@ -265,7 +265,7 @@ return function (frame, unit, tbn_id)
     water_f.register(ps, "phys_water_flow", water_f.update)
 
     local water_f_bar = HorizontalBar{parent=sim,y=21,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
-    water_f_bar.register(ps, "phys_water_flow", function (v) water_f_bar.update(v / (ps.get("phys_water_flow_max") or 1)) end)
+    water_f_bar.register(ps, "phys_water_flow", function (v) water_f_bar.update(v / (ps.get("phys_water_flow_max") or math.huge)) end)
 
     TextBox{parent=sim,y=22,text="| 0 kg/s",width=8,fg_bg=style.label}
     local water_f_max = TextBox{parent=sim,x=22,y=22,text="             ? kg/s |",width=21,fg_bg=style.label}

@@ -214,9 +214,9 @@ local function make(parent, unit_id, close_cb)
     op_temp_scale.register(ps, "temp", function (t)
         t = t - const.mek.BASE_BOIL_TEMP
         if unit.reactor_data.mek_status.ccool_type == types.FLUID.SODIUM then
-            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_Na - const.mek.BASE_BOIL_TEMP) or 1))
+            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_Na or math.huge) - const.mek.BASE_BOIL_TEMP))
         else
-            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_H2O - const.mek.BASE_BOIL_TEMP) or 1))
+            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_H2O or math.huge) - const.mek.BASE_BOIL_TEMP))
         end
     end)
 
@@ -246,7 +246,7 @@ local function make(parent, unit_id, close_cb)
     ccool_p.register(ps, "phys_ccool_p", ccool_p.update)
 
     local ccool_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    ccool_p_bar.register(ps, "phys_ccool_p", function (v) ccool_p_bar.update(v / (ps.get("phys_ccool_p_max") or 1)) end)
+    ccool_p_bar.register(ps, "phys_ccool_p", function (v) ccool_p_bar.update(v / (ps.get("phys_ccool_p_max") or math.huge)) end)
 
     ccool_p_bar.register(ps, "ccool_type", function (type)
         ccool_p_bar.recolor((type == types.FLUID.SODIUM) and c_Na_c or water_c)
@@ -263,7 +263,7 @@ local function make(parent, unit_id, close_cb)
     hcool_p.register(ps, "phys_hcool_p", hcool_p.update)
 
     local hcool_p_bar = HorizontalBar{parent=sim,y=10,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    hcool_p_bar.register(ps, "phys_hcool_p", function (v) hcool_p_bar.update(v / (ps.get("phys_hcool_p_max") or 1)) end)
+    hcool_p_bar.register(ps, "phys_hcool_p", function (v) hcool_p_bar.update(v / (ps.get("phys_hcool_p_max") or math.huge)) end)
 
     hcool_p_bar.register(ps, "hcool_type", function (type)
         hcool_p_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
@@ -280,7 +280,7 @@ local function make(parent, unit_id, close_cb)
     vessel_p.register(ps, "phys_vessel_p", vessel_p.update)
 
     local vessel_p_bar = HorizontalBar{parent=sim,y=15,thin_bar=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=42}
-    vessel_p_bar.register(ps, "phys_vessel_p", function (v) vessel_p_bar.update(v / (ps.get("phys_vessel_p_max") or 1)) end)
+    vessel_p_bar.register(ps, "phys_vessel_p", function (v) vessel_p_bar.update(v / (ps.get("phys_vessel_p_max") or math.huge)) end)
 
     TextBox{parent=sim,y=16,text="| 0 bar",width=7,fg_bg=style.label}
     local vessel_p_mid = TextBox{parent=sim,x=21,y=16,text="| ? bar",width=10,fg_bg=style.label}
@@ -293,7 +293,7 @@ local function make(parent, unit_id, close_cb)
     cool_f.register(ps, "phys_cool_flow", cool_f.update)
 
     local cool_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    cool_f_bar.register(ps, "phys_cool_flow", function (v) cool_f_bar.update(v / (ps.get("phys_cool_flow_max") or 1)) end)
+    cool_f_bar.register(ps, "phys_cool_flow", function (v) cool_f_bar.update(v / (ps.get("phys_cool_flow_max") or math.huge)) end)
 
     cool_f_bar.register(ps, "hcool_type", function (type)
         cool_f_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
