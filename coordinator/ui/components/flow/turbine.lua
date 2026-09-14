@@ -33,6 +33,9 @@ local gray = colors.gray
 local water_c = cpair(colors.blue, gray)
 local steam_c = cpair(colors.white, gray)
 
+local MEK_BASE_SPEED = 512 -- src/generators/java/mekanism/generators/client/render/RenderTurbineRotor.java
+local ROTATION_TO_RPM = 60 * 20 * (MEK_BASE_SPEED / 360) -- 20 ticks per second * 60 seconds per minute, 360 degrees per rotation
+
 -- make a new turbine detail row item
 ---@param frame Container
 ---@param unit crd_io_unit
@@ -164,7 +167,7 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=e_flow,y=18,text="Rotor Rotation",width=21,fg_bg=style.label}
     local rpm = DataIndicator{parent=e_flow,format="%17.4f",value=0,unit="RPM",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
-    rpm.register(ps, "flow_rate", function (v) rpm.update(512 * (v / (ps.get("max_flow_rate") or math.huge))) end)
+    rpm.register(ps, "flow_rate", function (v) rpm.update(ROTATION_TO_RPM * (v / (ps.get("max_flow_rate") or math.huge))) end)
 
     TextBox{parent=e_flow,y=21,text="Rotation Speed",width=21,fg_bg=style.label}
     local rpm_bar = HorizontalBar{parent=e_flow,show_percent=true,bar_fg_bg=cpair(colors.black,gray),height=1,width=21}
