@@ -58,15 +58,15 @@ local function make(parent, unit_id, close_cb)
     local ps   = unit.turbine_ps_tbl[1]
 
     -- bounding box div
-    local root = Div{parent=parent,x=math.floor((parent.get_width()-140)/2),y=1,width=140,height=78}
+    local root = Div{parent=parent,x=math.floor((parent.get_width()-140)/2),y=1,width=142,height=78}
 
     local s = (unit.num_turbines > 1) and "s" or ""
 
-    TextBox{parent=root,x=1,y=1,height=1,text=string.rep("\x8f",137),fg_bg=cpair(parent.get_fg_bg().bkg,gray)}
+    TextBox{parent=root,x=1,y=1,height=1,text=string.rep("\x8f",139),fg_bg=cpair(parent.get_fg_bg().bkg,gray)}
     TextBox{parent=root,x=1,y=2,text=" Steam Turbine Generator"..s.." Details - Unit "..unit_id,fg_bg=cpair(colors.white,gray)}
 
-    PushButton{parent=root,x=138,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=close_cb}
-    PushButton{parent=root,x=138,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=close_cb}
+    PushButton{parent=root,x=140,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=close_cb}
+    PushButton{parent=root,x=140,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=close_cb}
 
     local window = Rectangle{parent=root,x=1,y=3,border=border(1,gray,true),fg_bg=parent.get_fg_bg()}
 
@@ -113,8 +113,8 @@ local function make(parent, unit_id, close_cb)
     --#region steam flow
 
     local s_flow = Rectangle{parent=window,x=27,y=1,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
-    -- Rectangle{parent=window,x=27,y=26,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
-    -- Rectangle{parent=window,x=27,y=51,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    Rectangle{parent=window,x=27,y=26,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    Rectangle{parent=window,x=27,y=51,width=21,height=24,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 
     TextBox{parent=s_flow,text="Steam Flow",alignment=ALIGN.CENTER}
 
@@ -233,71 +233,66 @@ local function make(parent, unit_id, close_cb)
     --#endregion
     --#region technical details
 
-    -- local sim = Rectangle{parent=window,x=94,y=1,width=44,height=25,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
+    local sim = Rectangle{parent=window,x=95,y=1,width=44,height=26,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 
-    -- TextBox{parent=sim,x=1,y=1,text="Technical Details",alignment=ALIGN.CENTER}
+    TextBox{parent=sim,y=1,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
+    local inlet_p = DataIndicator{parent=sim,x=30,y=1,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    inlet_p.register(ps, "sci_inlet_p", inlet_p.update)
 
-    -- TextBox{parent=sim,y=3,text="Cooled Coolant Tank Pressure",width=28,fg_bg=style.label}
-    -- local ccool_p = DataIndicator{parent=sim,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    -- ccool_p.register(ps, "sci_ccool_p", ccool_p.update)
+    local inlet_p_bar = HorizontalBar{parent=sim,y=3,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    inlet_p_bar.register(ps, "sci_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("sci_inlet_p_max") or 1)) end)
 
-    -- local ccool_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    -- ccool_p_bar.register(ps, "sci_ccool_p", function (v) ccool_p_bar.update(v / (ps.get("sci_ccool_p_max") or 1)) end)
+    TextBox{parent=sim,y=4,text="| 0 bar",width=7,fg_bg=style.label}
+    local inlet_p_mid = TextBox{parent=sim,x=21,y=4,text="| ? bar",width=10,fg_bg=style.label}
+    local inlet_p_max = TextBox{parent=sim,x=33,y=4,text="   ? bar |",fg_bg=style.label}
+    inlet_p_mid.register(ps, "sci_inlet_p_max", function (v) inlet_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    inlet_p_max.register(ps, "sci_inlet_p_max", function (v) inlet_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    -- ccool_p_bar.register(ps, "ccool_type", function (type)
-    --     ccool_p_bar.recolor((type == types.FLUID.SODIUM) and c_Na_c or water_c)
-    -- end)
+    TextBox{parent=sim,y=6,text="Exhaust Gas Pressure",width=28,fg_bg=style.label}
+    local exhaust_p = DataIndicator{parent=sim,x=30,y=6,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    exhaust_p.register(ps, "sci_exhaust_p", exhaust_p.update)
 
-    -- TextBox{parent=sim,y=6,text="| 0 bar",width=7,fg_bg=style.label}
-    -- local cccol_p_mid = TextBox{parent=sim,x=21,y=6,text="| ? bar",width=10,fg_bg=style.label}
-    -- local ccool_p_max = TextBox{parent=sim,x=33,y=6,text="   ? bar |",fg_bg=style.label}
-    -- cccol_p_mid.register(ps, "sci_ccool_p_max", function (v) cccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    -- ccool_p_max.register(ps, "sci_ccool_p_max", function (v) ccool_p_max.set_value(sprintf("%4d bar |", v)) end)
+    local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
+    exhaust_p_bar.register(ps, "sci_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("sci_exhaust_p_max") or 1)) end)
 
-    -- TextBox{parent=sim,y=8,text="Heated Coolant Tank Pressure",width=28,fg_bg=style.label}
-    -- local hcool_p = DataIndicator{parent=sim,x=30,y=8,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    -- hcool_p.register(ps, "sci_hcool_p", hcool_p.update)
+    TextBox{parent=sim,y=9,text="| 0 bar",width=7,fg_bg=style.label}
+    local exhaust_p_mid = TextBox{parent=sim,x=21,y=9,text="| ? bar",width=10,fg_bg=style.label}
+    local exhaust_p_max = TextBox{parent=sim,x=33,y=9,text="   ? bar |",width=10,fg_bg=style.label}
+    exhaust_p_mid.register(ps, "sci_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    exhaust_p_max.register(ps, "sci_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    -- local hcool_p_bar = HorizontalBar{parent=sim,y=10,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    -- hcool_p_bar.register(ps, "sci_hcool_p", function (v) hcool_p_bar.update(v / (ps.get("sci_hcool_p_max") or 1)) end)
+    TextBox{parent=sim,y=11,text="Steam Input Rate",width=18,fg_bg=style.label}
+    local inlet_f = DataIndicator{parent=sim,x=20,y=11,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    inlet_f.register(ps, "sci_inlet_flow", inlet_f.update)
 
-    -- hcool_p_bar.register(ps, "hcool_type", function (type)
-    --     hcool_p_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
-    -- end)
+    local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    inlet_f_bar.register(ps, "sci_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("sci_inlet_flow_max") or 1)) end)
 
-    -- TextBox{parent=sim,y=11,text="| 0 bar",width=7,fg_bg=style.label}
-    -- local hccol_p_mid = TextBox{parent=sim,x=21,y=11,text="| ? bar",width=10,fg_bg=style.label}
-    -- local hcool_p_max = TextBox{parent=sim,x=33,y=11,text="   ? bar |",width=10,fg_bg=style.label}
-    -- hccol_p_mid.register(ps, "sci_hcool_p_max", function (v) hccol_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    -- hcool_p_max.register(ps, "sci_hcool_p_max", function (v) hcool_p_max.set_value(sprintf("%4d bar |", v)) end)
+    TextBox{parent=sim,y=14,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local inlet_f_max = TextBox{parent=sim,x=22,y=14,text="             ? kg/s |",width=21,fg_bg=style.label}
+    inlet_f_max.register(ps, "sci_inlet_flow_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
-    -- TextBox{parent=sim,y=13,text="Reactor Vessel Pressure",width=28,fg_bg=style.label}
-    -- local vessel_p = DataIndicator{parent=sim,x=30,y=13,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    -- vessel_p.register(ps, "sci_vessel_p", vessel_p.update)
+    TextBox{parent=sim,y=16,text="Steam Flow Rate",width=18,fg_bg=style.label}
+    local steam_f = DataIndicator{parent=sim,x=20,y=16,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    steam_f.register(ps, "sci_steam_flow", steam_f.update)
 
-    -- local vessel_p_bar = HorizontalBar{parent=sim,y=15,thin_bar=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=42}
-    -- vessel_p_bar.register(ps, "sci_vessel_p", function (v) vessel_p_bar.update(v / (ps.get("sci_vessel_p_max") or 1)) end)
+    local steam_f_bar = HorizontalBar{parent=sim,y=18,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    steam_f_bar.register(ps, "sci_steam_flow", function (v) steam_f_bar.update(v / (ps.get("sci_steam_flow_max") or 1)) end)
 
-    -- TextBox{parent=sim,y=16,text="| 0 bar",width=7,fg_bg=style.label}
-    -- local vessel_p_mid = TextBox{parent=sim,x=21,y=16,text="| ? bar",width=10,fg_bg=style.label}
-    -- local vessel_p_max = TextBox{parent=sim,x=33,y=16,text="   ? bar |",width=10,fg_bg=style.label}
-    -- vessel_p_mid.register(ps, "sci_vessel_p_max", function (v) vessel_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    -- vessel_p_max.register(ps, "sci_vessel_p_max", function (v) vessel_p_max.set_value(sprintf("%4d bar |", v)) end)
+    TextBox{parent=sim,y=19,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local steam_f_max = TextBox{parent=sim,x=22,y=19,text="             ? kg/s |",width=21,fg_bg=style.label}
+    steam_f_max.register(ps, "sci_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
-    -- TextBox{parent=sim,y=20,text="Coolant Flow Rate",width=18,fg_bg=style.label}
-    -- local cool_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    -- cool_f.register(ps, "sci_cool_flow", cool_f.update)
+    TextBox{parent=sim,y=21,text="Water Return Rate",width=18,fg_bg=style.label}
+    local water_f = DataIndicator{parent=sim,x=20,y=21,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    water_f.register(ps, "sci_water_flow", water_f.update)
 
-    -- local cool_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    -- cool_f_bar.register(ps, "sci_cool_flow", function (v) cool_f_bar.update(v / (ps.get("sci_cool_flow_max") or 1)) end)
+    local water_f_bar = HorizontalBar{parent=sim,y=23,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
+    water_f_bar.register(ps, "sci_water_flow", function (v) water_f_bar.update(v / (ps.get("sci_water_flow_max") or 1)) end)
 
-    -- cool_f_bar.register(ps, "hcool_type", function (type)
-    --     cool_f_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
-    -- end)
-
-    -- TextBox{parent=sim,y=23,text="| 0 kg/s",width=7,fg_bg=style.label}
-    -- local cool_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
-    -- cool_f_max.register(ps, "sci_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    TextBox{parent=sim,y=24,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local water_f_max = TextBox{parent=sim,x=22,y=24,text="             ? kg/s |",width=21,fg_bg=style.label}
+    water_f_max.register(ps, "sci_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 

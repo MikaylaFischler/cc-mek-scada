@@ -606,13 +606,15 @@ function ioctl.record_unit_builds(builds)
             -- turbine builds and properties
             if type(build.turbines) == "table" and type(build.turbine_props) == "table" then
                 for t_id, turbine in pairs(build.turbines) do
+                    local ps = unit.turbine_ps_tbl[t_id]
+
                     if not _record_multiblock_build(t_id, turbine, unit.turbine_data_tbl, unit.turbine_ps_tbl) then
                         log.debug(util.c(log_header, "invalid turbine id ", t_id))
                         valid = false
                     end
 
                     if #build.turbine_props[t_id] == 2 then
-                        local ps, props = unit.turbine_ps_tbl[t_id], unit.properties
+                        local props = unit.properties
 
                         props.flow_perf[t_id]  = build.turbine_props[t_id][1]
                         props.generators[t_id] = build.turbine_props[t_id][2]
@@ -621,6 +623,22 @@ function ioctl.record_unit_builds(builds)
                         ps.publish("gen_mult", props.generators[t_id].multiplier)
                         ps.publish("gen_eff", props.generators[t_id].efficiency)
                     end
+
+                    -- computed flow detail view values
+
+                    local bld = unit.turbine_data_tbl[t_id].build
+
+                    local inlet_p = ((bld.steam_cap / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK))
+                    local exhaust_p = ((bld.max_flow_rate / 1000) / bld.vents)-- * 0.1
+                    local inlet_flow = (bld.steam_cap / 1000) * 20
+                    local steam_flow = (bld.max_flow_rate / 1000) * 20
+                    local water_flow = (bld.max_flow_rate / 1000) * 20
+
+                    ps.publish("sci_inlet_p_max", inlet_p)
+                    ps.publish("sci_exhaust_p_max", exhaust_p)
+                    ps.publish("sci_inlet_flow_max", inlet_flow)
+                    ps.publish("sci_steam_flow_max", steam_flow)
+                    ps.publish("sci_water_flow_max", water_flow)
                 end
             end
 
@@ -1303,6 +1321,22 @@ function ioctl.update_unit_statuses(statuses)
                                 unit.turbine_ps_tbl[id].publish("computed_status", computed_status)
 
                                 unit.turbine_ps_tbl[id].publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
+
+                                -- computed flow detail view values
+
+                                local bld = data.build
+
+                                local inlet_p = (data.tanks.steam.amount / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK)
+                                local exhaust_p = ((data.state.flow_rate / 1000) / bld.vents)-- * 0.1
+                                local inlet_flow = (data.state.steam_input_rate / 1000) * 20
+                                local steam_flow = (data.state.flow_rate / 1000) * 20
+                                local water_flow = (math.min(data.state.flow_rate, bld.max_water_output) / 1000) * 20
+
+                                ps.publish("sci_inlet_p", inlet_p)
+                                ps.publish("sci_exhaust_p", exhaust_p)
+                                ps.publish("sci_inlet_flow", inlet_flow)
+                                ps.publish("sci_steam_flow", steam_flow)
+                                ps.publish("sci_water_flow", water_flow)
                             else
                                 log.debug(util.c(log_header, "invalid turbine id ", id))
                                 valid = false
