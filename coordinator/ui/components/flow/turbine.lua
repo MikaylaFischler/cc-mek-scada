@@ -190,7 +190,7 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=w_flow,y=9,text="Water Flow Rate",width=19,fg_bg=style.label}
     local water_ret = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, ps.get("max_water_output"))) end)
+    water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, ps.get("max_water_output") or 0)) end)
 
     TextBox{parent=w_flow,y=12,text="Water Return Util.",width=19,fg_bg=style.label}
     local water_bar = HorizontalBar{parent=w_flow,show_percent=true,bar_fg_bg=water_c,height=1,width=19}
