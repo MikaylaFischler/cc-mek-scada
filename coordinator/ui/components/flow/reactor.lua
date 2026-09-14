@@ -299,7 +299,7 @@ local function make(parent, unit_id, close_cb)
         cool_f_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
     end)
 
-    TextBox{parent=sim,y=23,text="| 0 kg/s",width=7,fg_bg=style.label}
+    TextBox{parent=sim,y=23,text="| 0 kg/s",width=8,fg_bg=style.label}
     local cool_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
     cool_f_max.register(ps, "sci_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
