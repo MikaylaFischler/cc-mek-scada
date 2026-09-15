@@ -10,14 +10,14 @@ local ioctl         = require("coordinator.ioctl")
 
 local style         = require("coordinator.ui.style")
 
+local make_window   = require("coordinator.ui.components.flow.window")
+
 local core          = require("graphics.core")
 
 local Div           = require("graphics.elements.Div")
 local TextBox       = require("graphics.elements.TextBox")
 
 local Rectangle     = require("graphics.elements.Rectangle")
-
-local PushButton    = require("graphics.elements.controls.PushButton")
 
 local DataIndicator = require("graphics.elements.indicators.DataIndicator")
 local HorizontalBar = require("graphics.elements.indicators.HorizontalBar")
@@ -51,16 +51,7 @@ local function make(parent, unit_id, close_cb)
     local unit = db.units[unit_id]
     local ps   = unit.unit_ps
 
-    -- bounding box div
-    local root = Div{parent=parent,x=math.floor((parent.get_width()-140)/2),y=4,width=140,height=29}
-
-    TextBox{parent=root,x=1,y=1,height=1,text=string.rep("\x8f",137),fg_bg=cpair(parent.get_fg_bg().bkg,gray)}
-    TextBox{parent=root,x=1,y=2,text=" Fission Reactor Details - Unit "..unit_id,fg_bg=cpair(colors.white,gray)}
-
-    PushButton{parent=root,x=138,y=1,min_width=3,text="\x8f\x8f\x8f",fg_bg=cpair(parent.get_fg_bg().bkg,colors.red),callback=close_cb}
-    PushButton{parent=root,x=138,y=2,min_width=3,text="\xd7",fg_bg=cpair(colors.white,colors.red),callback=close_cb}
-
-    local window = Rectangle{parent=root,x=1,y=3,border=border(1,gray,true),fg_bg=parent.get_fg_bg()}
+    local root, window = make_window(parent, 140, 29, "Fission Reactor Details - Unit "..unit_id, close_cb)
 
     --#region tanks
 
