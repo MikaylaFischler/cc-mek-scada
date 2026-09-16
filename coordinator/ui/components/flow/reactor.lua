@@ -51,7 +51,7 @@ local function make(parent, unit_id, close_cb)
     local unit = db.units[unit_id]
     local ps   = unit.unit_ps
 
-    local root, window = make_window(parent, 140, 29, "Fission Reactor Details - Unit "..unit_id, close_cb)
+    local window = make_window(parent, 140, 29, "Fission Reactor Details - Unit "..unit_id, close_cb)
 
     --#region tanks
 
@@ -182,7 +182,7 @@ local function make(parent, unit_id, close_cb)
     heating_r.register(ps, "heating_rate", heating_r.update)
 
     TextBox{parent=reaction,y=12,text="Environmental Loss",width=19,fg_bg=style.label}
-    local env_loss = DataIndicator{parent=reaction,format="%14d",value=0,unit="J/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    local env_loss = DataIndicator{parent=reaction,format="%15d",value=0,unit="J/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     env_loss.register(ps, "env_loss_J", env_loss.update)
 
     TextBox{parent=reaction,y=15,text="Boil Efficiency",width=19,fg_bg=style.label}
@@ -295,8 +295,6 @@ local function make(parent, unit_id, close_cb)
     cool_f_max.register(ps, "phys_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
-
-    return root
 end
 
 return make

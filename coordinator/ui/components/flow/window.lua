@@ -16,7 +16,7 @@ local cpair = core.cpair
 ---@param height integer
 ---@param title string
 ---@param close_cb function
----@return Div root, Rectangle window
+---@return Rectangle window
 return function (parent, width, height, title, close_cb)
     local root = Div{parent=parent,x=math.floor((parent.get_width()-width)/2),y=math.ceil((parent.get_height()-height)/2),width=width,height=height}
 
@@ -28,5 +28,5 @@ return function (parent, width, height, title, close_cb)
 
     local window = Rectangle{parent=root,x=1,y=3,border=border(1,colors.gray,true)}
 
-    return root, window
+    return window
 end

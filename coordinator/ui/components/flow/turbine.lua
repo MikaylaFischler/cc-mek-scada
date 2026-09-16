@@ -275,5 +275,4 @@ return function (frame, unit, tbn_id)
     water_f_max.register(ps, "phys_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
-
 end

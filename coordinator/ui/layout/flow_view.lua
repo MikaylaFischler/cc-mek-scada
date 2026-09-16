@@ -12,6 +12,7 @@ local style          = require("coordinator.ui.style")
 local unit_flow      = require("coordinator.ui.components.flow.unit_flow")
 local waste_flow     = require("coordinator.ui.components.flow.waste_flow")
 
+local boiler_dtls    = require("coordinator.ui.components.flow.boilers")
 local reactor_dtls   = require("coordinator.ui.components.flow.reactor")
 local turbine_dtls   = require("coordinator.ui.components.flow.turbines")
 
@@ -76,6 +77,7 @@ local function init(main)
     end
 
     local view_pane = MultiPane{parent=main,y=3,panes=panes}
+    local close_win = function () view_pane.set_value(1) end
 
     -- determine display characteristics
 
@@ -332,8 +334,9 @@ local function init(main)
         })
 
         -- detail windows
-        reactor_dtls(panes[cb_ofs], i, function () view_pane.set_value(1) end)
-        turbine_dtls(panes[cb_ofs + 2], i, function () view_pane.set_value(1) end)
+        reactor_dtls(panes[cb_ofs], i, close_win)
+        boiler_dtls(panes[cb_ofs + 1], i, close_win)
+        turbine_dtls(panes[cb_ofs + 2], i, close_win)
 
         if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
