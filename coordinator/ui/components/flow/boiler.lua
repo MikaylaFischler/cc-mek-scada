@@ -58,7 +58,7 @@ return function (frame, unit, blr_id)
 
     local hcool_div = Div{parent=rc_loop,x=1,y=3,width=24,height=8}
 
-    local hcool_bar  = VerticalBar{parent=hcool_div,fg_bg=h_Na_c,height=8,width=2}
+    local hcool_bar = VerticalBar{parent=hcool_div,fg_bg=h_Na_c,height=8,width=2}
     hcool_bar.register(ps, "hcool_fill", hcool_bar.update)
 
     TextBox{parent=hcool_div,x=4,y=1,text="Superheated Sodium",width=19,fg_bg=style.label}
@@ -75,7 +75,7 @@ return function (frame, unit, blr_id)
 
     local ccool_div = Div{parent=rc_loop,x=1,y=12,width=24,height=8}
 
-    local ccool_bar  = VerticalBar{parent=ccool_div,fg_bg=h_Na_c,height=8,width=2}
+    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=h_Na_c,height=8,width=2}
     ccool_bar.register(ps, "ccool_fill", ccool_bar.update)
 
     TextBox{parent=ccool_div,x=4,y=1,text="Cooled Sodium",width=19,fg_bg=style.label}
@@ -128,25 +128,49 @@ return function (frame, unit, blr_id)
     --#endregion
     --#region turbine steam loop
 
-    local ts_loop = Rectangle{parent=frame,x=73,y=1,width=21,height=15,border=border(1,gray,true),thin=true}
+    local ts_loop = Rectangle{parent=frame,x=51,y=1,width=24,height=25,border=border(1,gray,true),thin=true}
 
     TextBox{parent=ts_loop,text="Turbine Steam Loop",alignment=ALIGN.CENTER}
 
-    -- TextBox{parent=w_flow,y=3,text="Superheaters",width=19,fg_bg=style.label}
-    -- local condensers = DataIndicator{parent=w_flow,format="%19d",value=0,commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    -- condensers.register(ps, "condensers", condensers.update)
+    TextBox{parent=ts_loop,y=3,text="Feedwater Min / Needed",width=22,fg_bg=style.label}
+    local water_min = DataIndicator{parent=ts_loop,format="%17d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
+    local water_need = DataIndicator{parent=ts_loop,format="%19d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
+    water_min.register(ps, "max_boil_rate", water_min.update)
+    water_need.register(ps, "water_need", water_need.update)
 
-    -- TextBox{parent=w_flow,y=6,text="Max. Water Output",width=19,fg_bg=style.label}
-    -- local max_water = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    -- max_water.register(ps, "max_water_output", max_water.update)
+    local water_div = Div{parent=ts_loop,x=1,y=7,width=24,height=8}
 
-    -- TextBox{parent=w_flow,y=9,text="Water Flow Rate",width=19,fg_bg=style.label}
-    -- local water_ret = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    -- water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, ps.get("max_water_output") or 0)) end)
+    local water_bar = VerticalBar{parent=water_div,fg_bg=water_c,height=8,width=2}
+    water_bar.register(ps, "water_fill", water_bar.update)
 
-    -- TextBox{parent=w_flow,y=12,text="Water Return Util.",width=19,fg_bg=style.label}
-    -- local water_bar = HorizontalBar{parent=w_flow,show_percent=true,bar_fg_bg=water_c,height=1,width=19}
-    -- water_bar.register(ps, "flow_rate", function (v) water_bar.update(v / (ps.get("max_water_output") or math.huge)) end)
+    TextBox{parent=water_div,x=4,y=1,text="Supply Feedwater",width=19,fg_bg=style.label}
+    local water_amnt = DataIndicator{parent=water_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    water_amnt.register(ps, "water", function (x) water_amnt.update(x.amount) end)
+
+    TextBox{parent=water_div,x=4,y=4,text="Water Capacity",width=19,fg_bg=style.label}
+    local water_cap = DataIndicator{parent=water_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    water_cap.register(ps, "water_cap", water_cap.update)
+
+    TextBox{parent=water_div,x=4,y=7,text="Water Fill",width=19,fg_bg=style.label}
+    local water_fill = DataIndicator{parent=water_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    water_fill.register(ps, "water_fill", function (v) water_fill.update(v * 100) end)
+
+    local steam_div = Div{parent=ts_loop,x=1,y=16,width=24,height=8}
+
+    local steam_bar = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
+    steam_bar.register(ps, "steam_fill", steam_bar.update)
+
+    TextBox{parent=steam_div,x=4,y=1,text="Superheated Steam",width=19,fg_bg=style.label}
+    local steam_amnt = DataIndicator{parent=steam_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    steam_amnt.register(ps, "steam", function (x) steam_amnt.update(x.amount) end)
+
+    TextBox{parent=steam_div,x=4,y=4,text="Steam Capacity",width=19,fg_bg=style.label}
+    local steam_cap = DataIndicator{parent=steam_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    steam_cap.register(ps, "steam_cap", steam_cap.update)
+
+    TextBox{parent=steam_div,x=4,y=7,text="Steam Fill",width=19,fg_bg=style.label}
+    local steam_fill = DataIndicator{parent=steam_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
+    steam_fill.register(ps, "steam_fill", function (v) steam_fill.update(v * 100) end)
 
     --#endregion
     --#region simulation details

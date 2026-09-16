@@ -59,7 +59,7 @@ return function (frame, unit, tbn_id)
 
     local steam_div = Div{parent=frame,x=2,y=6,width=24,height=8}
 
-    local steam_bar  = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
+    local steam_bar = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
     steam_bar.register(ps, "steam_fill", steam_bar.update)
 
     TextBox{parent=steam_div,x=4,y=1,text="Steam",width=21,fg_bg=style.label}
@@ -76,7 +76,7 @@ return function (frame, unit, tbn_id)
 
     local energy_div = Div{parent=frame,x=2,y=16,width=24,height=8}
 
-    local energy_bar  = VerticalBar{parent=energy_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
+    local energy_bar = VerticalBar{parent=energy_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
     energy_bar.register(ps, "energy_fill", energy_bar.update)
 
     TextBox{parent=energy_div,x=4,y=1,text="Energy",width=21,fg_bg=style.label}

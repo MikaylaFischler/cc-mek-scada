@@ -57,7 +57,7 @@ local function make(parent, unit_id, close_cb)
 
     local fuel_div = Div{parent=window,x=2,y=1,width=22,height=8}
 
-    local fuel_bar  = VerticalBar{parent=fuel_div,fg_bg=cpair(style.theme.fuel_color,gray),height=8,width=2}
+    local fuel_bar = VerticalBar{parent=fuel_div,fg_bg=cpair(style.theme.fuel_color,gray),height=8,width=2}
     fuel_bar.register(ps, "fuel_fill", fuel_bar.update)
 
     TextBox{parent=fuel_div,x=4,y=1,text="Fissile Fuel",width=19,fg_bg=style.label}
@@ -74,7 +74,7 @@ local function make(parent, unit_id, close_cb)
 
     local waste_div = Div{parent=window,x=26,y=1,width=22,height=8}
 
-    local waste_bar  = VerticalBar{parent=waste_div,fg_bg=cpair(colors.brown,gray),height=8,width=2}
+    local waste_bar = VerticalBar{parent=waste_div,fg_bg=cpair(colors.brown,gray),height=8,width=2}
     waste_bar.register(ps, "waste_fill", waste_bar.update)
 
     TextBox{parent=waste_div,x=4,y=1,text="Nuclear Waste",width=19,fg_bg=style.label}
@@ -91,7 +91,7 @@ local function make(parent, unit_id, close_cb)
 
     local ccool_div = Div{parent=window,x=2,y=10,width=22,height=8}
 
-    local ccool_bar  = VerticalBar{parent=ccool_div,fg_bg=water_c,height=8,width=2}
+    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=water_c,height=8,width=2}
     ccool_bar.register(ps, "ccool_fill", ccool_bar.update)
 
     ccool_bar.register(ps, "ccool_type", function (type)
@@ -112,7 +112,7 @@ local function make(parent, unit_id, close_cb)
 
     local hcool_div = Div{parent=window,x=26,y=10,width=22,height=8}
 
-    local hcool_bar  = VerticalBar{parent=hcool_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
+    local hcool_bar = VerticalBar{parent=hcool_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
     hcool_bar.register(ps, "hcool_fill", hcool_bar.update)
 
     hcool_bar.register(ps, "hcool_type", function (type)
