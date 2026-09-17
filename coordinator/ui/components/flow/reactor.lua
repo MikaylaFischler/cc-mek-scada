@@ -233,7 +233,7 @@ local function make(parent, unit_id, close_cb)
     TextBox{parent=sim,x=1,y=1,text="Technical Details",alignment=ALIGN.CENTER}
 
     TextBox{parent=sim,y=3,text="Cooled Coolant Tank Pressure",width=28,fg_bg=style.label}
-    local ccool_p = DataIndicator{parent=sim,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    local ccool_p = DataIndicator{parent=sim,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=13,fg_bg=s_field}
     ccool_p.register(ps, "phys_ccool_p", ccool_p.update)
 
     local ccool_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
@@ -250,7 +250,7 @@ local function make(parent, unit_id, close_cb)
     ccool_p_max.register(ps, "phys_ccool_p_max", function (v) ccool_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=8,text="Heated Coolant Tank Pressure",width=28,fg_bg=style.label}
-    local hcool_p = DataIndicator{parent=sim,x=30,y=8,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    local hcool_p = DataIndicator{parent=sim,x=30,y=8,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=13,fg_bg=s_field}
     hcool_p.register(ps, "phys_hcool_p", hcool_p.update)
 
     local hcool_p_bar = HorizontalBar{parent=sim,y=10,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
@@ -267,7 +267,7 @@ local function make(parent, unit_id, close_cb)
     hcool_p_max.register(ps, "phys_hcool_p_max", function (v) hcool_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=13,text="Reactor Vessel Pressure",width=28,fg_bg=style.label}
-    local vessel_p = DataIndicator{parent=sim,x=30,y=13,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    local vessel_p = DataIndicator{parent=sim,x=30,y=13,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=13,fg_bg=s_field}
     vessel_p.register(ps, "phys_vessel_p", vessel_p.update)
 
     local vessel_p_bar = HorizontalBar{parent=sim,y=15,thin_bar=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=42}

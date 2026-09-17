@@ -15,9 +15,9 @@ local TextBox       = require("graphics.elements.TextBox")
 
 local Rectangle     = require("graphics.elements.Rectangle")
 
-local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
-local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
-local VerticalBar    = require("graphics.elements.indicators.VerticalBar")
+local DataIndicator = require("graphics.elements.indicators.DataIndicator")
+local HorizontalBar = require("graphics.elements.indicators.HorizontalBar")
+local VerticalBar   = require("graphics.elements.indicators.VerticalBar")
 
 local ALIGN = core.ALIGN
 
@@ -26,7 +26,6 @@ local sprintf = util.sprintf
 local border = core.border
 local cpair = core.cpair
 
-local wh_gray = style.wh_gray
 local gray = colors.gray
 
 local c_Na_c  = cpair(colors.lightBlue, gray)
@@ -75,7 +74,7 @@ return function (frame, unit, blr_id)
 
     local ccool_div = Div{parent=rc_loop,x=1,y=12,width=24,height=8}
 
-    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=h_Na_c,height=8,width=2}
+    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=c_Na_c,height=8,width=2}
     ccool_bar.register(ps, "ccool_fill", ccool_bar.update)
 
     TextBox{parent=ccool_div,x=4,y=1,text="Cooled Sodium",width=19,fg_bg=style.label}
@@ -175,66 +174,59 @@ return function (frame, unit, blr_id)
     --#endregion
     --#region simulation details
 
-    -- local sim = Rectangle{parent=frame,x=95,y=1,width=44,height=24,border=border(1,gray,true),thin=true}
+    local sim = Rectangle{parent=frame,x=76,y=1,width=44,height=25,border=border(1,gray,true),thin=true}
 
-    -- TextBox{parent=sim,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
-    -- local inlet_p = DataIndicator{parent=sim,x=30,y=1,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    -- inlet_p.register(ps, "phys_inlet_p", inlet_p.update)
+    TextBox{parent=sim,x=1,y=1,text="Technical Details",alignment=ALIGN.CENTER}
 
-    -- local inlet_p_bar = HorizontalBar{parent=sim,y=3,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    -- inlet_p_bar.register(ps, "phys_inlet_p", function (v) inlet_p_bar.update(v / (ps.get("phys_inlet_p_max") or math.huge)) end)
+    TextBox{parent=sim,y=3,text="Water Tank Pressure",width=29,fg_bg=style.label}
+    local water_p = DataIndicator{parent=sim,x=29,y=3,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    water_p.register(ps, "phys_water_p", water_p.update)
 
-    -- TextBox{parent=sim,y=4,text="| 0 bar",width=7,fg_bg=style.label}
-    -- local inlet_p_mid = TextBox{parent=sim,x=21,y=4,text="| ? bar",width=10,fg_bg=style.label}
-    -- local inlet_p_max = TextBox{parent=sim,x=33,y=4,text="   ? bar |",fg_bg=style.label}
-    -- inlet_p_mid.register(ps, "phys_inlet_p_max", function (v) inlet_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    -- inlet_p_max.register(ps, "phys_inlet_p_max", function (v) inlet_p_max.set_value(sprintf("%4d bar |", v)) end)
+    local water_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    water_p_bar.register(ps, "phys_water_p", function (v) water_p_bar.update(v / (ps.get("phys_water_p_max") or math.huge)) end)
 
-    -- TextBox{parent=sim,y=6,text="Exhaust Gas Pressure",width=28,fg_bg=style.label}
-    -- local exhaust_p = DataIndicator{parent=sim,x=30,y=6,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
-    -- exhaust_p.register(ps, "phys_exhaust_p", exhaust_p.update)
+    TextBox{parent=sim,y=6,text="| 0 bar",width=7,fg_bg=style.label}
+    local water_p_mid = TextBox{parent=sim,x=21,y=6,text="| ? bar",width=10,fg_bg=style.label}
+    local water_p_max = TextBox{parent=sim,x=33,y=6,text="   ? bar |",fg_bg=style.label}
+    water_p_mid.register(ps, "phys_water_p_max", function (v) water_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    water_p_max.register(ps, "phys_water_p_max", function (v) water_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    -- local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    -- exhaust_p_bar.register(ps, "phys_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("phys_exhaust_p_max") or math.huge)) end)
+    TextBox{parent=sim,y=8,text="Steam Tank Pressure",width=28,fg_bg=style.label}
+    local steam_p = DataIndicator{parent=sim,x=29,y=8,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    steam_p.register(ps, "phys_steam_p", steam_p.update)
 
-    -- TextBox{parent=sim,y=9,text="| 0 bar",width=7,fg_bg=style.label}
-    -- local exhaust_p_mid = TextBox{parent=sim,x=21,y=9,text="| ? bar",width=10,fg_bg=style.label}
-    -- local exhaust_p_max = TextBox{parent=sim,x=33,y=9,text="   ? bar |",width=10,fg_bg=style.label}
-    -- exhaust_p_mid.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
-    -- exhaust_p_max.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
+    local steam_p_bar = HorizontalBar{parent=sim,y=10,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    steam_p_bar.register(ps, "phys_steam_p", function (v) steam_p_bar.update(v / (ps.get("phys_steam_p_max") or math.huge)) end)
 
-    -- TextBox{parent=sim,y=12,text="Steam Input Rate",width=18,fg_bg=style.label}
-    -- local inlet_f = DataIndicator{parent=sim,x=20,y=12,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    -- inlet_f.register(ps, "phys_inlet_flow", inlet_f.update)
+    TextBox{parent=sim,y=11,text="| 0 bar",width=7,fg_bg=style.label}
+    local steam_p_mid = TextBox{parent=sim,x=21,y=11,text="| ? bar",width=10,fg_bg=style.label}
+    local steam_p_max = TextBox{parent=sim,x=33,y=11,text="   ? bar |",width=10,fg_bg=style.label}
+    steam_p_mid.register(ps, "phys_steam_p_max", function (v) steam_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    steam_p_max.register(ps, "phys_steam_p_max", function (v) steam_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    -- local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    -- inlet_f_bar.register(ps, "phys_inlet_flow", function (v) inlet_f_bar.update(v / (ps.get("phys_inlet_flow_max") or math.huge)) end)
+    TextBox{parent=sim,y=13,text="Combined Boiler Pressure",width=28,fg_bg=style.label}
+    local boiler_p = DataIndicator{parent=sim,x=29,y=13,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    boiler_p.register(ps, "phys_boiler_p", boiler_p.update)
 
-    -- TextBox{parent=sim,y=14,text="| 0 kg/s",width=8,fg_bg=style.label}
-    -- local inlet_f_max = TextBox{parent=sim,x=22,y=14,text="             ? kg/s |",width=21,fg_bg=style.label}
-    -- inlet_f_max.register(ps, "phys_inlet_flow_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    local boiler_p_bar = HorizontalBar{parent=sim,y=15,thin_bar=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=42}
+    boiler_p_bar.register(ps, "phys_boiler_p", function (v) boiler_p_bar.update(v / (ps.get("phys_boiler_p_max") or math.huge)) end)
 
-    -- TextBox{parent=sim,y=16,text="Steam Flow Rate",width=18,fg_bg=style.label}
-    -- local steam_f = DataIndicator{parent=sim,x=20,y=16,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    -- steam_f.register(ps, "phys_steam_flow", steam_f.update)
+    TextBox{parent=sim,y=16,text="| 0 bar",width=7,fg_bg=style.label}
+    local boiler_p_mid = TextBox{parent=sim,x=21,y=16,text="| ? bar",width=10,fg_bg=style.label}
+    local boiler_p_max = TextBox{parent=sim,x=33,y=16,text="   ? bar |",width=10,fg_bg=style.label}
+    boiler_p_mid.register(ps, "phys_boiler_p_max", function (v) boiler_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
+    boiler_p_max.register(ps, "phys_boiler_p_max", function (v) boiler_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    -- local steam_f_bar = HorizontalBar{parent=sim,y=17,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    -- steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or math.huge)) end)
+    TextBox{parent=sim,y=20,text="Steam Flow Rate",width=18,fg_bg=style.label}
+    local steam_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    steam_f.register(ps, "phys_steam_flow", steam_f.update)
 
-    -- TextBox{parent=sim,y=18,text="| 0 kg/s",width=8,fg_bg=style.label}
-    -- local steam_f_max = TextBox{parent=sim,x=22,y=18,text="             ? kg/s |",width=21,fg_bg=style.label}
-    -- steam_f_max.register(ps, "phys_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    local steam_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or math.huge)) end)
 
-    -- TextBox{parent=sim,y=20,text="Water Return Rate",width=18,fg_bg=style.label}
-    -- local water_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    -- water_f.register(ps, "phys_water_flow", water_f.update)
-
-    -- local water_f_bar = HorizontalBar{parent=sim,y=21,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
-    -- water_f_bar.register(ps, "phys_water_flow", function (v) water_f_bar.update(v / (ps.get("phys_water_flow_max") or math.huge)) end)
-
-    -- TextBox{parent=sim,y=22,text="| 0 kg/s",width=8,fg_bg=style.label}
-    -- local water_f_max = TextBox{parent=sim,x=22,y=22,text="             ? kg/s |",width=21,fg_bg=style.label}
-    -- water_f_max.register(ps, "phys_water_flow_max", function (v) water_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    TextBox{parent=sim,y=23,text="| 0 kg/s",width=8,fg_bg=style.label}
+    local steam_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
+    steam_f_max.register(ps, "phys_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 end

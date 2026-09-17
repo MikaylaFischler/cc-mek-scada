@@ -14,16 +14,15 @@ local Div         = require("graphics.elements.Div")
 ---@param unit_id integer unit index
 ---@param close_cb function window close callback
 local function make(parent, unit_id, close_cb)
-    local db   = ioctl.get_db()
-    local unit = db.units[unit_id]
+    local unit = ioctl.get_db().units[unit_id]
 
     if unit.num_boilers > 0 then
-        local height = 3 + (28 * unit.num_boilers)
+        local height = 3 + (26 * unit.num_boilers)
 
-        local window = make_window(parent, 141, height, "Thermoelectric Sodium Boiler Details - Unit "..unit_id, close_cb)
+        local window = make_window(parent, 122, height, "Thermoelectric Sodium Boiler Details - Unit "..unit_id, close_cb)
 
         for b = 1, unit.num_boilers do
-            local frame = Div{parent=window,x=1,y=1+((b-1)*28),height=28}
+            local frame = Div{parent=window,x=1,y=1+((b-1)*26),height=26}
             boiler(frame, unit, b)
         end
     end

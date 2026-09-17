@@ -2,18 +2,18 @@
 -- Flow Monitor Single Turbine Detail Block
 --
 
-local util          = require("scada-common.util")
+local util           = require("scada-common.util")
 
-local ioctl         = require("coordinator.ioctl")
+local ioctl          = require("coordinator.ioctl")
 
-local style         = require("coordinator.ui.style")
+local style          = require("coordinator.ui.style")
 
-local core          = require("graphics.core")
+local core           = require("graphics.core")
 
-local Div           = require("graphics.elements.Div")
-local TextBox       = require("graphics.elements.TextBox")
+local Div            = require("graphics.elements.Div")
+local TextBox        = require("graphics.elements.TextBox")
 
-local Rectangle     = require("graphics.elements.Rectangle")
+local Rectangle      = require("graphics.elements.Rectangle")
 
 local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
 local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
@@ -27,7 +27,6 @@ local sprintf = util.sprintf
 local border = core.border
 local cpair = core.cpair
 
-local wh_gray = style.wh_gray
 local gray = colors.gray
 
 local water_c = cpair(colors.blue, gray)
@@ -216,7 +215,7 @@ return function (frame, unit, tbn_id)
     local sim = Rectangle{parent=frame,x=95,y=1,width=44,height=24,border=border(1,gray,true),thin=true}
 
     TextBox{parent=sim,text="Steam Inlet Pressure",width=28,fg_bg=style.label}
-    local inlet_p = DataIndicator{parent=sim,x=30,y=1,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    local inlet_p = DataIndicator{parent=sim,x=29,y=1,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
     inlet_p.register(ps, "phys_inlet_p", inlet_p.update)
 
     local inlet_p_bar = HorizontalBar{parent=sim,y=3,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
@@ -229,10 +228,10 @@ return function (frame, unit, tbn_id)
     inlet_p_max.register(ps, "phys_inlet_p_max", function (v) inlet_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=6,text="Exhaust Gas Pressure",width=28,fg_bg=style.label}
-    local exhaust_p = DataIndicator{parent=sim,x=30,y=6,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
+    local exhaust_p = DataIndicator{parent=sim,x=29,y=6,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
     exhaust_p.register(ps, "phys_exhaust_p", exhaust_p.update)
 
-    local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
+    local exhaust_p_bar = HorizontalBar{parent=sim,y=8,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
     exhaust_p_bar.register(ps, "phys_exhaust_p", function (v) exhaust_p_bar.update(v / (ps.get("phys_exhaust_p_max") or math.huge)) end)
 
     TextBox{parent=sim,y=9,text="| 0 bar",width=7,fg_bg=style.label}

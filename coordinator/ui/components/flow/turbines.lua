@@ -14,15 +14,14 @@ local Div         = require("graphics.elements.Div")
 ---@param unit_id integer unit index
 ---@param close_cb function window close callback
 local function make(parent, unit_id, close_cb)
-    local db   = ioctl.get_db()
-    local unit = db.units[unit_id]
+    local unit = ioctl.get_db().units[unit_id]
 
     local height = 3 + (25 * unit.num_turbines)
 
     local window = make_window(parent, 141, height, "Steam Turbine Generator Details - Unit "..unit_id, close_cb)
 
     for t = 1, unit.num_turbines do
-        local frame = Div{parent=window,x=1,y=1+((t-1)*25),height=24}
+        local frame = Div{parent=window,x=1,y=1+((t-1)*25),height=25}
         turbine(frame, unit, t)
     end
 end
