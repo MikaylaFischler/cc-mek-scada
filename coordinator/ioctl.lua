@@ -600,6 +600,20 @@ function ioctl.record_unit_builds(builds)
                         log.debug(util.c(log_header, "invalid boiler id ", b_id))
                         valid = false
                     end
+
+                    -- computed flow detail view values
+
+                    local ps  = unit.boiler_ps_tbl[b_id]
+                    local bld = unit.boiler_data_tbl[b_id].build
+
+                    local water_p = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * 0.1
+                    local steam_p = ((bld.steam_cap / 1000) / (bld.steam_cap / 160000))
+                    local steam_flow = (bld.boil_cap / 1000) * 20
+
+                    ps.publish("phys_water_p_max", water_p)
+                    ps.publish("phys_steam_p_max", steam_p)
+                    ps.publish("phys_boiler_p_max", water_p + steam_p)
+                    ps.publish("phys_steam_flow_max", steam_flow)
                 end
             end
 
@@ -629,7 +643,7 @@ function ioctl.record_unit_builds(builds)
                     local bld = unit.turbine_data_tbl[t_id].build
 
                     local inlet_p = ((bld.steam_cap / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK))
-                    local exhaust_p = ((bld.max_flow_rate / 1000) / bld.vents)-- * 0.1
+                    local exhaust_p = ((bld.max_flow_rate / 1000) / bld.vents) * 0.1
                     local inlet_flow = (bld.steam_cap / 1000) * 20
                     local steam_flow = (bld.max_flow_rate / 1000) * 20
                     local water_flow = (bld.max_flow_rate / 1000) * 20
@@ -1272,7 +1286,20 @@ function ioctl.update_unit_statuses(statuses)
                                     computed_status = util.trinary(data.state.boil_rate > 0, BLR_STATE.ACTIVE, BLR_STATE.IDLE)
                                 else computed_status = BLR_STATE.UNFORMED end
 
-                                unit.boiler_ps_tbl[id].publish("computed_status", computed_status)
+                                ps.publish("computed_status", computed_status)
+
+                                -- computed flow detail view values
+
+                                local bld = data.build
+
+                                local water_p = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * 0.1
+                                local steam_p = ((data.tanks.steam.amount / 1000) / (bld.steam_cap / 160000))
+                                local steam_flow = (data.state.boil_rate / 1000) * 20
+
+                                ps.publish("phys_water_p", water_p)
+                                ps.publish("phys_steam_p", steam_p)
+                                ps.publish("phys_boiler_p", water_p + steam_p)
+                                ps.publish("phys_steam_flow", steam_flow)
                             else
                                 log.debug(util.c(log_header, "invalid boiler id ", id))
                                 valid = false
@@ -1318,16 +1345,16 @@ function ioctl.update_unit_statuses(statuses)
                                     end
                                 else computed_status = TRB_STATE.UNFORMED end
 
-                                unit.turbine_ps_tbl[id].publish("computed_status", computed_status)
+                                ps.publish("computed_status", computed_status)
 
-                                unit.turbine_ps_tbl[id].publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
+                                ps.publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
 
                                 -- computed flow detail view values
 
                                 local bld = data.build
 
                                 local inlet_p = (data.tanks.steam.amount / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK)
-                                local exhaust_p = ((data.state.flow_rate / 1000) / bld.vents)-- * 0.1
+                                local exhaust_p = ((data.state.flow_rate / 1000) / bld.vents) * 0.1
                                 local inlet_flow = (data.state.steam_input_rate / 1000) * 20
                                 local steam_flow = (data.state.flow_rate / 1000) * 20
                                 local water_flow = (math.min(data.state.flow_rate, bld.max_water_output) / 1000) * 20
