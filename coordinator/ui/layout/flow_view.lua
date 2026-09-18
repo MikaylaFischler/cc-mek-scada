@@ -24,6 +24,8 @@ local PipeNetwork    = require("graphics.elements.PipeNetwork")
 local Rectangle      = require("graphics.elements.Rectangle")
 local TextBox        = require("graphics.elements.TextBox")
 
+local PushButton     = require("graphics.elements.controls.PushButton")
+
 local DataIndicator  = require("graphics.elements.indicators.DataIndicator")
 local HorizontalBar  = require("graphics.elements.indicators.HorizontalBar")
 local IndicatorLight = require("graphics.elements.indicators.IndicatorLight")
@@ -70,6 +72,7 @@ local function init(main)
 
     local flow = Div{parent=main,y=3}
 
+    local nav   = { { "FLOW", 1 } }
     local panes = { flow }
     for _ = 1, fac.num_units * 3 do
         -- () is to only take the first return value
@@ -342,6 +345,10 @@ local function init(main)
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
         end
 
+        table.insert(nav, { "U" .. i .. "-R", cb_ofs })
+        if units[i].num_boilers > 0 then table.insert(nav, { "U" .. i .. "-B", cb_ofs + 1 }) end
+        table.insert(nav, { "U" .. i .. "-T", cb_ofs + 2 })
+
         util.nop()
     end
 
@@ -539,6 +546,23 @@ local function init(main)
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(fac.ps, "spent_waste_rate", sum_sp_waste.update)
+
+    ----------------
+    -- navigation --
+    ----------------
+
+    for i = 1, #panes do
+        local div = panes[i]
+
+        for n = 1, #nav do
+            local cb  = function() view_pane.set_value(nav[n][2]) end
+            local btn = PushButton{parent=div,x=div.get_width()-5,y=div.get_height()-(n-1),text=nav[n][1],min_width=6,callback=cb,fg_bg=cpair(div.get_fg_bg().bkg,colors.gray),dis_fg_bg=cpair(colors.white,div.get_fg_bg().bkg)}
+
+            if i == nav[n][2] then
+                btn.disable()
+            end
+        end
+    end
 end
 
 return init
