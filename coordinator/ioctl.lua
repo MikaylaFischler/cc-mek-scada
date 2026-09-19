@@ -58,9 +58,13 @@ local io = {
 ---@param comms coord_comms comms reference
 ---@param temp_scale TEMP_SCALE temperature unit
 ---@param energy_scale ENERGY_SCALE energy unit
-function ioctl.init(conf, comms, temp_scale, energy_scale)
-    io.temp_label   = TEMP_UNITS[temp_scale]
-    io.energy_label = ENERGY_UNITS[energy_scale]
+---@param en_flow_detail boolean enable flow detail view
+---@param en_flow_sw boolean enable flow detail view window switcher
+function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_flow_sw)
+    io.temp_label     = TEMP_UNITS[temp_scale]
+    io.energy_label   = ENERGY_UNITS[energy_scale]
+    io.en_flow_detail = en_flow_detail
+    io.en_flow_sw     = en_flow_sw
 
     -- temperature unit label and conversion function (from Kelvin)
     if temp_scale == TEMP_SCALE.CELSIUS then
@@ -563,34 +567,38 @@ function ioctl.record_unit_builds(builds)
         else
             -- reactor build and properties
             if type(build.reactor) == "table" and type(build.reactor_props) == "table" and #build.reactor_props == 2 then
-                unit.reactor_data.mek_struct = build.reactor
-                for key, val in pairs(unit.reactor_data.mek_struct) do
-                    unit.unit_ps.publish(key, val)
+                local ps   = unit.unit_ps
+                local data = unit.reactor_data
+
+                data.mek_struct = build.reactor
+                for key, val in pairs(data.mek_struct) do
+                    ps.publish(key, val)
                 end
 
-                unit.reactor_data.max_op_temp_H2O = build.reactor_props[1]
-                unit.reactor_data.max_op_temp_Na  = build.reactor_props[2]
-                unit.unit_ps.publish("max_op_temp_H2O", unit.reactor_data.max_op_temp_H2O)
-                unit.unit_ps.publish("max_op_temp_Na", unit.reactor_data.max_op_temp_Na)
-
-                if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
-                    (type(unit.reactor_data.mek_struct.width) == "number") and (unit.reactor_data.mek_struct.width ~= 0) then
-                    unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
-                end
-
-                -- computed flow detail view values
+                data.max_op_temp_H2O = build.reactor_props[1]
+                data.max_op_temp_Na  = build.reactor_props[2]
+                ps.publish("max_op_temp_H2O", data.max_op_temp_H2O)
+                ps.publish("max_op_temp_Na", data.max_op_temp_Na)
 
                 local struct = unit.reactor_data.mek_struct
 
-                local vol       = struct.length * struct.width * struct.height
-                local ccool_bar = ((struct.ccool_cap / 1000) / vol) * struct.height * 0.1
-                local hcool_bar = ((struct.hcool_cap / 1000) / vol) * 0.1
-                local cool_flow = (struct.ccool_cap / 1000) * 20
+                if (type(struct.length) == "number") and (struct.length ~= 0) and
+                    (type(struct.width) == "number") and (struct.width ~= 0) then
+                    ps.publish("size", { struct.length, struct.width })
+                end
 
-                unit.unit_ps.publish("phys_ccool_p_max", ccool_bar)
-                unit.unit_ps.publish("phys_hcool_p_max", hcool_bar)
-                unit.unit_ps.publish("phys_vessel_p_max", ccool_bar + hcool_bar)
-                unit.unit_ps.publish("phys_cool_flow_max", cool_flow)
+                -- computed flow detail view values
+                if io.en_flow_detail then
+                    local vol       = struct.length * struct.width * struct.height
+                    local ccool_bar = ((struct.ccool_cap / 1000) / vol) * struct.height * 0.1
+                    local hcool_bar = ((struct.hcool_cap / 1000) / vol) * 0.1
+                    local cool_flow = (struct.ccool_cap / 1000) * 20
+
+                    ps.publish("phys_ccool_p_max", ccool_bar)
+                    ps.publish("phys_hcool_p_max", hcool_bar)
+                    ps.publish("phys_vessel_p_max", ccool_bar + hcool_bar)
+                    ps.publish("phys_cool_flow_max", cool_flow)
+                end
             end
 
             -- boiler builds
@@ -602,18 +610,19 @@ function ioctl.record_unit_builds(builds)
                     end
 
                     -- computed flow detail view values
+                    if io.en_flow_detail then
+                        local ps  = unit.boiler_ps_tbl[b_id]
+                        local bld = unit.boiler_data_tbl[b_id].build
 
-                    local ps  = unit.boiler_ps_tbl[b_id]
-                    local bld = unit.boiler_data_tbl[b_id].build
+                        local water_p    = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
+                        local steam_p    = ((bld.steam_cap / 1000) / (bld.steam_cap / 160000))
+                        local steam_flow = (bld.boil_cap / 1000) * 20
 
-                    local water_p = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
-                    local steam_p = ((bld.steam_cap / 1000) / (bld.steam_cap / 160000))
-                    local steam_flow = (bld.boil_cap / 1000) * 20
-
-                    ps.publish("phys_water_p_max", water_p)
-                    ps.publish("phys_steam_p_max", steam_p)
-                    ps.publish("phys_boiler_p_max", water_p + steam_p)
-                    ps.publish("phys_steam_flow_max", steam_flow)
+                        ps.publish("phys_water_p_max", water_p)
+                        ps.publish("phys_steam_p_max", steam_p)
+                        ps.publish("phys_boiler_p_max", water_p + steam_p)
+                        ps.publish("phys_steam_flow_max", steam_flow)
+                    end
                 end
             end
 
@@ -639,20 +648,21 @@ function ioctl.record_unit_builds(builds)
                     end
 
                     -- computed flow detail view values
+                    if io.en_flow_detail then
+                        local bld = unit.turbine_data_tbl[t_id].build
 
-                    local bld = unit.turbine_data_tbl[t_id].build
+                        local inlet_p    = ((bld.steam_cap / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK))
+                        local exhaust_p  = ((bld.max_flow_rate / 1000) / bld.vents) * 0.1
+                        local inlet_flow = (bld.steam_cap / 1000) * 20
+                        local steam_flow = (bld.max_flow_rate / 1000) * 20
+                        local water_flow = (bld.max_flow_rate / 1000) * 20
 
-                    local inlet_p = ((bld.steam_cap / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK))
-                    local exhaust_p = ((bld.max_flow_rate / 1000) / bld.vents) * 0.1
-                    local inlet_flow = (bld.steam_cap / 1000) * 20
-                    local steam_flow = (bld.max_flow_rate / 1000) * 20
-                    local water_flow = (bld.max_flow_rate / 1000) * 20
-
-                    ps.publish("phys_inlet_p_max", inlet_p)
-                    ps.publish("phys_exhaust_p_max", exhaust_p)
-                    ps.publish("phys_inlet_flow_max", inlet_flow)
-                    ps.publish("phys_steam_flow_max", steam_flow)
-                    ps.publish("phys_water_flow_max", water_flow)
+                        ps.publish("phys_inlet_p_max", inlet_p)
+                        ps.publish("phys_exhaust_p_max", exhaust_p)
+                        ps.publish("phys_inlet_flow_max", inlet_flow)
+                        ps.publish("phys_steam_flow_max", steam_flow)
+                        ps.publish("phys_water_flow_max", water_flow)
+                    end
                 end
             end
 
@@ -1181,6 +1191,7 @@ function ioctl.update_unit_statuses(statuses)
                     unit.connected = false
                     unit.unit_ps.publish("computed_status", computed_status)
                 elseif #reactor_status == 3 then
+                    local ps         = unit.unit_ps
                     local mek_status = reactor_status[1]
                     local rps_status = reactor_status[2]
                     local gen_status = reactor_status[3]
@@ -1198,36 +1209,37 @@ function ioctl.update_unit_statuses(statuses)
 
                     for key, val in pairs(unit.reactor_data) do
                         if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                            unit.unit_ps.publish(key, val)
+                            ps.publish(key, val)
                         end
                     end
 
                     unit.reactor_data.rps_status = rps_status
                     for key, val in pairs(rps_status) do
-                        unit.unit_ps.publish(key, val)
+                        ps.publish(key, val)
                     end
 
                     if next(mek_status) then
                         unit.reactor_data.mek_status = mek_status
                         for key, val in pairs(mek_status) do
-                            unit.unit_ps.publish(key, val)
+                            ps.publish(key, val)
                         end
 
                         -- computed flow detail view values
+                        if io.en_flow_detail then
+                            local struct = unit.reactor_data.mek_struct
 
-                        local struct = unit.reactor_data.mek_struct
+                            ps.publish("env_loss_J", struct.heat_cap * mek_status.env_loss)
 
-                        unit.unit_ps.publish("env_loss_J", struct.heat_cap * mek_status.env_loss)
+                            local vol       = struct.length * struct.width * struct.height
+                            local ccool_bar = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * 0.1
+                            local hcool_bar = ((mek_status.hcool_amnt / 1000) / vol) * 0.1
+                            local cool_flow = (mek_status.heating_rate / 1000) * 20
 
-                        local vol       = struct.length * struct.width * struct.height
-                        local ccool_bar = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * 0.1
-                        local hcool_bar = ((mek_status.hcool_amnt / 1000) / vol) * 0.1
-                        local cool_flow = (mek_status.heating_rate / 1000) * 20
-
-                        unit.unit_ps.publish("phys_ccool_p", ccool_bar)
-                        unit.unit_ps.publish("phys_hcool_p", hcool_bar)
-                        unit.unit_ps.publish("phys_vessel_p", ccool_bar + hcool_bar)
-                        unit.unit_ps.publish("phys_cool_flow", cool_flow)
+                            ps.publish("phys_ccool_p", ccool_bar)
+                            ps.publish("phys_hcool_p", hcool_bar)
+                            ps.publish("phys_vessel_p", ccool_bar + hcool_bar)
+                            ps.publish("phys_cool_flow", cool_flow)
+                        end
                     end
 
                     burn_rate = unit.reactor_data.mek_status.act_burn_rate
@@ -1289,17 +1301,18 @@ function ioctl.update_unit_statuses(statuses)
                                 ps.publish("computed_status", computed_status)
 
                                 -- computed flow detail view values
+                                if io.en_flow_detail then
+                                    local bld = data.build
 
-                                local bld = data.build
+                                    local water_p    = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
+                                    local steam_p    = ((data.tanks.steam.amount / 1000) / (bld.steam_cap / 160000))
+                                    local steam_flow = (data.state.boil_rate / 1000) * 20
 
-                                local water_p = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
-                                local steam_p = ((data.tanks.steam.amount / 1000) / (bld.steam_cap / 160000))
-                                local steam_flow = (data.state.boil_rate / 1000) * 20
-
-                                ps.publish("phys_water_p", water_p)
-                                ps.publish("phys_steam_p", steam_p)
-                                ps.publish("phys_boiler_p", water_p + steam_p)
-                                ps.publish("phys_steam_flow", steam_flow)
+                                    ps.publish("phys_water_p", water_p)
+                                    ps.publish("phys_steam_p", steam_p)
+                                    ps.publish("phys_boiler_p", water_p + steam_p)
+                                    ps.publish("phys_steam_flow", steam_flow)
+                                end
                             else
                                 log.debug(util.c(log_header, "invalid boiler id ", id))
                                 valid = false
@@ -1347,23 +1360,24 @@ function ioctl.update_unit_statuses(statuses)
 
                                 ps.publish("computed_status", computed_status)
 
-                                ps.publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
-
                                 -- computed flow detail view values
+                                if io.en_flow_detail then
+                                    ps.publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
 
-                                local bld = data.build
+                                    local bld = data.build
 
-                                local inlet_p = (data.tanks.steam.amount / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK)
-                                local exhaust_p = ((data.state.flow_rate / 1000) / bld.vents) * 0.1
-                                local inlet_flow = (data.state.steam_input_rate / 1000) * 20
-                                local steam_flow = (data.state.flow_rate / 1000) * 20
-                                local water_flow = (math.min(data.state.flow_rate, bld.max_water_output) / 1000) * 20
+                                    local inlet_p    = (data.tanks.steam.amount / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK)
+                                    local exhaust_p  = ((data.state.flow_rate / 1000) / bld.vents) * 0.1
+                                    local inlet_flow = (data.state.steam_input_rate / 1000) * 20
+                                    local steam_flow = (data.state.flow_rate / 1000) * 20
+                                    local water_flow = (math.min(data.state.flow_rate, bld.max_water_output) / 1000) * 20
 
-                                ps.publish("phys_inlet_p", inlet_p)
-                                ps.publish("phys_exhaust_p", exhaust_p)
-                                ps.publish("phys_inlet_flow", inlet_flow)
-                                ps.publish("phys_steam_flow", steam_flow)
-                                ps.publish("phys_water_flow", water_flow)
+                                    ps.publish("phys_inlet_p", inlet_p)
+                                    ps.publish("phys_exhaust_p", exhaust_p)
+                                    ps.publish("phys_inlet_flow", inlet_flow)
+                                    ps.publish("phys_steam_flow", steam_flow)
+                                    ps.publish("phys_water_flow", water_flow)
+                                end
                             else
                                 log.debug(util.c(log_header, "invalid turbine id ", id))
                                 valid = false

@@ -83,6 +83,8 @@ local tool_ctl = {
     clock_fmt = nil,          ---@type RadioButton
     temp_scale = nil,         ---@type RadioButton
     energy_scale = nil,       ---@type RadioButton
+    en_flow_dtl = nil,        ---@type Checkbox
+    show_win_sw = nil,        ---@type Checkbox
 
     -- settings elements and functions from facility
     num_units = nil,          ---@type NumberField
@@ -108,6 +110,8 @@ local tmp_cfg = {
     GreenPuPellet = false,
     TempScale = 1,          ---@type TEMP_SCALE
     EnergyScale = 1,        ---@type ENERGY_SCALE
+    FlowDetailView = false,
+    FlowViewSwitcher = false,
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
@@ -146,6 +150,8 @@ local fields = {
     { "GreenPuPellet", "Pellet Colors", false },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
+    { "FlowDetailView", "Enable Flow Detail Views", false },
+    { "FlowViewSwitcher", "Enable Flow View Switcher", false },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
@@ -335,14 +341,14 @@ local function config_view(display)
 
     --#region HMI Configuration
 
-    local mon_pane = hmi.create(tool_ctl, main_pane, settings, { mon_cfg, spkr_cfg, crd_cfg }, style)
+    local mon_pane, crd_pane = hmi.create(tool_ctl, main_pane, settings, { mon_cfg, spkr_cfg, crd_cfg }, style)
 
     --#endregion
 
     --#region System Configuration
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary }
-    local ext  = { fac_pane, mon_pane, preset_monitor_fields, startup, exit }
+    local ext  = { fac_pane, mon_pane, crd_pane, preset_monitor_fields, startup, exit }
 
     system.create(tool_ctl, main_pane, settings, divs, ext, style)
 

@@ -66,7 +66,7 @@ local function init(main)
     -- window header message
     local header = TextBox{parent=main,y=1,text="Facility Coolant and Waste Flow Monitor",alignment=ALIGN.CENTER,fg_bg=style.theme.header}
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
-    local datetime = TextBox{parent=main,x=(header.get_width()-42),y=1,text="",alignment=ALIGN.RIGHT,width=42,fg_bg=style.theme.header}
+    local datetime = TextBox{parent=main,x=header.get_width()-42,y=1,text="",alignment=ALIGN.RIGHT,width=42,fg_bg=style.theme.header}
 
     datetime.register(fac.ps, "date_time", datetime.set_value)
 
@@ -336,18 +336,20 @@ local function init(main)
             function () view_pane.set_value(cb_ofs + 2) end
         })
 
-        -- detail windows
-        reactor_dtls(panes[cb_ofs], i, close_win)
-        boiler_dtls(panes[cb_ofs + 1], i, close_win)
-        turbine_dtls(panes[cb_ofs + 2], i, close_win)
+        if ioctl.get_db().en_flow_detail then
+            -- detail windows
+            reactor_dtls(panes[cb_ofs], i, close_win)
+            boiler_dtls(panes[cb_ofs + 1], i, close_win)
+            turbine_dtls(panes[cb_ofs + 2], i, close_win)
+
+            table.insert(nav, { "U" .. i .. "-R", cb_ofs })
+            if units[i].num_boilers > 0 then table.insert(nav, { "U" .. i .. "-B", cb_ofs + 1 }) end
+            table.insert(nav, { "U" .. i .. "-T", cb_ofs + 2 })
+        end
 
         if not com_waste then
             table.insert(po_pipes, pipe(0, 3 + y_offset, 4, 0, colors.green, true, true))
         end
-
-        table.insert(nav, { "U" .. i .. "-R", cb_ofs })
-        if units[i].num_boilers > 0 then table.insert(nav, { "U" .. i .. "-B", cb_ofs + 1 }) end
-        table.insert(nav, { "U" .. i .. "-T", cb_ofs + 2 })
 
         util.nop()
     end
@@ -526,13 +528,13 @@ local function init(main)
     ----------------
 
     TextBox{parent=flow,x=145,y=14,text="RAW WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local raw_waste  = Rectangle{parent=flow,x=145,y=15,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    local raw_waste = Rectangle{parent=flow,x=145,y=15,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_raw_waste = DataIndicator{parent=raw_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.2f",value=0,width=17}
 
     sum_raw_waste.register(fac.ps, "burn_sum", sum_raw_waste.update)
 
     TextBox{parent=flow,x=145,y=19,text="PROC. WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local pr_waste  = Rectangle{parent=flow,x=145,y=20,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
+    local pr_waste = Rectangle{parent=flow,x=145,y=20,border=border(1,colors.gray,true),width=19,height=5,thin=true,fg_bg=s_hi_bright}
     local pu = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Pu",unit="mB/t",format="%9.3f",value=0,width=17}
     local po = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="Po",unit="mB/t",format="%9.2f",value=0,width=17}
     local popl = DataIndicator{parent=pr_waste,lu_colors=lu_c_d,label="PoPl",unit="mB/t",format="%7.2f",value=0,width=17}
@@ -542,7 +544,7 @@ local function init(main)
     popl.register(fac.ps, "po_pl_rate", popl.update)
 
     TextBox{parent=flow,x=145,y=26,text="SPENT WASTE",alignment=ALIGN.CENTER,width=19,fg_bg=wh_gray}
-    local sp_waste  = Rectangle{parent=flow,x=145,y=27,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
+    local sp_waste = Rectangle{parent=flow,x=145,y=27,border=border(1,colors.gray,true),width=19,height=3,thin=true,fg_bg=s_hi_bright}
     local sum_sp_waste = DataIndicator{parent=sp_waste,lu_colors=lu_c_d,label="SUM",unit="mB/t",format="%8.3f",value=0,width=17}
 
     sum_sp_waste.register(fac.ps, "spent_waste_rate", sum_sp_waste.update)
@@ -551,15 +553,15 @@ local function init(main)
     -- navigation --
     ----------------
 
-    for i = 1, #panes do
-        local div = panes[i]
+    if ioctl.get_db().en_flow_sw then
+        for i = 1, #panes do
+            local div = panes[i]
 
-        for n = 1, #nav do
-            local cb  = function() view_pane.set_value(nav[n][2]) end
-            local btn = PushButton{parent=div,x=div.get_width()-5,y=div.get_height()-(n-1),text=nav[n][1],min_width=6,callback=cb,fg_bg=cpair(div.get_fg_bg().bkg,colors.gray),dis_fg_bg=cpair(colors.white,div.get_fg_bg().bkg)}
+            for n = 1, #nav do
+                local cb  = function() view_pane.set_value(nav[n][2]) end
+                local btn = PushButton{parent=div,x=div.get_width()-4,y=div.get_height()-(n-1),text=" "..nav[n][1],callback=cb,fg_bg=s_field,dis_fg_bg=cpair(colors.white,div.get_fg_bg().bkg)}
 
-            if i == nav[n][2] then
-                btn.disable()
+                if i == nav[n][2] then btn.disable() end
             end
         end
     end

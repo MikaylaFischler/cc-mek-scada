@@ -9,6 +9,7 @@ local ListBox     = require("graphics.elements.ListBox")
 local MultiPane   = require("graphics.elements.MultiPane")
 local TextBox     = require("graphics.elements.TextBox")
 
+local Checkbox    = require("graphics.elements.controls.Checkbox")
 local PushButton  = require("graphics.elements.controls.PushButton")
 local RadioButton = require("graphics.elements.controls.RadioButton")
 
@@ -33,7 +34,7 @@ local hmi = {}
 ---@param cfg_sys [ crd_config, crd_config, crd_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
 ---@param style { [string]: cpair }
----@return MultiPane mon_pane
+---@return MultiPane mon_pane, MultiPane crd_pane
 function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local _, ini_cfg, tmp_cfg, _, _ = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local mon_cfg, spkr_cfg, crd_cfg = divs[1], divs[2], divs[3]
@@ -211,6 +212,9 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     --#region Coordinator UI
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
+    local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
+
+    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2}}
 
     TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
@@ -233,11 +237,35 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
         tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
         tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
-        main_pane.set_value(7)
+        crd_pane.set_value(2)
     end
 
     PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=crd_c_2,y=1,height=4,text="Below you can configure the detail view windows on the flow monitor. Enabling these adds '+' symbols to reactor, boiler, and turbine blocks allowing you to view more details."}
+
+    local function en_show_sw(en)
+        if en then tool_ctl.show_win_sw.enable() else tool_ctl.show_win_sw.disable() end
+    end
+
+    tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This may increase flow monitor height req.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+
+    tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
+
+    en_show_sw(ini_cfg.FlowDetailView)
+
+    local function submit_flow_opts()
+        tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
+        tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
+        main_pane.set_value(7)
+    end
+
+    PushButton{parent=crd_c_2,y=14,text="\x1b Back",callback=function()crd_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_2,x=44,y=14,text="Next \x1a",callback=submit_flow_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -426,7 +454,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     --#endregion
 
-    return mon_pane
+    return mon_pane, crd_pane
 end
 
 return hmi
