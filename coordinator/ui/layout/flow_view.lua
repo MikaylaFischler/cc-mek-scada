@@ -330,11 +330,16 @@ local function init(main)
         local y_offset = y_ofs(i)
         local cb_ofs = 2 + ((i - 1) * 3)
 
-        unit_flow(flow, flow_x, 3 + y_offset, no_tanks, com_waste, i, {
-            function () view_pane.set_value(cb_ofs) end,
-            function () view_pane.set_value(cb_ofs + 1) end,
-            function () view_pane.set_value(cb_ofs + 2) end
-        })
+        local detail_cbs = nil
+        if ioctl.get_db().en_flow_detail then
+            detail_cbs = {
+                function () view_pane.set_value(cb_ofs) end,
+                function () view_pane.set_value(cb_ofs + 1) end,
+                function () view_pane.set_value(cb_ofs + 2) end
+            }
+        end
+
+        unit_flow(flow, flow_x, 3 + y_offset, no_tanks, com_waste, i, detail_cbs)
 
         if ioctl.get_db().en_flow_detail then
             -- detail windows
@@ -342,6 +347,7 @@ local function init(main)
             boiler_dtls(panes[cb_ofs + 1], i, close_win)
             turbine_dtls(panes[cb_ofs + 2], i, close_win)
 
+            -- navigation buttons
             table.insert(nav, { "U" .. i .. "-R", cb_ofs })
             if units[i].num_boilers > 0 then table.insert(nav, { "U" .. i .. "-B", cb_ofs + 1 }) end
             table.insert(nav, { "U" .. i .. "-T", cb_ofs + 2 })
