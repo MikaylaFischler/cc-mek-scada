@@ -38,7 +38,8 @@ local changes = {
     { "v1.5.1", { "Added energy scale options" } },
     { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
     { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } },
-    { "v1.9.7", { "Removed Disable Flow View option" } }
+    { "v1.9.7", { "Removed Disable Flow View option" } },
+    { "v1.11.0", { "Added Flow Detail View configuration options" } }
 }
 
 ---@class crd_configurator
