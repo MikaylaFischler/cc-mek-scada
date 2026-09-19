@@ -606,7 +606,7 @@ function ioctl.record_unit_builds(builds)
                     local ps  = unit.boiler_ps_tbl[b_id]
                     local bld = unit.boiler_data_tbl[b_id].build
 
-                    local water_p = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * 0.1
+                    local water_p = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
                     local steam_p = ((bld.steam_cap / 1000) / (bld.steam_cap / 160000))
                     local steam_flow = (bld.boil_cap / 1000) * 20
 
@@ -1292,7 +1292,7 @@ function ioctl.update_unit_statuses(statuses)
 
                                 local bld = data.build
 
-                                local water_p = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * 0.1
+                                local water_p = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
                                 local steam_p = ((data.tanks.steam.amount / 1000) / (bld.steam_cap / 160000))
                                 local steam_flow = (data.state.boil_rate / 1000) * 20
 
