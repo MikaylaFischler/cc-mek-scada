@@ -117,11 +117,11 @@ return function (frame, unit, blr_id)
     boil.register(ps, "boil_rate", boil.update)
 
     TextBox{parent=heat_ex,y=19,text="Boil Performance",width=21,fg_bg=style.label}
-    local boil_perf = HorizontalBar{parent=heat_ex,show_percent=true,bar_fg_bg=cpair(colors.green,gray),height=1,width=21}
-    boil_perf.register(ps, "boil_rate", function (v) boil_perf.update(v / data.state.max_boil_rate) end)
+    local boil_perf = HorizontalBar{parent=heat_ex,show_percent=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=21}
+    boil_perf.register(ps, "boil_rate", function (v) boil_perf.update(v / (data.state.max_boil_rate == 0 and math.huge or data.state.max_boil_rate)) end)
 
     TextBox{parent=heat_ex,y=22,text="Boil Capacity Util.",width=21,fg_bg=style.label}
-    local cap_bar = HorizontalBar{parent=heat_ex,show_percent=true,bar_fg_bg=cpair(colors.green,gray),height=1,width=21}
+    local cap_bar = HorizontalBar{parent=heat_ex,show_percent=true,bar_fg_bg=cpair(colors.red,gray),height=1,width=21}
     cap_bar.register(ps, "boil_rate", function (v) cap_bar.update(v / data.build.boil_cap) end)
 
     --#endregion
