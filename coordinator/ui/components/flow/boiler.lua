@@ -131,11 +131,9 @@ return function (frame, unit, blr_id)
 
     TextBox{parent=ts_loop,text="Turbine Steam Loop",alignment=ALIGN.CENTER}
 
-    TextBox{parent=ts_loop,y=3,text="Feedwater Min / Needed",width=22,fg_bg=style.label}
-    local water_min = DataIndicator{parent=ts_loop,format="%17d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
-    local water_need = DataIndicator{parent=ts_loop,format="%19d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
+    TextBox{parent=ts_loop,y=3,text="Feedwater Minimum",width=22,fg_bg=style.label}
+    local water_min = DataIndicator{parent=ts_loop,format="%19d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
     water_min.register(ps, "max_boil_rate", water_min.update)
-    water_need.register(ps, "water_need", water_need.update)
 
     local water_div = Div{parent=ts_loop,x=1,y=7,width=24,height=8}
 
