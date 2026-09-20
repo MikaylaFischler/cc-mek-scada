@@ -28,8 +28,6 @@ local cpair = core.cpair
 
 local gray = colors.gray
 
-local c_Na_c  = cpair(colors.lightBlue, gray)
-local h_Na_c  = cpair(colors.orange, gray)
 local water_c = cpair(colors.blue, gray)
 local steam_c = cpair(colors.white, gray)
 
@@ -57,7 +55,7 @@ return function (frame, unit, blr_id)
 
     local hcool_div = Div{parent=rc_loop,x=1,y=3,width=24,height=8}
 
-    local hcool_bar = VerticalBar{parent=hcool_div,fg_bg=h_Na_c,height=8,width=2}
+    local hcool_bar = VerticalBar{parent=hcool_div,fg_bg=cpair(colors.orange,gray),height=8,width=2}
     hcool_bar.register(ps, "hcool_fill", hcool_bar.update)
 
     TextBox{parent=hcool_div,x=4,y=1,text="Superheated Sodium",width=19,fg_bg=style.label}
@@ -74,7 +72,7 @@ return function (frame, unit, blr_id)
 
     local ccool_div = Div{parent=rc_loop,x=1,y=12,width=24,height=8}
 
-    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=c_Na_c,height=8,width=2}
+    local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=cpair(colors.lightBlue,gray),height=8,width=2}
     ccool_bar.register(ps, "ccool_fill", ccool_bar.update)
 
     TextBox{parent=ccool_div,x=4,y=1,text="Cooled Sodium",width=19,fg_bg=style.label}
@@ -180,7 +178,7 @@ return function (frame, unit, blr_id)
     local water_p = DataIndicator{parent=sim,x=29,y=3,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}
     water_p.register(ps, "phys_water_p", water_p.update)
 
-    local water_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
+    local water_p_bar = HorizontalBar{parent=sim,y=5,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
     water_p_bar.register(ps, "phys_water_p", function (v) water_p_bar.update(v / (ps.get("phys_water_p_max") or math.huge)) end)
 
     TextBox{parent=sim,y=6,text="| 0 bar",width=7,fg_bg=style.label}
