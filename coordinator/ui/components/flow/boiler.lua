@@ -66,7 +66,7 @@ return function (frame, unit, blr_id)
 
     TextBox{parent=hcool_div,x=4,y=4,text="Coolant Capacity",width=19,fg_bg=style.label}
     local hcool_cap = DataIndicator{parent=hcool_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    hcool_cap.register(ps, "hcoolant_cap", hcool_cap.update)
+    hcool_cap.register(ps, "hcool_cap", hcool_cap.update)
 
     TextBox{parent=hcool_div,x=4,y=7,text="Coolant Fill",width=19,fg_bg=style.label}
     local hcool_fill = DataIndicator{parent=hcool_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
@@ -83,7 +83,7 @@ return function (frame, unit, blr_id)
 
     TextBox{parent=ccool_div,x=4,y=4,text="Coolant Capacity",width=19,fg_bg=style.label}
     local ccool_cap = DataIndicator{parent=ccool_div,x=4,format="%16d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    ccool_cap.register(ps, "ccoolant_cap", ccool_cap.update)
+    ccool_cap.register(ps, "ccool_cap", ccool_cap.update)
 
     TextBox{parent=ccool_div,x=4,y=7,text="Coolant Fill",width=19,fg_bg=style.label}
     local ccool_fill = DataIndicator{parent=ccool_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}

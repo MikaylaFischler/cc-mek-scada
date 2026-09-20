@@ -245,12 +245,12 @@ local function new_view(root)
                 list.line_break()
                 TextBox{parent=list,text="Cooled Coolant Cap.",fg_bg=label_fg_bg}
                 local ccool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-                ccool_cap.register(b_ps, "ccoolant_cap", ccool_cap.update)
+                ccool_cap.register(b_ps, "ccool_cap", ccool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Heated Coolant Cap.",fg_bg=label_fg_bg}
                 local hcool_cap = DataIndicator{parent=list,lu_colors=lu_col,unit="mB",format="%d",value=0,width=20,fg_bg=text_fg}
-                hcool_cap.register(b_ps, "hcoolant_cap", hcool_cap.update)
+                hcool_cap.register(b_ps, "hcool_cap", hcool_cap.update)
 
                 list.line_break()
                 TextBox{parent=list,text="Dimensions",fg_bg=label_fg_bg}
