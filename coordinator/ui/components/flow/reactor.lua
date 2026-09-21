@@ -205,9 +205,9 @@ local function make(parent, unit_id, close_cb)
     op_temp_scale.register(ps, "temp", function (t)
         t = t - const.mek.BASE_BOIL_TEMP
         if unit.reactor_data.mek_status.ccool_type == types.FLUID.SODIUM then
-            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_Na or math.huge) - const.mek.BASE_BOIL_TEMP))
+            op_temp_scale.set_value(t / (unit.reactor_data.max_op_temp_Na - const.mek.BASE_BOIL_TEMP))
         else
-            op_temp_scale.set_value(t / ((unit.reactor_data.max_op_temp_H2O or math.huge) - const.mek.BASE_BOIL_TEMP))
+            op_temp_scale.set_value(t / (unit.reactor_data.max_op_temp_H2O - const.mek.BASE_BOIL_TEMP))
         end
     end)
 
@@ -281,10 +281,10 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=sim,y=20,text="Coolant Flow Rate",width=18,fg_bg=style.label}
     local cool_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    cool_f.register(ps, "phys_cool_flow", cool_f.update)
+    cool_f.register(ps, "phys_cool_f", cool_f.update)
 
     local cool_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=wh_gray,height=1,width=42}
-    cool_f_bar.register(ps, "phys_cool_flow", function (v) cool_f_bar.update(v / (ps.get("phys_cool_flow_max") or math.huge)) end)
+    cool_f_bar.register(ps, "phys_cool_f", function (v) cool_f_bar.update(v / (ps.get("phys_cool_f_max") or math.huge)) end)
 
     cool_f_bar.register(ps, "hcool_type", function (type)
         cool_f_bar.recolor((type == types.FLUID.SUPERHEATED_SODIUM) and h_Na_c or steam_c)
@@ -292,7 +292,7 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=sim,y=23,text="| 0 kg/s",width=8,fg_bg=style.label}
     local cool_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
-    cool_f_max.register(ps, "phys_cool_flow_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    cool_f_max.register(ps, "phys_cool_f_max", function (v) cool_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 end

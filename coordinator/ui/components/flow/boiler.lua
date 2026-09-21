@@ -215,14 +215,14 @@ return function (frame, unit, blr_id)
 
     TextBox{parent=sim,y=20,text="Steam Flow Rate",width=18,fg_bg=style.label}
     local steam_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
-    steam_f.register(ps, "phys_steam_flow", steam_f.update)
+    steam_f.register(ps, "phys_steam_f", steam_f.update)
 
     local steam_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
-    steam_f_bar.register(ps, "phys_steam_flow", function (v) steam_f_bar.update(v / (ps.get("phys_steam_flow_max") or math.huge)) end)
+    steam_f_bar.register(ps, "phys_steam_f", function (v) steam_f_bar.update(v / (ps.get("phys_steam_f_max") or math.huge)) end)
 
     TextBox{parent=sim,y=23,text="| 0 kg/s",width=8,fg_bg=style.label}
     local steam_f_max = TextBox{parent=sim,x=22,y=23,text="             ? kg/s |",width=21,fg_bg=style.label}
-    steam_f_max.register(ps, "phys_steam_flow_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
+    steam_f_max.register(ps, "phys_steam_f_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     --#endregion
 end
