@@ -64,7 +64,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_fl
     io.temp_label     = TEMP_UNITS[temp_scale]
     io.energy_label   = ENERGY_UNITS[energy_scale]
     io.en_flow_detail = en_flow_detail
-    io.en_flow_sw     = en_flow_sw
+    io.en_flow_sw     = en_flow_detail and en_flow_sw
 
     -- temperature unit label and conversion function (from Kelvin)
     if temp_scale == TEMP_SCALE.CELSIUS then
@@ -191,6 +191,8 @@ function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_fl
             has_tank = conf.cooling.r_cool[i].TankConnection,
             aux_coolant = conf.cooling.aux_coolant[i],
 
+            coolant_density = 0.1,
+
             status_lines = { "", "" },
 
             auto_ready = false,
@@ -305,6 +307,10 @@ function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_fl
 
         entry.num_boilers = #entry.boiler_data_tbl
         entry.num_turbines = #entry.turbine_data_tbl
+
+        if entry.num_boilers > 0 then
+            entry.coolant_density = 0.082
+        end
 
         table.insert(io.units, entry)
     end
@@ -590,8 +596,8 @@ function ioctl.record_unit_builds(builds)
                 -- computed flow detail view values
                 if io.en_flow_detail then
                     local vol     = struct.length * struct.width * struct.height
-                    local ccool_p = ((struct.ccool_cap / 1000) / vol) * struct.height * 0.1
-                    local hcool_p = ((struct.hcool_cap / 1000) / vol) * 0.1
+                    local ccool_p = ((struct.ccool_cap / 1000) / vol) * struct.height * unit.coolant_density
+                    local hcool_p = ((struct.hcool_cap / 1000) / vol) * unit.coolant_density
                     local cool_f  = (struct.ccool_cap / 1000) * 20
 
                     ps.publish("phys_ccool_p_max", ccool_p)
@@ -1231,8 +1237,8 @@ function ioctl.update_unit_statuses(statuses)
                             ps.publish("env_loss_J", struct.heat_cap * mek_status.env_loss)
 
                             local vol     = struct.length * struct.width * struct.height
-                            local ccool_p = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * 0.1
-                            local hcool_p = ((mek_status.hcool_amnt / 1000) / vol) * 0.1
+                            local ccool_p = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * unit.coolant_density
+                            local hcool_p = ((mek_status.hcool_amnt / 1000) / vol) * unit.coolant_density
                             local cool_f  = (mek_status.heating_rate / 1000) * 20
 
                             ps.publish("phys_ccool_p", ccool_p)
