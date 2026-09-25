@@ -218,7 +218,7 @@ local function make(parent, unit_id, close_cb)
 
     local sim_p = Rectangle{parent=window,x=80,y=1,width=44,height=23,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 
-    TextBox{parent=sim_p,x=1,y=1,text="Reactor Pressures",alignment=ALIGN.CENTER}
+    TextBox{parent=sim_p,y=1,text="Reactor Pressures",alignment=ALIGN.CENTER}
 
     TextBox{parent=sim_p,y=3,text="Cooled Coolant Tank Pressure",width=28,fg_bg=style.label}
     local ccool_p = DataIndicator{parent=sim_p,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=13,fg_bg=s_field}
@@ -287,7 +287,7 @@ local function make(parent, unit_id, close_cb)
 
     local cont = Rectangle{parent=window,x=80,y=25,width=44,height=5,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 
-    TextBox{parent=cont,x=1,y=1,text="Reactor Containment",alignment=ALIGN.CENTER}
+    TextBox{parent=cont,y=1,text="Reactor Containment",alignment=ALIGN.CENTER}
 
     TextBox{parent=cont,y=3,text="Damage",width=6,fg_bg=style.label}
 

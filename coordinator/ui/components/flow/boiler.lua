@@ -53,7 +53,7 @@ return function (frame, unit, blr_id)
 
     TextBox{parent=rc_loop,text="Reactor Coolant Loop",alignment=ALIGN.CENTER}
 
-    local hcool_div = Div{parent=rc_loop,x=1,y=3,width=24,height=8}
+    local hcool_div = Div{parent=rc_loop,y=3,width=24,height=8}
 
     local hcool_bar = VerticalBar{parent=hcool_div,fg_bg=cpair(colors.orange,gray),height=8,width=2}
     hcool_bar.register(ps, "hcool_fill", hcool_bar.update)
@@ -70,7 +70,7 @@ return function (frame, unit, blr_id)
     local hcool_fill = DataIndicator{parent=hcool_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     hcool_fill.register(ps, "hcool_fill", function (v) hcool_fill.update(v * 100) end)
 
-    local ccool_div = Div{parent=rc_loop,x=1,y=12,width=24,height=8}
+    local ccool_div = Div{parent=rc_loop,y=12,width=24,height=8}
 
     local ccool_bar = VerticalBar{parent=ccool_div,fg_bg=cpair(colors.lightBlue,gray),height=8,width=2}
     ccool_bar.register(ps, "ccool_fill", ccool_bar.update)
@@ -133,7 +133,7 @@ return function (frame, unit, blr_id)
     local water_min = DataIndicator{parent=ts_loop,format="%19d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=22,fg_bg=s_field}
     water_min.register(ps, "max_boil_rate", water_min.update)
 
-    local water_div = Div{parent=ts_loop,x=1,y=7,width=24,height=8}
+    local water_div = Div{parent=ts_loop,y=7,width=24,height=8}
 
     local water_bar = VerticalBar{parent=water_div,fg_bg=water_c,height=8,width=2}
     water_bar.register(ps, "water_fill", water_bar.update)
@@ -150,7 +150,7 @@ return function (frame, unit, blr_id)
     local water_fill = DataIndicator{parent=water_div,x=4,format="%17.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     water_fill.register(ps, "water_fill", function (v) water_fill.update(v * 100) end)
 
-    local steam_div = Div{parent=ts_loop,x=1,y=16,width=24,height=8}
+    local steam_div = Div{parent=ts_loop,y=16,width=24,height=8}
 
     local steam_bar = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
     steam_bar.register(ps, "steam_fill", steam_bar.update)
@@ -172,7 +172,7 @@ return function (frame, unit, blr_id)
 
     local sim = Rectangle{parent=frame,x=76,y=1,width=44,height=25,border=border(1,gray,true),thin=true}
 
-    TextBox{parent=sim,x=1,y=1,text="Technical Details",alignment=ALIGN.CENTER}
+    TextBox{parent=sim,y=1,text="Technical Details",alignment=ALIGN.CENTER}
 
     TextBox{parent=sim,y=3,text="Water Tank Pressure",width=29,fg_bg=style.label}
     local water_p = DataIndicator{parent=sim,x=29,y=3,format="%10.2f",value=0,unit="bar",lu_colors=lu_c,width=14,fg_bg=s_field}

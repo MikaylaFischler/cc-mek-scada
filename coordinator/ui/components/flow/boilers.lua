@@ -22,7 +22,7 @@ local function make(parent, unit_id, close_cb)
         local window = make_window(parent, 122, height, "Thermoelectric Sodium Boiler Details - Unit "..unit_id, close_cb)
 
         for b = 1, unit.num_boilers do
-            local frame = Div{parent=window,x=1,y=1+((b-1)*26),height=26}
+            local frame = Div{parent=window,y=1+((b-1)*26),height=26}
             boiler(frame, unit, b)
         end
     end

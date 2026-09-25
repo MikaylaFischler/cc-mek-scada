@@ -32,8 +32,10 @@ local gray = colors.gray
 local water_c = cpair(colors.blue, gray)
 local steam_c = cpair(colors.white, gray)
 
-local MEK_BASE_SPEED = 512 -- src/generators/java/mekanism/generators/client/render/RenderTurbineRotor.java
-local ROTATION_TO_RPM = 60 * 20 * (MEK_BASE_SPEED / 360) -- 20 ticks per second * 60 seconds per minute, 360 degrees per rotation
+-- src/generators/java/mekanism/generators/client/render/RenderTurbineRotor.java
+local MEK_BASE_SPEED  = 512
+-- 20 ticks per second * 60 seconds per minute, 360 degrees per rotation
+local ROTATION_TO_RPM = 60 * 20 * (MEK_BASE_SPEED / 360)
 
 -- make a new turbine detail row item
 ---@param frame Container
@@ -42,7 +44,7 @@ local ROTATION_TO_RPM = 60 * 20 * (MEK_BASE_SPEED / 360) -- 20 ticks per second 
 return function (frame, unit, tbn_id)
     local s_field = style.theme.field_box
 
-    local lu_c = style.lu_colors
+    local lu_c    = style.lu_colors
 
     local ind_yel = style.ind_yel
     local ind_red = style.ind_red
@@ -50,6 +52,7 @@ return function (frame, unit, tbn_id)
 
     local db   = ioctl.get_db()
     local ps   = unit.turbine_ps_tbl[tbn_id]
+    local data = unit.turbine_data_tbl[tbn_id]
 
     local id_tag = Rectangle{parent=frame,x=2,y=1,width=24,height=3,border=border(1,gray,true),thin=true}
     TextBox{parent=id_tag,text="Turbine Generator "..tbn_id,alignment=ALIGN.CENTER}
@@ -127,7 +130,7 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=s_flow,y=21,text="Flow Utilization",width=19,fg_bg=style.label}
     local flow_bar = HorizontalBar{parent=s_flow,show_percent=true,bar_fg_bg=steam_c,height=1,width=19}
-    flow_bar.register(ps, "flow_rate", function (v) flow_bar.update(v / (ps.get("max_flow_rate") or math.huge)) end)
+    flow_bar.register(ps, "flow_rate", function (v) flow_bar.update(v / data.build.max_flow_rate) end)
 
     --#endregion
     --#region generator
@@ -162,15 +165,15 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=e_flow,y=15,text="Production Util.",width=21,fg_bg=style.label}
     local prod_bar = HorizontalBar{parent=e_flow,show_percent=true,bar_fg_bg=cpair(colors.green,gray),height=1,width=21}
-    prod_bar.register(ps, "prod_rate", function (v) prod_bar.update(v / (ps.get("max_production") or math.huge)) end)
+    prod_bar.register(ps, "prod_rate", function (v) prod_bar.update(v / data.build.max_production) end)
 
     TextBox{parent=e_flow,y=18,text="Rotor Rotation",width=21,fg_bg=style.label}
     local rpm = DataIndicator{parent=e_flow,format="%17.4f",value=0,unit="RPM",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
-    rpm.register(ps, "flow_rate", function (v) rpm.update(ROTATION_TO_RPM * (v / (ps.get("max_flow_rate") or math.huge))) end)
+    rpm.register(ps, "flow_rate", function (v) rpm.update(ROTATION_TO_RPM * (v / data.build.max_flow_rate)) end)
 
     TextBox{parent=e_flow,y=21,text="Rotation Speed",width=21,fg_bg=style.label}
     local rpm_bar = HorizontalBar{parent=e_flow,show_percent=true,bar_fg_bg=cpair(colors.black,gray),height=1,width=21}
-    rpm_bar.register(ps, "flow_rate", function (v) rpm_bar.update(v / (ps.get("max_flow_rate") or math.huge)) end)
+    rpm_bar.register(ps, "flow_rate", function (v) rpm_bar.update(v / data.build.max_flow_rate) end)
 
     --#endregion
     --#region water flow
@@ -189,11 +192,11 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=w_flow,y=9,text="Water Flow Rate",width=19,fg_bg=style.label}
     local water_ret = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
-    water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, ps.get("max_water_output") or 0)) end)
+    water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, data.build.max_water_output)) end)
 
     TextBox{parent=w_flow,y=12,text="Water Return Util.",width=19,fg_bg=style.label}
     local water_bar = HorizontalBar{parent=w_flow,show_percent=true,bar_fg_bg=water_c,height=1,width=19}
-    water_bar.register(ps, "flow_rate", function (v) water_bar.update(v / (ps.get("max_water_output") or math.huge)) end)
+    water_bar.register(ps, "flow_rate", function (v) water_bar.update(v / data.build.max_water_output) end)
 
     --#endregion
     --#region dumping

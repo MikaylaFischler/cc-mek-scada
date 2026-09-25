@@ -21,7 +21,7 @@ local function make(parent, unit_id, close_cb)
     local window = make_window(parent, 141, height, "Steam Turbine Generator Details - Unit "..unit_id, close_cb)
 
     for t = 1, unit.num_turbines do
-        local frame = Div{parent=window,x=1,y=1+((t-1)*25),height=25}
+        local frame = Div{parent=window,y=1+((t-1)*25),height=25}
         turbine(frame, unit, t)
     end
 end
