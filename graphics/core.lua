@@ -120,29 +120,37 @@ end
 --#region Utilities
 
 -- extract the custom element assert message, dropping the path to the element file
+---@nodiscard
 function core.extract_assert_msg(msg)
     return string.sub(msg, (string.find(msg, "@") or 0) + 1)
 end
 
+-- round a number to an integer
+---@nodiscard
+---@return integer rounded
+function core.round(x) return math.floor(x + 0.5) end
+
 -- get the computed size of a monitor
+---@nodiscard
 ---@param b_w integer block width
 ---@param b_h integer block height
 ---@param scale number CC display scale (0.5, 1, 1.5, etc.)
 ---@return integer w, integer h character dimensions
 function core.monitor_size(b_w, b_h, scale)
-    local w = math.floor((((b_w * 64) - 20) / (6 * scale)) + 0.5)
-    local h = math.floor((((b_h * 64) - 20) / (9 * scale)) + 0.5)
+    local w = core.round(((b_w * 64) - 20) / (6 * scale))
+    local h = core.round(((b_h * 64) - 20) / (9 * scale))
     return w, h
 end
 
 -- get the minimum block size required to fit a given size
+---@nodiscard
 ---@param w integer character width needed
 ---@param h integer character height needed
 ---@param scale number CC display scale (0.5, 1, 1.5, etc.)
 ---@return integer b_w, integer b_h block dimensions
 function core.min_block_size(w, h, scale)
-    local b_w = math.ceil(((w * 6 * scale) + 20) / 64)
-    local b_h = math.ceil(((h * 9 * scale) + 20) / 64)
+    local b_w = core.round(((w * 6 * scale) + 20) / 64)
+    local b_h = core.round(((h * 9 * scale) + 20) / 64)
     return b_w, b_h
 end
 

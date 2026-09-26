@@ -60,7 +60,11 @@ style.btn_dis_fg_bg = cpair(colors.lightGray,colors.white)
 
 ---@class _crd_cfg_tool_ctl
 local tool_ctl = {
-    sv_cool_conf = nil,       ---@type [ integer, integer ][] list of boiler & turbine counts
+    -- config from supervisor
+    com_waste = false,
+    tank_mode = 0,
+    tank_list = {},
+    unit_bt_cnt = nil,       ---@type [ integer, integer ][] list of boiler & turbine counts
 
     launch_startup = false,
     start_fail = 0,

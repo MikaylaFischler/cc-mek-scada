@@ -97,6 +97,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local function submit_flow_opts()
         tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
         tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
+        tool_ctl.update_mon_reqs()
         main_pane.set_value(5)
     end
 
@@ -275,13 +276,15 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     function tool_ctl.update_mon_reqs()
         local plural = tmp_cfg.UnitCount > 1
 
-        if tool_ctl.sv_cool_conf ~= nil then
-            local cnf = tool_ctl.sv_cool_conf
+        local u_bt = tool_ctl.unit_bt_cnt
 
-            local row1_tall = cnf[1][1] > 1 or cnf[1][2] > 2 or (cnf[2] and (cnf[2][1] > 1 or cnf[2][2] > 2))
-            local row1_short = (cnf[1][1] == 0 and cnf[1][2] == 1) and (cnf[2] == nil or (cnf[2][1] == 0 and cnf[2][2] == 1))
-            local row2_tall = (cnf[3] and (cnf[3][1] > 1 or cnf[3][2] > 2)) or (cnf[4] and (cnf[4][1] > 1 or cnf[4][2] > 2))
-            local row2_short = (cnf[3] == nil or (cnf[3][1] == 0 and cnf[3][2] == 1)) and (cnf[4] == nil or (cnf[4][1] == 0 and cnf[4][2] == 1))
+        -- main view
+
+        if u_bt ~= nil then
+            local row1_tall  = (u_bt[1][1] > 1) or (u_bt[1][2] > 2) or (u_bt[2] and (u_bt[2][1] > 1 or u_bt[2][2] > 2))
+            local row1_short = (u_bt[1][1] == 0 and u_bt[1][2] == 1) and (u_bt[2] == nil or (u_bt[2][1] == 0 and u_bt[2][2] == 1))
+            local row2_tall  = (u_bt[3] and (u_bt[3][1] > 1 or u_bt[3][2] > 2)) or (u_bt[4] and (u_bt[4][1] > 1 or u_bt[4][2] > 2))
+            local row2_short = (u_bt[3] == nil or (u_bt[3][1] == 0 and u_bt[3][2] == 1)) and (u_bt[4] == nil or (u_bt[4][1] == 0 and u_bt[4][2] == 1))
 
             if tmp_cfg.UnitCount <= 2 then
                 tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
@@ -295,20 +298,48 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
             tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
         end
 
-        tool_ctl.flow_mon_h = 2 + tmp_cfg.UnitCount
+        -- flow view
 
-        local asterisk = util.trinary(tool_ctl.sv_cool_conf == nil, "*", "")
+        local no_tanks, only_top_tank, num_tanks = true, true, 0
+
+        for i = 1, #tool_ctl.tank_list do
+            if tool_ctl.tank_list[i] > 0 then
+                no_tanks = false
+                num_tanks = num_tanks + 1
+
+                if i > 1 then only_top_tank = false end
+            end
+        end
+
+        local compressed = tool_ctl.com_waste and (no_tanks or only_top_tank or (tool_ctl.tank_mode == 1 and num_tanks == 1))
+        local req_height = math.max(tool_ctl.com_waste and (compressed and ((11 * tmp_cfg.UnitCount) + 13) or ((19 * tmp_cfg.UnitCount) + 4)) or (20 * tmp_cfg.UnitCount), 32)
+
+        if tmp_cfg.FlowDetailView then
+            req_height = math.max(req_height, 36)
+
+            if u_bt ~= nil then
+                for _, u in pairs(u_bt) do
+                    req_height = math.max(req_height, math.max(6 + (26 * u[1]), 6 + (25 * u[2])))
+                end
+            end
+        end
+
+        tool_ctl.flow_mon_h = ({ core.min_block_size(0, req_height, 0.5) })[2]
+
+        -- report
+
+        local asterisk = util.trinary(tool_ctl.unit_bt_cnt == nil, "*", "")
         local m_at_least = util.trinary(tool_ctl.main_mon_h < 6, "at least ", "")
         local f_at_least = util.trinary(tool_ctl.flow_mon_h < 6, "at least ", "")
 
         mon_reqs.remove_all()
 
-        TextBox{parent=mon_reqs,y=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
-        TextBox{parent=mon_reqs,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Main View Monitor"}
-        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Flow View Monitor"}
-        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a 1 Flow View Monitor"}
+        TextBox{parent=mon_reqs,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
     end
 
     -- set/edit a monitor's assignment
