@@ -117,7 +117,7 @@ local function init(main)
         req_height = math.max(req_height, 36)
 
         for _, u in pairs(units) do
-            req_height = math.max(req_height, math.max(7 + (26 * u.num_boilers), 7 + (25 * u.num_turbines)))
+            req_height = math.max(req_height, math.max(6 + (26 * u.num_boilers), 6 + (25 * u.num_turbines)))
         end
     end
 
