@@ -374,7 +374,7 @@ local function init(main)
 
         PipeNetwork{parent=waste,x=3,y=2,pipes={pipe(0,0,14,0,colors.brown,true)},bg=style.theme.bg}
 
-        TextBox{parent=waste,x=1,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
+        TextBox{parent=waste,y=2,text="\x1a",fg_bg=cpair(colors.brown,text_c.bkg),width=1}
 
         PipeNetwork{parent=flow,x=141,y=13,pipes={pipe(0,com_waste_y_ofs-tri(compressed_view,4,13),2,0,colors.green,true,true)},bg=style.theme.bg}
     else

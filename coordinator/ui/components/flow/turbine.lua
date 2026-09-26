@@ -64,15 +64,15 @@ return function (frame, unit, tbn_id)
     local steam_bar = VerticalBar{parent=steam_div,fg_bg=steam_c,height=8,width=2}
     steam_bar.register(ps, "steam_fill", steam_bar.update)
 
-    TextBox{parent=steam_div,x=4,y=1,text="Steam",width=21,fg_bg=style.label}
+    TextBox{parent=steam_div,x=4,y=1,text="Steam",fg_bg=style.label}
     local steam_amnt = DataIndicator{parent=steam_div,x=4,format="%18d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_amnt.register(ps, "steam", function (x) steam_amnt.update(x.amount) end)
 
-    TextBox{parent=steam_div,x=4,y=4,text="Steam Capacity",width=21,fg_bg=style.label}
+    TextBox{parent=steam_div,x=4,y=4,text="Steam Capacity",fg_bg=style.label}
     local steam_cap = DataIndicator{parent=steam_div,x=4,format="%18d",value=0,unit="mB",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_cap.register(ps, "steam_cap", steam_cap.update)
 
-    TextBox{parent=steam_div,x=4,y=7,text="Steam Fill",width=21,fg_bg=style.label}
+    TextBox{parent=steam_div,x=4,y=7,text="Steam Fill",fg_bg=style.label}
     local steam_fill = DataIndicator{parent=steam_div,x=4,format="%19.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     steam_fill.register(ps, "steam_fill", function (v) steam_fill.update(v * 100) end)
 
@@ -81,15 +81,15 @@ return function (frame, unit, tbn_id)
     local energy_bar = VerticalBar{parent=energy_div,fg_bg=cpair(colors.blue,gray),height=8,width=2}
     energy_bar.register(ps, "energy_fill", energy_bar.update)
 
-    TextBox{parent=energy_div,x=4,y=1,text="Energy",width=21,fg_bg=style.label}
+    TextBox{parent=energy_div,x=4,y=1,text="Energy",fg_bg=style.label}
     local energy = DataIndicator{parent=energy_div,x=4,format="%18.2f",value=0,unit=db.energy_label,commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     energy.register(ps, "energy", energy.update)
 
-    TextBox{parent=energy_div,x=4,y=4,text="Energy Capacity",width=21,fg_bg=style.label}
+    TextBox{parent=energy_div,x=4,y=4,text="Energy Capacity",fg_bg=style.label}
     local energy_cap = DataIndicator{parent=energy_div,x=4,format="%18d",value=0,unit=db.energy_label,commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     energy_cap.register(ps, "max_energy", energy_cap.update)
 
-    TextBox{parent=energy_div,x=4,y=7,text="Energy Fill",width=21,fg_bg=style.label}
+    TextBox{parent=energy_div,x=4,y=7,text="Energy Fill",fg_bg=style.label}
     local energy_fill = DataIndicator{parent=energy_div,x=4,format="%19.2f",value=0,unit="%",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     energy_fill.register(ps, "energy_fill", function (v) energy_fill.update(v * 100) end)
 
@@ -108,27 +108,27 @@ return function (frame, unit, tbn_id)
     local dispersers = DataIndicator{parent=s_flow,x=9,format="%11d",value=0,commas=true,lu_colors=lu_c,width=11,fg_bg=s_field}
     dispersers.register(ps, "dispersers", dispersers.update)
 
-    TextBox{parent=s_flow,y=6,text="Min. Response Tau",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=6,text="Min. Response Tau",fg_bg=style.label}
     local flow_perf = DataIndicator{parent=s_flow,format="%19.6f",value=0,commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     flow_perf.register(ps, "flow_perf", flow_perf.update)
 
-    TextBox{parent=s_flow,y=9,text="Flow Response Tau",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=9,text="Flow Response Tau",fg_bg=style.label}
     local flow_perf_l = DataIndicator{parent=s_flow,format="%19.6f",value=0,commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     flow_perf_l.register(ps, "flow_perf_live", flow_perf_l.update)
 
-    TextBox{parent=s_flow,y=12,text="Maximum Flow Rate",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=12,text="Maximum Flow Rate",fg_bg=style.label}
     local max_flow = DataIndicator{parent=s_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     max_flow.register(ps, "max_flow_rate", max_flow.update)
 
-    TextBox{parent=s_flow,y=15,text="Steam Input Rate",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=15,text="Steam Input Rate",fg_bg=style.label}
     local input_rate = DataIndicator{parent=s_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     input_rate.register(ps, "steam_input_rate", input_rate.update)
 
-    TextBox{parent=s_flow,y=18,text="Steam Flow Rate",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=18,text="Steam Flow Rate",fg_bg=style.label}
     local flow_rate = DataIndicator{parent=s_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     flow_rate.register(ps, "flow_rate", flow_rate.update)
 
-    TextBox{parent=s_flow,y=21,text="Flow Utilization",width=19,fg_bg=style.label}
+    TextBox{parent=s_flow,y=21,text="Flow Utilization",fg_bg=style.label}
     local flow_bar = HorizontalBar{parent=s_flow,show_percent=true,bar_fg_bg=steam_c,height=1,width=19}
     flow_bar.register(ps, "flow_rate", function (v) flow_bar.update(v / data.build.max_flow_rate) end)
 
@@ -155,23 +155,23 @@ return function (frame, unit, tbn_id)
     local mult = DataIndicator{parent=e_flow,x=12,format="%10.6f",value=0,lu_colors=lu_c,width=10,fg_bg=s_field}
     mult.register(ps, "gen_mult", mult.update)
 
-    TextBox{parent=e_flow,y=9,text="Maximum Production",width=21,fg_bg=style.label}
+    TextBox{parent=e_flow,y=9,text="Maximum Production",fg_bg=style.label}
     local max_prod = DataIndicator{parent=e_flow,format="%18d",value=0,unit="FE",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     max_prod.register(ps, "max_production", max_prod.update)
 
-    TextBox{parent=e_flow,y=12,text="Production Rate",width=21,fg_bg=style.label}
+    TextBox{parent=e_flow,y=12,text="Production Rate",fg_bg=style.label}
     local prod_rate = DataIndicator{parent=e_flow,format="%18d",value=0,unit="FE",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     prod_rate.register(ps, "prod_rate", prod_rate.update)
 
-    TextBox{parent=e_flow,y=15,text="Production Util.",width=21,fg_bg=style.label}
+    TextBox{parent=e_flow,y=15,text="Production Util.",fg_bg=style.label}
     local prod_bar = HorizontalBar{parent=e_flow,show_percent=true,bar_fg_bg=cpair(colors.green,gray),height=1,width=21}
     prod_bar.register(ps, "prod_rate", function (v) prod_bar.update(v / data.build.max_production) end)
 
-    TextBox{parent=e_flow,y=18,text="Rotor Rotation",width=21,fg_bg=style.label}
+    TextBox{parent=e_flow,y=18,text="Rotor Rotation",fg_bg=style.label}
     local rpm = DataIndicator{parent=e_flow,format="%17.4f",value=0,unit="RPM",commas=true,lu_colors=lu_c,width=21,fg_bg=s_field}
     rpm.register(ps, "flow_rate", function (v) rpm.update(ROTATION_TO_RPM * (v / data.build.max_flow_rate)) end)
 
-    TextBox{parent=e_flow,y=21,text="Rotation Speed",width=21,fg_bg=style.label}
+    TextBox{parent=e_flow,y=21,text="Rotation Speed",fg_bg=style.label}
     local rpm_bar = HorizontalBar{parent=e_flow,show_percent=true,bar_fg_bg=cpair(colors.black,gray),height=1,width=21}
     rpm_bar.register(ps, "flow_rate", function (v) rpm_bar.update(v / data.build.max_flow_rate) end)
 
@@ -182,19 +182,19 @@ return function (frame, unit, tbn_id)
 
     TextBox{parent=w_flow,text="Water Return",alignment=ALIGN.CENTER}
 
-    TextBox{parent=w_flow,y=3,text="Condensers",width=19,fg_bg=style.label}
+    TextBox{parent=w_flow,y=3,text="Condensers",fg_bg=style.label}
     local condensers = DataIndicator{parent=w_flow,format="%19d",value=0,commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     condensers.register(ps, "condensers", condensers.update)
 
-    TextBox{parent=w_flow,y=6,text="Max. Water Output",width=19,fg_bg=style.label}
+    TextBox{parent=w_flow,y=6,text="Max. Water Output",fg_bg=style.label}
     local max_water = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     max_water.register(ps, "max_water_output", max_water.update)
 
-    TextBox{parent=w_flow,y=9,text="Water Flow Rate",width=19,fg_bg=style.label}
+    TextBox{parent=w_flow,y=9,text="Water Flow Rate",fg_bg=style.label}
     local water_ret = DataIndicator{parent=w_flow,format="%14d",value=0,unit="mB/t",commas=true,lu_colors=lu_c,width=19,fg_bg=s_field}
     water_ret.register(ps, "flow_rate", function (r) water_ret.update(math.min(r, data.build.max_water_output)) end)
 
-    TextBox{parent=w_flow,y=12,text="Water Return Util.",width=19,fg_bg=style.label}
+    TextBox{parent=w_flow,y=12,text="Water Return Util.",fg_bg=style.label}
     local water_bar = HorizontalBar{parent=w_flow,show_percent=true,bar_fg_bg=water_c,height=1,width=19}
     water_bar.register(ps, "flow_rate", function (v) water_bar.update(v / data.build.max_water_output) end)
 

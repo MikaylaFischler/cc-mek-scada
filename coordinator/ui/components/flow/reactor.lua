@@ -121,11 +121,11 @@ local function make(parent, unit_id, close_cb)
 
     TextBox{parent=heat_mgmt,y=1,text="Heat Management",alignment=ALIGN.CENTER}
 
-    TextBox{parent=heat_mgmt,y=3,text="Heat Capacity",width=23,fg_bg=style.label}
+    TextBox{parent=heat_mgmt,y=3,text="Heat Capacity",fg_bg=style.label}
     local heat_cap = DataIndicator{parent=heat_mgmt,format="%21d",value=0,unit="J",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     heat_cap.register(ps, "heat_cap", heat_cap.update)
 
-    TextBox{parent=heat_mgmt,y=6,text="Environmental Loss",width=23,fg_bg=style.label}
+    TextBox{parent=heat_mgmt,y=6,text="Environmental Loss",fg_bg=style.label}
     local env_loss = DataIndicator{parent=heat_mgmt,format="%19d",value=0,unit="J/t",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     env_loss.register(ps, "env_loss_J", env_loss.update)
 
@@ -137,7 +137,7 @@ local function make(parent, unit_id, close_cb)
     local max_op_na = DataIndicator{parent=heat_mgmt,format="%20.4f",value=0,unit=db.temp_label,commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
     max_op_na.register(ps, "max_op_temp_Na", function (t) max_op_na.update(db.temp_convert(t)) end)
 
-    TextBox{parent=heat_mgmt,y=18,text="Core Temperature",width=23,fg_bg=style.label}
+    TextBox{parent=heat_mgmt,y=18,text="Core Temperature",fg_bg=style.label}
     local core_temp = DataIndicator{parent=heat_mgmt,format="%20.2f",value=0,unit=db.temp_label,lu_colors=lu_c,width=23,fg_bg=s_field}
     core_temp.register(ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
 
@@ -218,7 +218,7 @@ local function make(parent, unit_id, close_cb)
 
     local sim_p = Rectangle{parent=window,x=80,y=1,width=44,height=23,border=border(1,gray,true),thin=true,fg_bg=parent.get_fg_bg()}
 
-    TextBox{parent=sim_p,y=1,text="Reactor Pressures",alignment=ALIGN.CENTER}
+    TextBox{parent=sim_p,y=1,text="Reactor Gauge Pressures",alignment=ALIGN.CENTER}
 
     TextBox{parent=sim_p,y=3,text="Cooled Coolant Tank Pressure",width=28,fg_bg=style.label}
     local ccool_p = DataIndicator{parent=sim_p,x=30,y=3,format="%9.2f",value=0,unit="bar",lu_colors=lu_c,width=13,fg_bg=s_field}
