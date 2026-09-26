@@ -25,7 +25,7 @@ local comms = {}
 
 -- protocol/data versions (protocol/data independent changes tracked by util.lua version)
 comms.version = "3.4.2"
-comms.api_version = "0.1.5"
+comms.api_version = "0.1.6"
 
 ---@alias frame scada_frame|authd_frame
 ---@alias packet_container modbus_container|rplc_container|mgmt_container|crdn_container

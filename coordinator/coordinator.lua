@@ -42,6 +42,8 @@ function coordinator.load_config()
     config.GreenPuPellet = settings.get("GreenPuPellet")
     config.TempScale = settings.get("TempScale")
     config.EnergyScale = settings.get("EnergyScale")
+    config.FlowDetailView = settings.get("FlowDetailView")
+    config.FlowViewSwitcher = settings.get("FlowViewSwitcher")
 
     config.MainDisplay = settings.get("MainDisplay")
     config.FlowDisplay = settings.get("FlowDisplay")
@@ -77,6 +79,8 @@ function coordinator.load_config()
     cfv.assert_range(config.TempScale, 1, 4)
     cfv.assert_type_int(config.EnergyScale)
     cfv.assert_range(config.EnergyScale, 1, 3)
+    cfv.assert_type_bool(config.FlowDetailView)
+    cfv.assert_type_bool(config.FlowViewSwitcher)
 
     cfv.assert_type_table(config.UnitDisplays)
 
@@ -701,7 +705,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                                         log.info(util.c("supervisor establish request approved, linked to SV (CID#", src_addr, ") on ", tx_nic.phy_name()))
 
                                         -- init io controller
-                                        ioctl.init(conf, public, config.TempScale, config.EnergyScale)
+                                        ioctl.init(conf, public, config.TempScale, config.EnergyScale, config.FlowDetailView, config.FlowViewSwitcher)
 
                                         self.sv_addr = src_addr
                                         self.sv_linked = true

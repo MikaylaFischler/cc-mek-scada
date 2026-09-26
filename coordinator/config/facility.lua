@@ -75,17 +75,27 @@ local function handle_packet(packet)
 
                 if est_ack == ESTABLISH_ACK.ALLOW then
                     if type(config) == "table" and #config == 5 then
+                        local cool_conf = config[2] ---@type sv_cooling_conf
+
                         local count_ok = is_int_min_max(config[1], 1, 4)
-                        local cool_ok = type(config[2]) == "table" and type(config[2].r_cool) == "table" and #config[2].r_cool == config[1]
+                        local cool_ok  = type(cool_conf) == "table" and type(cool_conf.r_cool) == "table" and #cool_conf.r_cool == config[1]
+
 
                         if count_ok and cool_ok then
                             self.tmp_cfg.UnitCount = config[1]
-                            self.tool_ctl.sv_cool_conf = {}
+
+                            self.tool_ctl.com_waste = config[4]
+                            self.tool_ctl.tank_list = cool_conf.fac_tank_list
+                            self.tool_ctl.tank_mode = cool_conf.fac_tank_mode
+
+                            self.tool_ctl.unit_bt_cnt = {}
 
                             for i = 1, self.tmp_cfg.UnitCount do
-                                local num_b = config[2].r_cool[i].BoilerCount
-                                local num_t = config[2].r_cool[i].TurbineCount
-                                self.tool_ctl.sv_cool_conf[i] = { num_b, num_t }
+                                local num_b = cool_conf.r_cool[i].BoilerCount
+                                local num_t = cool_conf.r_cool[i].TurbineCount
+
+                                self.tool_ctl.unit_bt_cnt[i] = { num_b, num_t }
+
                                 cool_ok = cool_ok and is_int_min_max(num_b, 0, 2) and is_int_min_max(num_t, 1, 3)
                             end
                         end
@@ -94,7 +104,7 @@ local function handle_packet(packet)
                             error_msg = "Error: supervisor unit count out of range."
                         elseif not cool_ok then
                             error_msg = "Error: supervisor cooling configuration malformed."
-                            self.tool_ctl.sv_cool_conf = nil
+                            self.tool_ctl.unit_bt_cnt = nil
                         end
 
                         self.sv_addr = packet.scada_frame.src_addr()
@@ -223,8 +233,8 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     TextBox{parent=fac_cfg,y=2,text=" Facility Configuration",fg_bg=cpair(colors.black,colors.yellow)}
 
-    TextBox{parent=fac_c_1,y=1,height=4,text="This tool can attempt to connect to your supervisor computer. This would load facility information in order to get the unit count and aid monitor setup."}
-    TextBox{parent=fac_c_1,y=6,height=2,text="The supervisor startup app must be running and fully configured on your supervisor computer."}
+    TextBox{parent=fac_c_1,y=1,height=3,text="This tool can attempt to connect to your Supervisor computer. This would load facility properties to help with monitor setup."}
+    TextBox{parent=fac_c_1,y=5,height=3,text="The Supervisor startup app must be running and fully configured on your Supervisor computer before attempting to connect here."}
 
     self.sv_conn_status = TextBox{parent=fac_c_1,x=11,y=9,text=""}
     self.sv_conn_detail = TextBox{parent=fac_c_1,y=11,height=2,text=""}
@@ -233,7 +243,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     local function sv_skip()
         tcd.abort(handle_timeout)
-        tool_ctl.sv_cool_conf = nil
+        tool_ctl.unit_bt_cnt = nil
         self.net_listen = false
         fac_pane.set_value(2)
     end
@@ -297,7 +307,7 @@ function facility.create(tool_ctl, main_pane, cfg_sys, fac_cfg, style)
 
     -- show the facility's unit count and cooling configuration data
     function self.show_sv_cfg()
-        local conf = tool_ctl.sv_cool_conf
+        local conf = tool_ctl.unit_bt_cnt
         fac_config_list.remove_all()
 
         local str = util.sprintf("Facility has %d reactor unit%s:", #conf, tri(#conf==1,"","s"))

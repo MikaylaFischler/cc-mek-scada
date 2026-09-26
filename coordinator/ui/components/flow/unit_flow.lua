@@ -9,7 +9,7 @@ local ioctl             = require("coordinator.ioctl")
 
 local style             = require("coordinator.ui.style")
 
-local waste_flow        = require("coordinator.ui.components.waste_flow")
+local waste_flow        = require("coordinator.ui.components.flow.waste_flow")
 
 local core              = require("graphics.core")
 
@@ -19,8 +19,9 @@ local TextBox           = require("graphics.elements.TextBox")
 
 local Rectangle         = require("graphics.elements.Rectangle")
 
-local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
+local PushButton        = require("graphics.elements.controls.PushButton")
 
+local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
 local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
 local COOLANT_TYPE = types.COOLANT_TYPE
@@ -43,7 +44,8 @@ local lg_gray = style.lg_gray
 ---@param wide boolean whether to render wide version
 ---@param com_waste boolean true if using facility waste
 ---@param unit_id integer unit index
-local function make(parent, x, y, wide, com_waste, unit_id)
+---@param detail_callbacks? function[] detail window open callbacks
+local function make(parent, x, y, wide, com_waste, unit_id, detail_callbacks)
     local s_field = style.theme.field_box
 
     local text_c = style.text_colors
@@ -82,6 +84,8 @@ local function make(parent, x, y, wide, com_waste, unit_id)
     TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
     TextBox{parent=root,x=3,y=5,text="\x19",width=1,fg_bg=lg_gray}
+
+    if detail_callbacks then PushButton{parent=root,x=19,y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[1]} end
 
     local rc_pipes = {}
 
@@ -134,16 +138,18 @@ local function make(parent, x, y, wide, com_waste, unit_id)
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
 
+        if detail_callbacks then PushButton{parent=root,x=_wide(65,58),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[2]} end
+
         local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
         local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
-        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        wt_rate.register(unit.unit_ps, "turbine_water_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "boiler_boil_sum", st_rate.update)
     else
         local wt_rate = DataIndicator{parent=root,x=28,y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
         local st_rate = DataIndicator{parent=root,x=28,y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
 
-        wt_rate.register(unit.unit_ps, "turbine_flow_sum", wt_rate.update)
+        wt_rate.register(unit.unit_ps, "turbine_water_sum", wt_rate.update)
         st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
     end
 
@@ -151,6 +157,8 @@ local function make(parent, x, y, wide, com_waste, unit_id)
     TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=ALIGN.CENTER}
     TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
+
+    if detail_callbacks then PushButton{parent=root,x=_wide(111,97),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[3]} end
 
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo
