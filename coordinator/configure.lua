@@ -64,7 +64,7 @@ local tool_ctl = {
     com_waste = false,
     tank_mode = 0,
     tank_list = {},
-    unit_bt_cnt = nil,       ---@type [ integer, integer ][] list of boiler & turbine counts
+    unit_bt_cnt = nil, ---@type [ integer, integer ][] list of [ boiler, turbine ] counts
 
     launch_startup = false,
     start_fail = 0,

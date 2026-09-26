@@ -528,11 +528,11 @@ end
 
 -- HELPER FUNCTIONS
 
--- get the block size of a monitor given its width and height at a given text scale.
+-- get the block size of a monitor given its width and height at a given text scale
 ---@nodiscard
 ---@param width integer character width
 ---@param height integer character height
----@param scale integer? scale or default 0.5
+---@param scale number? scale or default 0.5
 ---@return integer block_width, integer block_height
 function ppm.monitor_block_size(width, height, scale)
     local b_w = util.round(((width * 6 * (scale or 0.5)) + 20) / 64)
