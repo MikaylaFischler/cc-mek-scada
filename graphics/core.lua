@@ -7,12 +7,12 @@ local flasher = require("graphics.flasher")
 
 local core = {}
 
-core.version = "2.5.14"
+core.version = "2.5.15"
 
 core.flasher = flasher
-core.events = events
+core.events  = events
 
--- Core Types
+--#region Core Types
 
 ---@enum ALIGN
 core.ALIGN = { LEFT = 1, CENTER = 2, RIGHT = 3 }
@@ -116,14 +116,37 @@ function core.pipe(x1, y1, x2, y2, color, thin, align_tr)
     }
 end
 
--- Assertion Handling
+--#endregion
+--#region Utilities
 
 -- extract the custom element assert message, dropping the path to the element file
 function core.extract_assert_msg(msg)
     return string.sub(msg, (string.find(msg, "@") or 0) + 1)
 end
 
--- Interactive Field Manager
+-- get the computed size of a monitor
+---@param b_w integer block width
+---@param b_h integer block height
+---@param scale number CC display scale (0.5, 1, 1.5, etc.)
+---@return integer w, integer h character dimensions
+function core.monitor_size(b_w, b_h, scale)
+    local w = math.floor((((b_w * 64) - 20) / (6 * scale)) + 0.5)
+    local h = math.floor((((b_h * 64) - 20) / (9 * scale)) + 0.5)
+    return w, h
+end
+
+-- get the minimum block size required to fit a given size
+---@param w integer character width needed
+---@param h integer character height needed
+---@param scale number CC display scale (0.5, 1, 1.5, etc.)
+---@return integer b_w, integer b_h block dimensions
+function core.min_block_size(w, h, scale)
+    local b_w = math.ceil(((w * 6 * scale) + 20) / 64)
+    local b_h = math.ceil(((h * 9 * scale) + 20) / 64)
+    return b_w, b_h
+end
+
+--#region Interactive Field Manager
 
 ---@param e graphics_base element
 ---@param max_len integer max value length
@@ -345,5 +368,7 @@ function core.new_ifield(e, max_len, fg_bg, dis_fg_bg, align_right)
 
     return public
 end
+
+--#endregion
 
 return core
