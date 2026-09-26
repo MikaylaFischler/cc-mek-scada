@@ -214,7 +214,7 @@ return function (frame, unit, blr_id)
     boiler_p_max.register(ps, "phys_boiler_p_max", function (v) boiler_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=20,text="Steam Flow Rate",width=18,fg_bg=style.label}
-    local steam_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    local steam_f = DataIndicator{parent=sim,x=25,y=20,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     steam_f.register(ps, "phys_steam_f", steam_f.update)
 
     local steam_f_bar = HorizontalBar{parent=sim,y=22,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}

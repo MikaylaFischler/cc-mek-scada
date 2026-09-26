@@ -244,7 +244,7 @@ return function (frame, unit, tbn_id)
     exhaust_p_max.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
 
     TextBox{parent=sim,y=12,text="Steam Input Rate",width=18,fg_bg=style.label}
-    local inlet_f = DataIndicator{parent=sim,x=20,y=12,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    local inlet_f = DataIndicator{parent=sim,x=25,y=12,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     inlet_f.register(ps, "phys_inlet_f", inlet_f.update)
 
     local inlet_f_bar = HorizontalBar{parent=sim,y=13,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
@@ -255,7 +255,7 @@ return function (frame, unit, tbn_id)
     inlet_f_max.register(ps, "phys_inlet_f_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     TextBox{parent=sim,y=16,text="Steam Flow Rate",width=18,fg_bg=style.label}
-    local steam_f = DataIndicator{parent=sim,x=20,y=16,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    local steam_f = DataIndicator{parent=sim,x=25,y=16,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     steam_f.register(ps, "phys_steam_f", steam_f.update)
 
     local steam_f_bar = HorizontalBar{parent=sim,y=17,thin_bar=true,bar_fg_bg=steam_c,height=1,width=42}
@@ -266,7 +266,7 @@ return function (frame, unit, tbn_id)
     steam_f_max.register(ps, "phys_steam_f_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
     TextBox{parent=sim,y=20,text="Water Return Rate",width=18,fg_bg=style.label}
-    local water_f = DataIndicator{parent=sim,x=20,y=20,format="%18d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=23,fg_bg=s_field}
+    local water_f = DataIndicator{parent=sim,x=25,y=20,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     water_f.register(ps, "phys_water_f", water_f.update)
 
     local water_f_bar = HorizontalBar{parent=sim,y=21,thin_bar=true,bar_fg_bg=water_c,height=1,width=42}
