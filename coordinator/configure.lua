@@ -212,16 +212,16 @@ local function config_view(display)
     local main_page = Div{parent=root_pane_div,y=1}
     local net_cfg = Div{parent=root_pane_div,y=1}
     local fac_cfg = Div{parent=root_pane_div,y=1}
+    local crd_cfg = Div{parent=root_pane_div,y=1}
     local mon_cfg = Div{parent=root_pane_div,y=1}
     local spkr_cfg = Div{parent=root_pane_div,y=1}
-    local crd_cfg = Div{parent=root_pane_div,y=1}
     local log_cfg = Div{parent=root_pane_div,y=1}
     local clr_cfg = Div{parent=root_pane_div,y=1}
     local summary = Div{parent=root_pane_div,y=1}
     local changelog = Div{parent=root_pane_div,y=1}
     local disk_warn = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,clr_cfg,summary,changelog,disk_warn}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,crd_cfg,mon_cfg,spkr_cfg,log_cfg,clr_cfg,summary,changelog,disk_warn}}
 
     local req_space = log.MIN_SPACE
     if fs.exists("/coordinator.settings") then
@@ -342,14 +342,14 @@ local function config_view(display)
 
     --#region HMI Configuration
 
-    local mon_pane, crd_pane = hmi.create(tool_ctl, main_pane, settings, { mon_cfg, spkr_cfg, crd_cfg }, style)
+    local crd_pane, mon_pane = hmi.create(tool_ctl, main_pane, settings, { crd_cfg, mon_cfg, spkr_cfg }, style)
 
     --#endregion
 
     --#region System Configuration
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary }
-    local ext  = { fac_pane, mon_pane, crd_pane, preset_monitor_fields, startup, exit }
+    local ext  = { fac_pane, crd_pane, mon_pane, preset_monitor_fields, startup, exit }
 
     system.create(tool_ctl, main_pane, settings, divs, ext, style)
 

@@ -53,7 +53,7 @@ local system = {}
 function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4]
-    local fac_pane, mon_pane, crd_pane, preset_monitor_fields, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6]
+    local fac_pane, crd_pane, mon_pane, preset_monitor_fields, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg

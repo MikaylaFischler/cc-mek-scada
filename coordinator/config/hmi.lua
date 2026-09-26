@@ -34,16 +34,76 @@ local hmi = {}
 ---@param cfg_sys [ crd_config, crd_config, crd_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
 ---@param style { [string]: cpair }
----@return MultiPane mon_pane, MultiPane crd_pane
+---@return MultiPane crd_pane, MultiPane mon_pane
 function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local _, ini_cfg, tmp_cfg, _, _ = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
-    local mon_cfg, spkr_cfg, crd_cfg = divs[1], divs[2], divs[3]
+    local crd_cfg, mon_cfg, spkr_cfg = divs[1], divs[2], divs[3]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
     local nav_fg_bg     = style.nav_fg_bg
     local btn_act_fg_bg = style.btn_act_fg_bg
     local btn_dis_fg_bg = style.btn_dis_fg_bg
+
+    --#region Coordinator UI
+
+    local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
+    local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
+
+    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2}}
+
+    TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
+
+    TextBox{parent=crd_c_1,y=1,height=2,text="You can customize the UI with the interface options below."}
+
+    TextBox{parent=crd_c_1,y=4,text="Clock Time Format"}
+    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
+    tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,y=8,text="Temperature Scale"}
+    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
+    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    local function submit_ui_opts()
+        tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1
+        tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
+        tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
+        tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
+        crd_pane.set_value(2)
+    end
+
+    PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=crd_c_2,y=1,height=4,text="Below you can configure the detail view windows on the flow monitor. Enabling these adds '+' symbols to reactor, boiler, and turbine blocks allowing you to view more details."}
+
+    local function en_show_sw(en)
+        if en then tool_ctl.show_win_sw.enable() else tool_ctl.show_win_sw.disable() end
+    end
+
+    tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This can increase flow monitor minimum height.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+
+    tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
+
+    en_show_sw(ini_cfg.FlowDetailView)
+
+    local function submit_flow_opts()
+        tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
+        tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
+        main_pane.set_value(5)
+    end
+
+    PushButton{parent=crd_c_2,y=14,text="\x1b Back",callback=function()crd_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_2,x=44,y=14,text="Next \x1a",callback=submit_flow_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
 
     --#region Monitors
 
@@ -66,7 +126,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         mon_pane.set_value(2)
     end
 
-    PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
@@ -89,7 +149,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
             end
         else
             assign_err.hide(true)
-            main_pane.set_value(5)
+            main_pane.set_value(6)
             return
         end
 
@@ -200,72 +260,12 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         if vol ~= nil then
             s_vol_err.hide(true)
             tmp_cfg.SpeakerVolume = vol
-            main_pane.set_value(6)
+            main_pane.set_value(7)
         else s_vol_err.show() end
     end
 
-    PushButton{parent=spkr_c,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    --#endregion
-
-    --#region Coordinator UI
-
-    local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
-    local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
-
-    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2}}
-
-    TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
-
-    TextBox{parent=crd_c_1,y=1,height=2,text="You can customize the UI with the interface options below."}
-
-    TextBox{parent=crd_c_1,y=4,text="Clock Time Format"}
-    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
-    tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,y=8,text="Temperature Scale"}
-    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
-    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    local function submit_ui_opts()
-        tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1
-        tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
-        tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
-        tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
-        crd_pane.set_value(2)
-    end
-
-    PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    TextBox{parent=crd_c_2,y=1,height=4,text="Below you can configure the detail view windows on the flow monitor. Enabling these adds '+' symbols to reactor, boiler, and turbine blocks allowing you to view more details."}
-
-    local function en_show_sw(en)
-        if en then tool_ctl.show_win_sw.enable() else tool_ctl.show_win_sw.disable() end
-    end
-
-    tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
-    TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
-    TextBox{parent=crd_c_2,x=3,height=1,text="This may increase flow monitor height req.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
-
-    tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
-    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
-
-    en_show_sw(ini_cfg.FlowDetailView)
-
-    local function submit_flow_opts()
-        tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
-        tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
-        main_pane.set_value(7)
-    end
-
-    PushButton{parent=crd_c_2,y=14,text="\x1b Back",callback=function()crd_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=crd_c_2,x=44,y=14,text="Next \x1a",callback=submit_flow_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -454,7 +454,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     --#endregion
 
-    return mon_pane, crd_pane
+    return crd_pane, mon_pane
 end
 
 return hmi
