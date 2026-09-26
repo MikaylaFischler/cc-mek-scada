@@ -114,9 +114,11 @@ local function init(main)
     req_height = math.max(req_height, 32)
 
     if en_fd then
+        -- +3 for offset/padding on top of 33 for reactor detail window
         req_height = math.max(req_height, 36)
 
         for _, u in pairs(units) do
+            -- +3 for offset/padding, initial 3 + (x * num) is from boilers.lua/turbines.lua
             req_height = math.max(req_height, math.max(6 + (26 * u.num_boilers), 6 + (25 * u.num_turbines)))
         end
     end
