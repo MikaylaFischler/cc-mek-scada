@@ -243,7 +243,7 @@ return function (frame, unit, tbn_id)
     exhaust_p_mid.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
     exhaust_p_max.register(ps, "phys_exhaust_p_max", function (v) exhaust_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    TextBox{parent=sim,y=12,text="Steam Input Rate",width=18,fg_bg=style.label}
+    TextBox{parent=sim,y=12,text="Inlet Mass Flow Rate",width=23,fg_bg=style.label}
     local inlet_f = DataIndicator{parent=sim,x=25,y=12,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     inlet_f.register(ps, "phys_inlet_f", inlet_f.update)
 
@@ -254,7 +254,7 @@ return function (frame, unit, tbn_id)
     local inlet_f_max = TextBox{parent=sim,x=22,y=14,text="             ? kg/s |",width=21,fg_bg=style.label}
     inlet_f_max.register(ps, "phys_inlet_f_max", function (v) inlet_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
-    TextBox{parent=sim,y=16,text="Steam Flow Rate",width=18,fg_bg=style.label}
+    TextBox{parent=sim,y=16,text="Turbine Mass Flow Rate",width=23,fg_bg=style.label}
     local steam_f = DataIndicator{parent=sim,x=25,y=16,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     steam_f.register(ps, "phys_steam_f", steam_f.update)
 
@@ -265,7 +265,7 @@ return function (frame, unit, tbn_id)
     local steam_f_max = TextBox{parent=sim,x=22,y=18,text="             ? kg/s |",width=21,fg_bg=style.label}
     steam_f_max.register(ps, "phys_steam_f_max", function (v) steam_f_max.set_value(sprintf("%14d kg/s |", v)) end)
 
-    TextBox{parent=sim,y=20,text="Water Return Rate",width=18,fg_bg=style.label}
+    TextBox{parent=sim,y=20,text="Water Mass Flow Rate",width=23,fg_bg=style.label}
     local water_f = DataIndicator{parent=sim,x=25,y=20,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     water_f.register(ps, "phys_water_f", water_f.update)
 

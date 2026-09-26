@@ -267,7 +267,7 @@ local function make(parent, unit_id, close_cb)
     vessel_p_mid.register(ps, "phys_vessel_p_max", function (v) vessel_p_mid.set_value(sprintf("| %d bar", v / 2)) end)
     vessel_p_max.register(ps, "phys_vessel_p_max", function (v) vessel_p_max.set_value(sprintf("%4d bar |", v)) end)
 
-    TextBox{parent=sim,y=18,text="Coolant Flow Rate",width=18,fg_bg=style.label}
+    TextBox{parent=sim,y=18,text="Coolant Mass Flow Rate",width=23,fg_bg=style.label}
     local cool_f = DataIndicator{parent=sim,x=25,y=18,format="%13d",value=0,unit="kg/s",commas=true,lu_colors=lu_c,width=18,fg_bg=s_field}
     cool_f.register(ps, "phys_cool_f", cool_f.update)
 
