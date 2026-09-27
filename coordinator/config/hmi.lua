@@ -9,6 +9,7 @@ local ListBox     = require("graphics.elements.ListBox")
 local MultiPane   = require("graphics.elements.MultiPane")
 local TextBox     = require("graphics.elements.TextBox")
 
+local Checkbox    = require("graphics.elements.controls.Checkbox")
 local PushButton  = require("graphics.elements.controls.PushButton")
 local RadioButton = require("graphics.elements.controls.RadioButton")
 
@@ -33,16 +34,77 @@ local hmi = {}
 ---@param cfg_sys [ crd_config, crd_config, crd_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
 ---@param style { [string]: cpair }
----@return MultiPane mon_pane
+---@return MultiPane crd_pane, MultiPane mon_pane
 function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     local _, ini_cfg, tmp_cfg, _, _ = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
-    local mon_cfg, spkr_cfg, crd_cfg = divs[1], divs[2], divs[3]
+    local crd_cfg, mon_cfg, spkr_cfg = divs[1], divs[2], divs[3]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
     local nav_fg_bg     = style.nav_fg_bg
     local btn_act_fg_bg = style.btn_act_fg_bg
     local btn_dis_fg_bg = style.btn_dis_fg_bg
+
+    --#region Coordinator UI
+
+    local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
+    local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
+
+    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2}}
+
+    TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
+
+    TextBox{parent=crd_c_1,y=1,height=2,text="You can customize the UI with the interface options below."}
+
+    TextBox{parent=crd_c_1,y=4,text="Clock Time Format"}
+    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
+    tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,y=8,text="Temperature Scale"}
+    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
+    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
+
+    local function submit_ui_opts()
+        tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1
+        tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
+        tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
+        tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
+        crd_pane.set_value(2)
+    end
+
+    PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=crd_c_2,y=1,height=4,text="Below you can configure the detail view windows on the flow monitor. Enabling these adds '+' symbols to reactor, boiler, and turbine blocks allowing you to view more details."}
+
+    local function en_show_sw(en)
+        if en then tool_ctl.show_win_sw.enable() else tool_ctl.show_win_sw.disable() end
+    end
+
+    tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This can increase flow monitor minimum height.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+
+    tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
+
+    en_show_sw(ini_cfg.FlowDetailView)
+
+    local function submit_flow_opts()
+        tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
+        tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
+        tool_ctl.update_mon_reqs()
+        main_pane.set_value(5)
+    end
+
+    PushButton{parent=crd_c_2,y=14,text="\x1b Back",callback=function()crd_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_2,x=44,y=14,text="Next \x1a",callback=submit_flow_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    --#endregion
 
     --#region Monitors
 
@@ -65,7 +127,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         mon_pane.set_value(2)
     end
 
-    PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=mon_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=mon_c_1,x=44,y=14,text="Next \x1a",callback=next_from_reqs,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     TextBox{parent=mon_c_2,y=1,height=5,text="Please configure your monitors below. You can go back to the prior page without losing progress to double check what you need. All of those monitors must be assigned before you can proceed."}
@@ -88,7 +150,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
             end
         else
             assign_err.hide(true)
-            main_pane.set_value(5)
+            main_pane.set_value(6)
             return
         end
 
@@ -199,45 +261,12 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         if vol ~= nil then
             s_vol_err.hide(true)
             tmp_cfg.SpeakerVolume = vol
-            main_pane.set_value(6)
+            main_pane.set_value(7)
         else s_vol_err.show() end
     end
 
-    PushButton{parent=spkr_c,y=14,text="\x1b Back",callback=function()main_pane.set_value(4)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=spkr_c,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=spkr_c,x=44,y=14,text="Next \x1a",callback=submit_vol,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-
-    --#endregion
-
-    --#region Coordinator UI
-
-    local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
-
-    TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
-
-    TextBox{parent=crd_c_1,y=1,height=2,text="You can customize the UI with the interface options below."}
-
-    TextBox{parent=crd_c_1,y=4,text="Clock Time Format"}
-    tool_ctl.clock_fmt = RadioButton{parent=crd_c_1,y=5,default=util.trinary(ini_cfg.Time24Hour,1,2),options={"24-Hour","12-Hour"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,x=20,y=4,text="Po/Pu Pellet Color"}
-    tool_ctl.pellet_color = RadioButton{parent=crd_c_1,x=20,y=5,default=util.trinary(ini_cfg.GreenPuPellet,1,2),options={"Green Pu/Cyan Po","Cyan Pu/Green Po (Mek 10.4+)"},radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,y=8,text="Temperature Scale"}
-    tool_ctl.temp_scale = RadioButton{parent=crd_c_1,y=9,default=ini_cfg.TempScale,options=types.TEMP_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    TextBox{parent=crd_c_1,x=20,y=8,text="Energy Scale"}
-    tool_ctl.energy_scale = RadioButton{parent=crd_c_1,x=20,y=9,default=ini_cfg.EnergyScale,options=types.ENERGY_SCALE_NAMES,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.lime}
-
-    local function submit_ui_opts()
-        tmp_cfg.Time24Hour = tool_ctl.clock_fmt.get_value() == 1
-        tmp_cfg.GreenPuPellet = tool_ctl.pellet_color.get_value() == 1
-        tmp_cfg.TempScale = tool_ctl.temp_scale.get_value()
-        tmp_cfg.EnergyScale = tool_ctl.energy_scale.get_value()
-        main_pane.set_value(7)
-    end
-
-    PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(5)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
-    PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 
@@ -247,13 +276,15 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     function tool_ctl.update_mon_reqs()
         local plural = tmp_cfg.UnitCount > 1
 
-        if tool_ctl.sv_cool_conf ~= nil then
-            local cnf = tool_ctl.sv_cool_conf
+        local u_bt = tool_ctl.unit_bt_cnt
 
-            local row1_tall = cnf[1][1] > 1 or cnf[1][2] > 2 or (cnf[2] and (cnf[2][1] > 1 or cnf[2][2] > 2))
-            local row1_short = (cnf[1][1] == 0 and cnf[1][2] == 1) and (cnf[2] == nil or (cnf[2][1] == 0 and cnf[2][2] == 1))
-            local row2_tall = (cnf[3] and (cnf[3][1] > 1 or cnf[3][2] > 2)) or (cnf[4] and (cnf[4][1] > 1 or cnf[4][2] > 2))
-            local row2_short = (cnf[3] == nil or (cnf[3][1] == 0 and cnf[3][2] == 1)) and (cnf[4] == nil or (cnf[4][1] == 0 and cnf[4][2] == 1))
+        -- main view
+
+        if u_bt ~= nil then
+            local row1_tall  = (u_bt[1][1] > 1) or (u_bt[1][2] > 2) or (u_bt[2] and (u_bt[2][1] > 1 or u_bt[2][2] > 2))
+            local row1_short = (u_bt[1][1] == 0 and u_bt[1][2] == 1) and (u_bt[2] == nil or (u_bt[2][1] == 0 and u_bt[2][2] == 1))
+            local row2_tall  = (u_bt[3] and (u_bt[3][1] > 1 or u_bt[3][2] > 2)) or (u_bt[4] and (u_bt[4][1] > 1 or u_bt[4][2] > 2))
+            local row2_short = (u_bt[3] == nil or (u_bt[3][1] == 0 and u_bt[3][2] == 1)) and (u_bt[4] == nil or (u_bt[4][1] == 0 and u_bt[4][2] == 1))
 
             if tmp_cfg.UnitCount <= 2 then
                 tool_ctl.main_mon_h = util.trinary(row1_tall, 5, 4)
@@ -267,20 +298,48 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
             tool_ctl.main_mon_h = util.trinary(tmp_cfg.UnitCount <= 2, 4, 5)
         end
 
-        tool_ctl.flow_mon_h = 2 + tmp_cfg.UnitCount
+        -- flow view
 
-        local asterisk = util.trinary(tool_ctl.sv_cool_conf == nil, "*", "")
+        local no_tanks, only_top_tank, num_tanks = true, true, 0
+
+        for i = 1, #tool_ctl.tank_list do
+            if tool_ctl.tank_list[i] > 0 then
+                no_tanks = false
+                num_tanks = num_tanks + 1
+
+                if i > 1 then only_top_tank = false end
+            end
+        end
+
+        local compressed = tool_ctl.com_waste and (no_tanks or only_top_tank or (tool_ctl.tank_mode == 1 and num_tanks == 1))
+        local req_height = math.max(tool_ctl.com_waste and (compressed and ((11 * tmp_cfg.UnitCount) + 13) or ((19 * tmp_cfg.UnitCount) + 4)) or (20 * tmp_cfg.UnitCount), 32)
+
+        if tmp_cfg.FlowDetailView then
+            req_height = math.max(req_height, 36)
+
+            if u_bt ~= nil then
+                for _, u in pairs(u_bt) do
+                    req_height = math.max(req_height, math.max(6 + (26 * u[1]), 6 + (25 * u[2])))
+                end
+            end
+        end
+
+        tool_ctl.flow_mon_h = ({ core.min_block_size(0, req_height, 0.5) })[2]
+
+        -- report
+
+        local asterisk = util.trinary(tool_ctl.unit_bt_cnt == nil, "*", "")
         local m_at_least = util.trinary(tool_ctl.main_mon_h < 6, "at least ", "")
         local f_at_least = util.trinary(tool_ctl.flow_mon_h < 6, "at least ", "")
 
         mon_reqs.remove_all()
 
-        TextBox{parent=mon_reqs,y=1,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
-        TextBox{parent=mon_reqs,y=1,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Main View Monitor"}
-        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
-        TextBox{parent=mon_reqs,y=1,text="\x1a 1 Flow View Monitor"}
-        TextBox{parent=mon_reqs,y=1,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a "..tmp_cfg.UnitCount.." Unit View Monitor"..util.trinary(plural,"s","")}
+        TextBox{parent=mon_reqs,text="  "..util.trinary(plural,"each ","").."must be 4 blocks wide by 4 tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a 1 Main View Monitor"}
+        TextBox{parent=mon_reqs,text="  must be 8 blocks wide by "..m_at_least..tool_ctl.main_mon_h..asterisk.." tall",fg_bg=cpair(colors.gray,colors.white)}
+        TextBox{parent=mon_reqs,text="\x1a 1 Flow View Monitor"}
+        TextBox{parent=mon_reqs,text="  must be 8 blocks wide by "..f_at_least..tool_ctl.flow_mon_h.." tall",fg_bg=cpair(colors.gray,colors.white)}
     end
 
     -- set/edit a monitor's assignment
@@ -426,7 +485,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     --#endregion
 
-    return mon_pane
+    return crd_pane, mon_pane
 end
 
 return hmi

@@ -6,6 +6,7 @@ local element = require("graphics.element")
 
 ---@class hbar_args
 ---@field show_percent? boolean whether or not to show the percent
+---@field thin_bar? boolean whether to show a thin line on the bar instead of a full bar
 ---@field bar_fg_bg? cpair bar foreground/background colors if showing percent
 ---@field parent graphics_element
 ---@field id? string element id
@@ -61,20 +62,14 @@ return function (args)
         if num_bars ~= last_num_bars then
             last_num_bars = num_bars
 
-            local fgd = ""
-            local bkg = ""
-            local spaces = ""
-
             -- fill percentage
-            for _ = 1, num_bars / 2 do
-                spaces = spaces .. " "
-                fgd = fgd .. bar_fgd
-                bkg = bkg .. bar_bkg
-            end
+            local fgd = string.rep((args.thin_bar and bar_bkg or bar_fgd), num_bars / 2)
+            local bkg = string.rep((args.thin_bar and bar_fgd or bar_bkg), num_bars / 2)
+            local spaces = string.rep((args.thin_bar and "\x8c" or " "), num_bars / 2)
 
             -- add fractional bar if needed
             if num_bars % 2 == 1 then
-                spaces = spaces .. "\x95"
+                spaces = spaces .. (args.thin_bar and "\x84" or "\x95")
                 fgd = fgd .. bar_bkg
                 bkg = bkg .. bar_fgd
             end

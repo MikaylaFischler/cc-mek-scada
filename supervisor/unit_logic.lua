@@ -334,8 +334,10 @@ function logic.update_annunciator(self)
         else ctrl.generator_mult = energy_per_steam end
 
         local flow_perf = turbine.build.steam_cap / turbine.build.max_flow_rate
+        -- local flow_tau = turbine.build.steam_cap / turbine.build.max_flow_rate
 
         props.flow_perf[i] = flow_perf
+        -- props.flow_tau[i] = flow_tau
 
         if ctrl.turbine_flow_perf then
             ctrl.turbine_mismatch = ctrl.turbine_mismatch or (ctrl.turbine_flow_perf ~= flow_perf)

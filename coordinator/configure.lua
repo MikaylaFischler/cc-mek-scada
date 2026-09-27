@@ -38,7 +38,8 @@ local changes = {
     { "v1.5.1", { "Added energy scale options" } },
     { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
     { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } },
-    { "v1.9.7", { "Removed Disable Flow View option" } }
+    { "v1.9.7", { "Removed Disable Flow View option" } },
+    { "v1.11.0", { "Added Flow Detail View configuration options" } }
 }
 
 ---@class crd_configurator
@@ -59,7 +60,11 @@ style.btn_dis_fg_bg = cpair(colors.lightGray,colors.white)
 
 ---@class _crd_cfg_tool_ctl
 local tool_ctl = {
-    sv_cool_conf = nil,       ---@type [ integer, integer ][] list of boiler & turbine counts
+    -- config from supervisor
+    com_waste = false,
+    tank_mode = 0,
+    tank_list = {},
+    unit_bt_cnt = nil, ---@type [ integer, integer ][] list of [ boiler, turbine ] counts
 
     launch_startup = false,
     start_fail = 0,
@@ -83,6 +88,8 @@ local tool_ctl = {
     clock_fmt = nil,          ---@type RadioButton
     temp_scale = nil,         ---@type RadioButton
     energy_scale = nil,       ---@type RadioButton
+    en_flow_dtl = nil,        ---@type Checkbox
+    show_win_sw = nil,        ---@type Checkbox
 
     -- settings elements and functions from facility
     num_units = nil,          ---@type NumberField
@@ -108,6 +115,8 @@ local tmp_cfg = {
     GreenPuPellet = false,
     TempScale = 1,          ---@type TEMP_SCALE
     EnergyScale = 1,        ---@type ENERGY_SCALE
+    FlowDetailView = false,
+    FlowViewSwitcher = false,
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
@@ -146,6 +155,8 @@ local fields = {
     { "GreenPuPellet", "Pellet Colors", false },
     { "TempScale", "Temperature Scale", types.TEMP_SCALE.KELVIN },
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
+    { "FlowDetailView", "Enable Flow Detail Views", false },
+    { "FlowViewSwitcher", "Enable Flow View Switcher", false },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
@@ -205,16 +216,16 @@ local function config_view(display)
     local main_page = Div{parent=root_pane_div,y=1}
     local net_cfg = Div{parent=root_pane_div,y=1}
     local fac_cfg = Div{parent=root_pane_div,y=1}
+    local crd_cfg = Div{parent=root_pane_div,y=1}
     local mon_cfg = Div{parent=root_pane_div,y=1}
     local spkr_cfg = Div{parent=root_pane_div,y=1}
-    local crd_cfg = Div{parent=root_pane_div,y=1}
     local log_cfg = Div{parent=root_pane_div,y=1}
     local clr_cfg = Div{parent=root_pane_div,y=1}
     local summary = Div{parent=root_pane_div,y=1}
     local changelog = Div{parent=root_pane_div,y=1}
     local disk_warn = Div{parent=root_pane_div,y=1}
 
-    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,mon_cfg,spkr_cfg,crd_cfg,log_cfg,clr_cfg,summary,changelog,disk_warn}}
+    local main_pane = MultiPane{parent=root_pane_div,y=1,panes={main_page,net_cfg,fac_cfg,crd_cfg,mon_cfg,spkr_cfg,log_cfg,clr_cfg,summary,changelog,disk_warn}}
 
     local req_space = log.MIN_SPACE
     if fs.exists("/coordinator.settings") then
@@ -335,14 +346,14 @@ local function config_view(display)
 
     --#region HMI Configuration
 
-    local mon_pane = hmi.create(tool_ctl, main_pane, settings, { mon_cfg, spkr_cfg, crd_cfg }, style)
+    local crd_pane, mon_pane = hmi.create(tool_ctl, main_pane, settings, { crd_cfg, mon_cfg, spkr_cfg }, style)
 
     --#endregion
 
     --#region System Configuration
 
     local divs = { net_cfg, log_cfg, clr_cfg, summary }
-    local ext  = { fac_pane, mon_pane, preset_monitor_fields, startup, exit }
+    local ext  = { fac_pane, crd_pane, mon_pane, preset_monitor_fields, startup, exit }
 
     system.create(tool_ctl, main_pane, settings, divs, ext, style)
 

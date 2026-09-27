@@ -70,8 +70,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 boil_cap = 0.0,
                 steam_cap = 0,
                 water_cap = 0,
-                hcoolant_cap = 0,
-                ccoolant_cap = 0,
+                hcool_cap = 0,
+                ccool_cap = 0,
                 superheaters = 0
             },
             state = {
@@ -169,8 +169,8 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
                 self.db.build.boil_cap     = adu.data[6]
                 self.db.build.steam_cap    = adu.data[7]
                 self.db.build.water_cap    = adu.data[8]
-                self.db.build.hcoolant_cap = adu.data[9]
-                self.db.build.ccoolant_cap = adu.data[10]
+                self.db.build.hcool_cap    = adu.data[9]
+                self.db.build.ccool_cap    = adu.data[10]
                 self.db.build.superheaters = adu.data[11]
                 self.has_build = true
 

@@ -48,12 +48,12 @@ local system = {}
 ---@param main_pane MultiPane
 ---@param cfg_sys [ crd_config, crd_config, crd_config, { [1]: string, [2]: string, [3]: any }[], function ]
 ---@param divs Div[]
----@param ext [ MultiPane, MultiPane, function, function, function ]
+---@param ext [ MultiPane, MultiPane, MultiPane, function, function, function ]
 ---@param style { [string]: cpair }
 function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
     local settings_cfg, ini_cfg, tmp_cfg, fields, load_settings = cfg_sys[1], cfg_sys[2], cfg_sys[3], cfg_sys[4], cfg_sys[5]
     local net_cfg, log_cfg, clr_cfg, summary = divs[1], divs[2], divs[3], divs[4]
-    local fac_pane, mon_pane, preset_monitor_fields, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5]
+    local fac_pane, crd_pane, mon_pane, preset_monitor_fields, startup, exit = ext[1], ext[2], ext[3], ext[4], ext[5], ext[6]
 
     local bw_fg_bg      = style.bw_fg_bg
     local g_lg_fg_bg    = style.g_lg_fg_bg
@@ -492,6 +492,8 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
             try_set(tool_ctl.clock_fmt, tri(ini_cfg.Time24Hour, 1, 2))
             try_set(tool_ctl.temp_scale, ini_cfg.TempScale)
             try_set(tool_ctl.energy_scale, ini_cfg.EnergyScale)
+            try_set(tool_ctl.en_flow_dtl, ini_cfg.FlowDetailView)
+            try_set(tool_ctl.show_win_sw, ini_cfg.FlowViewSwitcher)
             try_set(mode, ini_cfg.LogMode)
             try_set(path, ini_cfg.LogPath)
             try_set(en_dbg, ini_cfg.LogDebug)
@@ -528,6 +530,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, ext, style)
         net_pane.set_value(1)
         fac_pane.set_value(1)
         mon_pane.set_value(1)
+        crd_pane.set_value(1)
         clr_pane.set_value(1)
         sum_pane.set_value(1)
     end
