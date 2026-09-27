@@ -11,6 +11,10 @@ local ioctl       = require("coordinator.ioctl")
 local style       = require("coordinator.ui.style")
 local pgi         = require("coordinator.ui.pgi")
 
+local flow_splash = require("coordinator.ui.layout.flow_splash")
+local main_splash = require("coordinator.ui.layout.main_splash")
+local unit_splash = require("coordinator.ui.layout.unit_splash")
+
 local flow_view   = require("coordinator.ui.layout.flow_view")
 local panel_view  = require("coordinator.ui.layout.front_panel")
 local main_view   = require("coordinator.ui.layout.main_view")
@@ -34,6 +38,12 @@ local engine = {
     dmesg_window = nil,     ---@type Window|nil
     ui_ready = false,
     fp_ready = false,
+    splash = {
+        enable = false,
+        main = nil, ---@type DisplayBox|nil
+        flow = nil, ---@type DisplayBox|nil
+        unit = {}   ---@type (DisplayBox|nil)[]
+    },
     ui = {
         front_panel = nil,  ---@type DisplayBox|nil
         main_display = nil, ---@type DisplayBox|nil
@@ -121,6 +131,25 @@ function renderer.init_dmesg()
     log.direct_dmesg(engine.dmesg_window)
 end
 
+-- enable and show splash screens
+function renderer.init_splash()
+    -- hide dmesg
+    engine.dmesg_window.setVisible(false)
+
+    engine.splash.enable = true
+
+    engine.splash.main = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
+    main_splash(engine.splash.main)
+
+    engine.splash.flow = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+    flow_splash(engine.splash.flow)
+
+    for idx, display in pairs(engine.monitors.unit_displays) do
+        engine.splash.unit[idx] = DisplayBox{window=display,fg_bg=style.root}
+        unit_splash(engine.splash.unit[idx])
+    end
+end
+
 -- try to start the front panel
 ---@return boolean success, any error_msg
 function renderer.try_start_fp()
@@ -189,7 +218,7 @@ function renderer.try_start_ui()
         status, msg = pcall(function ()
             -- show main view on main monitor
             if engine.monitors.main ~= nil then
-                engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
+                engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root,hidden=engine.splash.enable}
                 main_view(engine.ui.main_display)
                 ioctl.fp_monitor_state("main", 3)
                 util.nop()
@@ -197,7 +226,7 @@ function renderer.try_start_ui()
 
             -- show flow view on flow monitor
             if engine.monitors.flow ~= nil then
-                engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+                engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root,hidden=engine.splash.enable}
                 flow_view(engine.ui.flow_display)
                 ioctl.fp_monitor_state("flow", 3)
                 util.nop()
@@ -205,10 +234,24 @@ function renderer.try_start_ui()
 
             -- show unit views on unit displays
             for idx, display in pairs(engine.monitors.unit_displays) do
-                engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
+                engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root,hidden=engine.splash.enable}
                 unit_view(engine.ui.unit_displays[idx], idx)
                 ioctl.fp_monitor_state(idx, 3)
                 util.nop()
+            end
+
+            -- if using splash, finally show the displays after render completion
+            if engine.splash.enable then
+                engine.splash.main.hide()
+                engine.ui.main_display.show()
+
+                engine.splash.flow.hide()
+                engine.ui.flow_display.show()
+
+                for idx, _ in pairs(engine.monitors.unit_displays) do
+                    engine.splash.unit[idx].hide()
+                    engine.ui.unit_displays[idx].show()
+                end
             end
         end)
 
@@ -264,9 +307,39 @@ function renderer.close_ui()
     -- clear flow monitor
     engine.monitors.flow.clear()
 
-    -- re-draw dmesg
-    engine.dmesg_window.setVisible(true)
-    engine.dmesg_window.redraw()
+    -- restore splash or dmesg
+    if engine.splash.enable then
+        engine.splash.main.show()
+        engine.splash.flow.show()
+
+        for _, unit in pairs(engine.splash.unit) do unit.show() end
+    else
+        engine.dmesg_window.setVisible(true)
+        engine.dmesg_window.redraw()
+    end
+end
+
+-- close UIs and switch back to dmesg
+function renderer.shutdown()
+    renderer.close_ui()
+    renderer.close_fp()
+
+    if engine.splash.enable then
+        engine.splash.main.delete()
+        engine.splash.main = nil
+
+        engine.splash.flow.delete()
+        engine.splash.flow = nil
+
+        for idx, unit in pairs(engine.splash.unit) do
+            unit.delete()
+            engine.splash.unit[idx] = nil
+        end
+
+        -- re-draw dmesg
+        engine.dmesg_window.setVisible(true)
+        engine.dmesg_window.redraw()
+    end
 end
 
 -- is the front panel ready?

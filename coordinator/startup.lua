@@ -20,7 +20,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "1.11.0"
+local COORDINATOR_VERSION = "1.12.0"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -144,6 +144,8 @@ local function main()
     renderer.init_displays(backplane.displays())
     renderer.init_dmesg()
 
+    renderer.init_splash()
+
     -- lets get started!
     log.info("monitors ready, dmesg output incoming...")
 
@@ -247,8 +249,7 @@ local function main()
     -- run threads
     parallel.waitForAll(main_thread.p_exec, render_thread.p_exec)
 
-    renderer.close_ui()
-    renderer.close_fp()
+    renderer.shutdown()
     sounder.stop()
     log_sys("system shutdown")
 
