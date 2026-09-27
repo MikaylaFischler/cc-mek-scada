@@ -49,6 +49,9 @@ local _ioctl = {
 local io = {
     -- mekanism configuration
     mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
+    -- core
+    os_ps = psil.create(),
+    -- front panel
     ---@class crd_io_fp
     fp = { ps = psil.create() }
 }

@@ -662,7 +662,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                                 -- log.debug("coordinator RTT = " .. trip_time .. "ms")
 
-                                ioctl.get_db().facility.ps.publish("sv_ping", trip_time)
+                                ioctl.get_db().os_ps.publish("sv_ping", trip_time)
 
                                 _send_keep_alive_ack(timestamp)
                             else

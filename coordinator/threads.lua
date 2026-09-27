@@ -82,7 +82,7 @@ function threads.thread__main(smem)
 
             if renderer.ui_ready() then
                 -- update clock used on main and flow monitors
-                ioctl.get_db().facility.ps.publish("date_time", os.date(smem.date_format))
+                ioctl.get_db().os_ps.publish("date_time", os.date(smem.date_format))
             end
 
             -- start next clock timer

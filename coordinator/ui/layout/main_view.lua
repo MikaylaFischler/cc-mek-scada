@@ -27,8 +27,9 @@ local ALIGN = core.ALIGN
 local function init(main)
     local s_header = style.theme.header
 
-    local fac   = ioctl.get_db().facility
-    local units = ioctl.get_db().units
+    local db    = ioctl.get_db()
+    local fac   = db.facility
+    local units = db.units
 
     -- window header message
     local header = TextBox{parent=main,y=1,text="Nuclear Generation Facility SCADA Coordinator",alignment=ALIGN.CENTER,fg_bg=s_header}
@@ -36,8 +37,8 @@ local function init(main)
     -- max length example: "01:23:45 AM - Wednesday, September 28 2022"
     local datetime = TextBox{parent=main,x=header.get_width()-42,y=1,text="",alignment=ALIGN.RIGHT,width=42,fg_bg=s_header}
 
-    ping.register(fac.ps, "sv_ping", ping.update)
-    datetime.register(fac.ps, "date_time", datetime.set_value)
+    ping.register(db.os_ps, "sv_ping", ping.update)
+    datetime.register(db.os_ps, "date_time", datetime.set_value)
 
     ---@type Div, Div, Div, Div
     local uo_1, uo_2, uo_3, uo_4
