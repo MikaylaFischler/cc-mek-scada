@@ -24,10 +24,12 @@ local function init(main)
 
     Image{parent=main,x=mid_x-14,y=mid_y-20,nfp="/coordinator/ui/imgs/cc-mek-scada.nfp"}
 
-    Waiting{parent=main,x=mid_x-2,y=mid_y+10,fg_bg=cpair(colors.white,colors._INHERIT)}
+    local anim = Waiting{parent=main,x=mid_x-2,y=mid_y+10,fg_bg=cpair(colors.white,colors._INHERIT)}
 
-    local status_1 = TextBox{parent=main,x=mid_x-15,y=mid_y+15,width=30,text="Starting up SCADA System",alignment=ALIGN.CENTER}
-    local status_2 = TextBox{parent=main,x=mid_x-15,y=mid_y+17,width=30,text="initializing core...",alignment=ALIGN.CENTER}
+    anim.register(ps, "splash_anim_clear", function () anim.delete() end)
+
+    local status_1 = TextBox{parent=main,y=mid_y+15,text="Starting up the SCADA System",alignment=ALIGN.CENTER}
+    local status_2 = TextBox{parent=main,y=mid_y+17,text="Initializing...",alignment=ALIGN.CENTER}
 
     status_1.register(ps, "splash_status_1", status_1.set_value)
     status_2.register(ps, "splash_status_2", status_2.set_value)

@@ -43,6 +43,9 @@ function threads.thread__main(smem)
 
         log_sys("system started successfully")
 
+        ioctl.sys_splash_main_msg(nil, "Connecting to the Supervisor...")
+        ioctl.sys_splash_disp_msg(true, "Connecting...")
+
         -- load in from shared memory
         local crd_state       = smem.crd_state
         local coord_comms     = smem.crd_sys.coord_comms
@@ -103,6 +106,9 @@ function threads.thread__main(smem)
                 -- handle then check if it was a disconnect
                 if coord_comms.handle_packet(packet) then
                     log_comms("supervisor closed connection")
+
+                    ioctl.sys_splash_main_msg("Connection Lost", "Reconnecting...")
+                    ioctl.sys_splash_disp_msg(true, "Reconnecting...")
 
                     -- close main UI, connection, and stop sounder
                     smem.q.mq_render.push_command(MQ__RENDER_CMD.CLOSE_MAIN_UI)
@@ -239,6 +245,9 @@ function threads.thread__render(smem)
 
                             -- start up the main UI
                             log_render("starting main UI...")
+
+                            ioctl.sys_splash_main_msg("Preparing Interface", "Starting the SCADA UI...")
+                            ioctl.sys_splash_disp_msg(true, "Initializing...")
 
                             local draw_start = util.time_ms()
 

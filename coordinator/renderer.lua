@@ -146,7 +146,7 @@ function renderer.init_splash()
 
     for idx, display in pairs(engine.monitors.unit_displays) do
         engine.splash.unit[idx] = DisplayBox{window=display,fg_bg=style.root}
-        unit_splash(engine.splash.unit[idx])
+        unit_splash(engine.splash.unit[idx], idx)
     end
 end
 
@@ -229,6 +229,7 @@ function renderer.try_start_ui()
                 engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root,hidden=engine.splash.enable}
                 flow_view(engine.ui.flow_display)
                 ioctl.fp_monitor_state("flow", 3)
+                ioctl.sys_splash_disp_msg(0, "Display Ready...")
                 util.nop()
             end
 
@@ -237,6 +238,7 @@ function renderer.try_start_ui()
                 engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root,hidden=engine.splash.enable}
                 unit_view(engine.ui.unit_displays[idx], idx)
                 ioctl.fp_monitor_state(idx, 3)
+                ioctl.sys_splash_disp_msg(idx, "Display Ready...")
                 util.nop()
             end
 
@@ -320,13 +322,18 @@ function renderer.close_ui()
 end
 
 -- close UIs and switch back to dmesg
-function renderer.shutdown()
+---@param preserve_splash boolean true to leave the main splash up with its last message if in use
+function renderer.shutdown(preserve_splash)
     renderer.close_ui()
     renderer.close_fp()
 
     if engine.splash.enable then
-        engine.splash.main.delete()
-        engine.splash.main = nil
+        if preserve_splash then
+            ioctl.sys_splash_anim_clear()
+        else
+            engine.splash.main.delete()
+            engine.splash.main = nil
+        end
 
         engine.splash.flow.delete()
         engine.splash.flow = nil
@@ -336,9 +343,11 @@ function renderer.shutdown()
             engine.splash.unit[idx] = nil
         end
 
-        -- re-draw dmesg
-        engine.dmesg_window.setVisible(true)
-        engine.dmesg_window.redraw()
+        if not preserve_splash then
+            -- re-draw dmesg
+            engine.dmesg_window.setVisible(true)
+            engine.dmesg_window.redraw()
+        end
     end
 end
 

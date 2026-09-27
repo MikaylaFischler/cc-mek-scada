@@ -249,7 +249,7 @@ local function main()
     -- run threads
     parallel.waitForAll(main_thread.p_exec, render_thread.p_exec)
 
-    renderer.shutdown()
+    renderer.shutdown(crd_state.link_fail)
     sounder.stop()
     log_sys("system shutdown")
 

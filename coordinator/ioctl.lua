@@ -341,6 +341,40 @@ function ioctl.set_mek_config(conf)
     return valid
 end
 
+--#region System Fields
+
+-- update the main splash screen messages
+---@param line_1 string|nil new line 1 or nil to leave as-is
+---@param line_2 string|nil new line 2 or nil to leave as-is
+function ioctl.sys_splash_main_msg(line_1, line_2)
+    if line_1 then io.os_ps.publish("splash_status_1", line_1) end
+    if line_2 then io.os_ps.publish("splash_status_2", line_2) end
+end
+
+-- update the flow and unit view splash messages
+---@param id integer|true unit ID for unit display, 0 for flow display, or true for all displays
+---@param msg string message
+function ioctl.sys_splash_disp_msg(id, msg)
+    if id == true then
+        io.os_ps.publish("splash_status_flow", msg)
+
+        for i = 1, 4 do
+            io.os_ps.publish("splash_status_unit_" .. i, msg)
+        end
+    elseif id == 0 then
+        io.os_ps.publish("splash_status_flow", msg)
+    else
+        io.os_ps.publish("splash_status_unit_" .. id, msg)
+    end
+end
+
+-- remove the animated waiting graphic from the main splash screen
+function ioctl.sys_splash_anim_clear()
+    io.os_ps.publish("splash_anim_clear", true)
+end
+
+--#endregion
+
 --#region Front Panel PSIL
 
 -- evaluate and publish system health status

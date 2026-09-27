@@ -302,6 +302,9 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 self.est_task_done(true)
                 self.est_tick_waiting = nil
                 self.est_task_done = nil
+
+                ioctl.sys_splash_main_msg(nil, "Connection successful!")
+
                 start_ui = true
             end
         else
@@ -331,17 +334,23 @@ function coordinator.comms(version, backplane, sv_watchdog)
 
                 if abort then
                     coordinator.log_comms("supervisor connection attempt cancelled by user")
+                    ioctl.sys_splash_main_msg("Connection Failed", "Connection attempt cancelled.")
                 elseif self.sv_config_err then
                     coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
+                    ioctl.sys_splash_main_msg("Connection Failed", "Supervisor and Coordinator configured unit counts do not match.")
                 elseif not self.sv_linked then
                     if self.last_est_ack == ESTABLISH_ACK.DENY then
                         coordinator.log_comms("supervisor connection attempt denied")
+                        ioctl.sys_splash_main_msg("Connection Failed", "Supervisor denied connection.")
                     elseif self.last_est_ack == ESTABLISH_ACK.COLLISION then
                         coordinator.log_comms("supervisor connection failed due to collision")
+                        ioctl.sys_splash_main_msg("Connection Failed", "Supervisor denied connection due to already being connected to another Coordinator.")
                     elseif self.last_est_ack == ESTABLISH_ACK.BAD_VERSION then
                         coordinator.log_comms("supervisor connection failed due to version mismatch")
+                        ioctl.sys_splash_main_msg("Connection Failed", "Communications version mismatch.")
                     else
                         coordinator.log_comms("supervisor connection failed with no valid response")
+                        ioctl.sys_splash_main_msg("Connection Failed", "Connection timed out with no response.")
                     end
                 end
 
