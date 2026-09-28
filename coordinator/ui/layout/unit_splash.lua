@@ -12,8 +12,6 @@ local Waiting = require("graphics.elements.animations.Waiting")
 
 local ALIGN = core.ALIGN
 
-local cpair = core.cpair
-
 -- create new unit splash screen
 ---@param main DisplayBox unit displaybox
 ---@param id integer
@@ -22,7 +20,7 @@ local function init(main, id)
 
     local mid_x, mid_y = math.floor(main.get_width() / 2), math.floor(main.get_height() / 2)
 
-    Waiting{parent=main,x=mid_x-2,y=mid_y-4,fg_bg=cpair(colors.white,colors._INHERIT)}
+    Waiting{parent=main,x=mid_x-2,y=mid_y-4}
 
     local status = TextBox{parent=main,x=mid_x-15,y=mid_y+2,width=30,text="Waiting...",alignment=ALIGN.CENTER}
 

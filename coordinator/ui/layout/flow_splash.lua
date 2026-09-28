@@ -4,6 +4,8 @@
 
 local ioctl   = require("coordinator.ioctl")
 
+local style   = require("coordinator.ui.style")
+
 local core    = require("graphics.core")
 
 local Image   = require("graphics.elements.Image")
@@ -13,8 +15,6 @@ local Waiting = require("graphics.elements.animations.Waiting")
 
 local ALIGN = core.ALIGN
 
-local cpair = core.cpair
-
 -- create new flow splash screen
 ---@param main DisplayBox flow displaybox
 local function init(main)
@@ -22,9 +22,11 @@ local function init(main)
 
     local mid_x, mid_y = math.floor(main.get_width() / 2), math.floor(main.get_height() / 2)
 
-    Image{parent=main,x=mid_x-14,y=mid_y-20,nfp="/coordinator/ui/imgs/cc-mek-scada.nfp"}
+    local variant = (style.theme.text == colors.black) and "light.nfp" or "dark.nfp"
 
-    Waiting{parent=main,x=mid_x-2,y=mid_y+10,fg_bg=cpair(colors.white,colors._INHERIT)}
+    Image{parent=main,x=mid_x-14,y=mid_y-20,nfp="/coordinator/ui/imgs/cc-mek-scada_"..variant}
+
+    Waiting{parent=main,x=mid_x-2,y=mid_y+10}
 
     local status = TextBox{parent=main,x=mid_x-15,y=mid_y+15,width=30,text="Waiting...",alignment=ALIGN.CENTER}
 
