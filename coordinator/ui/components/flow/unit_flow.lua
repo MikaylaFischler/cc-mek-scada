@@ -19,8 +19,6 @@ local TextBox           = require("graphics.elements.TextBox")
 
 local Rectangle         = require("graphics.elements.Rectangle")
 
-local PushButton        = require("graphics.elements.controls.PushButton")
-
 local DataIndicator     = require("graphics.elements.indicators.DataIndicator")
 local TriIndicatorLight = require("graphics.elements.indicators.TriIndicatorLight")
 
