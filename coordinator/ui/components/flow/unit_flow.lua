@@ -44,7 +44,7 @@ local lg_gray = style.lg_gray
 ---@param wide boolean whether to render wide version
 ---@param com_waste boolean true if using facility waste
 ---@param unit_id integer unit index
----@param detail_callbacks? function[] detail window open callbacks
+---@param detail_callbacks (function?)[] detail window open callbacks
 local function make(parent, x, y, wide, com_waste, unit_id, detail_callbacks)
     local s_field = style.theme.field_box
 
@@ -79,13 +79,11 @@ local function make(parent, x, y, wide, com_waste, unit_id, detail_callbacks)
     -- COOLING LOOP --
     ------------------
 
-    local reactor = Rectangle{parent=root,y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
+    local reactor = Rectangle{parent=root,y=1,border=border(1,colors.gray,true),width=19,height=5,callback=detail_callbacks[1],fg_bg=wh_gray}
     TextBox{parent=reactor,y=1,text="FISSION REACTOR",alignment=ALIGN.CENTER}
     TextBox{parent=reactor,y=3,text="UNIT #"..unit.unit_id,alignment=ALIGN.CENTER}
     TextBox{parent=root,x=19,y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
     TextBox{parent=root,x=3,y=5,text="\x19",width=1,fg_bg=lg_gray}
-
-    if detail_callbacks then PushButton{parent=root,x=19,y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[1]} end
 
     local rc_pipes = {}
 
@@ -132,13 +130,11 @@ local function make(parent, x, y, wide, com_waste, unit_id, detail_callbacks)
         cc_rate.register(unit.unit_ps, "boiler_boil_sum", function (sum) cc_rate.update(sum * 10) end)
         hc_rate.register(unit.unit_ps, "heating_rate", hc_rate.update)
 
-        local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
+        local boiler = Rectangle{parent=root,x=_wide(47,40),y=1,border=border(1,colors.gray,true),width=19,height=5,callback=detail_callbacks[2],fg_bg=wh_gray}
         TextBox{parent=boiler,y=1,text="THERMO-ELECTRIC",alignment=ALIGN.CENTER}
         TextBox{parent=boiler,y=3,text=util.trinary(unit.num_boilers>1,"BOILERS","BOILER"),alignment=ALIGN.CENTER}
         TextBox{parent=root,x=_wide(47,40),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
         TextBox{parent=root,x=_wide(65,58),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
-
-        if detail_callbacks then PushButton{parent=root,x=_wide(65,58),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[2]} end
 
         local wt_rate = DataIndicator{parent=root,x=_wide(71,61),y=3,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
         local st_rate = DataIndicator{parent=root,x=_wide(71,61),y=5,lu_colors=lu_c,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=s_field}
@@ -153,12 +149,10 @@ local function make(parent, x, y, wide, com_waste, unit_id, detail_callbacks)
         st_rate.register(unit.unit_ps, "heating_rate", st_rate.update)
     end
 
-    local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1,colors.gray,true),width=19,height=5,fg_bg=wh_gray}
+    local turbine = Rectangle{parent=root,x=_wide(93,79),y=1,border=border(1,colors.gray,true),width=19,height=5,callback=detail_callbacks[3],fg_bg=wh_gray}
     TextBox{parent=turbine,y=1,text="STEAM TURBINE",alignment=ALIGN.CENTER}
     TextBox{parent=turbine,y=3,text=util.trinary(unit.num_turbines>1,"GENERATORS","GENERATOR"),alignment=ALIGN.CENTER}
     TextBox{parent=root,x=_wide(93,79),y=2,text="\x1b \x80 \x1a",width=1,height=3,fg_bg=lg_gray}
-
-    if detail_callbacks then PushButton{parent=root,x=_wide(111,97),y=1,width=1,text="+",fg_bg=lg_gray,callback=detail_callbacks[3]} end
 
     for i = 1, unit.num_turbines do
         local ry = 1 + (2 * (i - 1)) + prv_yo

@@ -246,7 +246,7 @@ function threads.thread__render(smem)
                             -- start up the main UI
                             log_render("starting main UI...")
 
-                            ioctl.sys_splash_main_msg("Preparing Interface", "Starting the SCADA UI...")
+                            ioctl.sys_splash_main_msg("Preparing the Interface", "Starting the SCADA UI...")
                             ioctl.sys_splash_disp_msg(true, "Initializing...")
 
                             local draw_start = util.time_ms()

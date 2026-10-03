@@ -80,7 +80,7 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     PushButton{parent=crd_c_1,y=14,text="\x1b Back",callback=function()main_pane.set_value(3)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=crd_c_1,x=44,y=14,text="Next \x1a",callback=submit_ui_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
-    TextBox{parent=crd_c_2,y=1,height=4,text="Below you can configure the detail view windows on the flow monitor. Enabling these adds '+' symbols to reactor, boiler, and turbine blocks allowing you to view more details."}
+    TextBox{parent=crd_c_2,y=1,height=4,text="The flow monitor can optionally show component detail windows. Enabling this feature lets you click reactor, boiler, and turbine flow view blocks to pop up more details."}
 
     local function en_show_sw(en)
         if en then tool_ctl.show_win_sw.enable() else tool_ctl.show_win_sw.disable() end
@@ -89,11 +89,11 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
     TextBox{parent=crd_c_2,x=35,y=6,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
-    TextBox{parent=crd_c_2,x=3,height=1,text="This can increase flow monitor minimum height.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+    TextBox{parent=crd_c_2,x=3,height=1,text="This may increase flow monitor minimum height.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
     TextBox{parent=crd_c_2,x=24,y=10,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
-    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons in the bottom right if you can't easily reach the whole interface.",fg_bg=g_lg_fg_bg}
 
     en_show_sw(ini_cfg.FlowDetailView)
 

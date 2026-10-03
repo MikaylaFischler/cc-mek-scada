@@ -355,7 +355,7 @@ local function init(main)
         local y_offset = y_ofs(i)
         local cb_ofs = 2 + ((i - 1) * 3)
 
-        local detail_cbs = nil
+        local detail_cbs = {}
         if en_fd then
             detail_cbs = {
                 function () view_pane.set_value(cb_ofs) end,
