@@ -49,8 +49,9 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
 
     local crd_c_1 = Div{parent=crd_cfg,x=2,y=4,width=49}
     local crd_c_2 = Div{parent=crd_cfg,x=2,y=4,width=49}
+    local crd_c_3 = Div{parent=crd_cfg,x=2,y=4,width=49}
 
-    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2}}
+    local crd_pane = MultiPane{parent=crd_cfg,y=4,panes={crd_c_1,crd_c_2,crd_c_3}}
 
     TextBox{parent=crd_cfg,y=2,text=" Coordinator UI Configuration",fg_bg=cpair(colors.black,colors.lime)}
 
@@ -86,10 +87,12 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
     end
 
     tool_ctl.en_flow_dtl = Checkbox{parent=crd_c_2,y=6,default=ini_cfg.FlowDetailView,label="Enable Flow View Detail Windows",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
+    TextBox{parent=crd_c_2,x=35,y=6,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=crd_c_2,x=3,height=1,text="This may negatively impact performance.",fg_bg=g_lg_fg_bg}
     TextBox{parent=crd_c_2,x=3,height=1,text="This can increase flow monitor minimum height.",fg_bg=cpair(colors.yellow,colors._INHERIT)}
 
     tool_ctl.show_win_sw = Checkbox{parent=crd_c_2,y=10,default=ini_cfg.FlowViewSwitcher,label="Show Window Switcher",box_fg_bg=cpair(colors.lime,colors.black),disable_fg_bg=g_lg_fg_bg}
+    TextBox{parent=crd_c_2,x=24,y=10,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     TextBox{parent=crd_c_2,x=3,height=2,text="Shows a set of buttons to use if you can't easily reach the + and window close buttons.",fg_bg=g_lg_fg_bg}
 
     en_show_sw(ini_cfg.FlowDetailView)
@@ -98,11 +101,25 @@ function hmi.create(tool_ctl, main_pane, cfg_sys, divs, style)
         tmp_cfg.FlowDetailView = tool_ctl.en_flow_dtl.get_value()
         tmp_cfg.FlowViewSwitcher = tool_ctl.show_win_sw.get_value()
         tool_ctl.update_mon_reqs()
-        main_pane.set_value(5)
+        crd_pane.set_value(3)
     end
 
     PushButton{parent=crd_c_2,y=14,text="\x1b Back",callback=function()crd_pane.set_value(1)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
     PushButton{parent=crd_c_2,x=44,y=14,text="Next \x1a",callback=submit_flow_opts,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+
+    TextBox{parent=crd_c_3,y=1,height=4,text="Splash screens are used to hide initial display rendering, which speeds up startup. It is recommended to keep this enabled."}
+    TextBox{parent=crd_c_3,y=5,height=4,text="If you're having issues with startup, disabling this shows additional log information on screen, or you can check your log file.",fg_bg=g_lg_fg_bg}
+
+    tool_ctl.en_splash = Checkbox{parent=crd_c_3,y=9,default=ini_cfg.SplashScreen,label="Enable Splash Screens",callback=en_show_sw,box_fg_bg=cpair(colors.lime,colors.black)}
+    TextBox{parent=crd_c_3,x=25,y=9,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
+
+    local function submit_splash()
+        tmp_cfg.SplashScreen = tool_ctl.en_splash.get_value()
+        main_pane.set_value(5)
+    end
+
+    PushButton{parent=crd_c_3,y=14,text="\x1b Back",callback=function()crd_pane.set_value(2)end,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
+    PushButton{parent=crd_c_3,x=44,y=14,text="Next \x1a",callback=submit_splash,fg_bg=nav_fg_bg,active_fg_bg=btn_act_fg_bg}
 
     --#endregion
 

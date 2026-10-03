@@ -144,14 +144,18 @@ local function main()
     renderer.init_displays(backplane.displays())
     renderer.init_dmesg()
 
-    renderer.init_splash()
-
     -- lets get started!
     log.info("monitors ready, dmesg output incoming...")
 
     log_render("displays connected and reset")
     log_sys("system start on " .. os.date("%c"))
     log_boot("starting " .. COORDINATOR_VERSION)
+
+    -- switch to splash screen for *aesthetics*
+    if config.SplashScreen then
+        log_render("starting splash screens")
+        renderer.init_splash()
+    end
 
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then

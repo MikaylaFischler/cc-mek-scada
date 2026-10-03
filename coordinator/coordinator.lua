@@ -44,6 +44,7 @@ function coordinator.load_config()
     config.EnergyScale = settings.get("EnergyScale")
     config.FlowDetailView = settings.get("FlowDetailView")
     config.FlowViewSwitcher = settings.get("FlowViewSwitcher")
+    config.SplashScreen = settings.get("SplashScreen")
 
     config.MainDisplay = settings.get("MainDisplay")
     config.FlowDisplay = settings.get("FlowDisplay")
@@ -81,6 +82,7 @@ function coordinator.load_config()
     cfv.assert_range(config.EnergyScale, 1, 3)
     cfv.assert_type_bool(config.FlowDetailView)
     cfv.assert_type_bool(config.FlowViewSwitcher)
+    cfv.assert_type_bool(config.SplashScreen)
 
     cfv.assert_type_table(config.UnitDisplays)
 
