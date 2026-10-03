@@ -3,7 +3,7 @@
 local element = require("graphics.element")
 
 ---@class image_args
----@field data? string CC paintutils comptaible string
+---@field data? string CC paintutils compatible string
 ---@field nfp? string CC NFP format image file path
 ---@field parent graphics_element
 ---@field id? string element id
