@@ -20,7 +20,7 @@ local renderer    = require("coordinator.renderer")
 local sounder     = require("coordinator.sounder")
 local threads     = require("coordinator.threads")
 
-local COORDINATOR_VERSION = "1.11.0"
+local COORDINATOR_VERSION = "1.12.0"
 
 local CHUNK_LOAD_DELAY_S = 30.0
 
@@ -151,6 +151,12 @@ local function main()
     log_sys("system start on " .. os.date("%c"))
     log_boot("starting " .. COORDINATOR_VERSION)
 
+    -- switch to splash screen for *aesthetics*
+    if config.SplashScreen then
+        log_render("starting splash screens")
+        renderer.init_splash()
+    end
+
     -- message authentication init
     if type(config.AuthKey) == "string" and string.len(config.AuthKey) > 0 then
         local init_time = network.init_mac(config.AuthKey)
@@ -247,8 +253,7 @@ local function main()
     -- run threads
     parallel.waitForAll(main_thread.p_exec, render_thread.p_exec)
 
-    renderer.close_ui()
-    renderer.close_fp()
+    renderer.shutdown(crd_state.link_fail)
     sounder.stop()
     log_sys("system shutdown")
 

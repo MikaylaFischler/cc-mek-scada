@@ -39,7 +39,8 @@ local changes = {
     { "v1.6.13", { "Added option for Po/Pu pellet green/cyan pairing" } },
     { "v1.7.0", { "Added support for wired communications modems", "Added option for allowing Pocket connections" } },
     { "v1.9.7", { "Removed Disable Flow View option" } },
-    { "v1.11.0", { "Added Flow Detail View configuration options" } }
+    { "v1.11.0", { "Added option to enable the Flow Detail Views", "Added Flow Detail View switcher option" } },
+    { "v1.12.0", { "Added option for toggling the splash screen" } }
 }
 
 ---@class crd_configurator
@@ -90,6 +91,7 @@ local tool_ctl = {
     energy_scale = nil,       ---@type RadioButton
     en_flow_dtl = nil,        ---@type Checkbox
     show_win_sw = nil,        ---@type Checkbox
+    en_splash = nil,          ---@type Checkbox
 
     -- settings elements and functions from facility
     num_units = nil,          ---@type NumberField
@@ -117,6 +119,7 @@ local tmp_cfg = {
     EnergyScale = 1,        ---@type ENERGY_SCALE
     FlowDetailView = false,
     FlowViewSwitcher = false,
+    SplashScreen = true,
     MainDisplay = nil,      ---@type string
     FlowDisplay = nil,      ---@type string
     UnitDisplays = {},      ---@type string[]
@@ -157,6 +160,7 @@ local fields = {
     { "EnergyScale", "Energy Scale", types.ENERGY_SCALE.FE },
     { "FlowDetailView", "Enable Flow Detail Views", false },
     { "FlowViewSwitcher", "Enable Flow View Switcher", false },
+    { "SplashScreen", "Use Splash Screens", true },
     { "WirelessModem", "Wireless/Ender Comms Modem", true },
     { "WiredModem", "Wired Comms Modem", false },
     { "PreferWireless", "Prefer Wireless Modem", true },
