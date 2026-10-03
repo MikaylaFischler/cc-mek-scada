@@ -102,7 +102,6 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
         end
     end
 
-    TextBox{parent=mek_c_1,x=33,y=7,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     local profile = RadioButton{parent=mek_c_1,y=9,default=initial,options=profile_names,radio_colors=cpair(colors.lightGray,colors.black),select_color=colors.brown}
 
     local function submit_profile()
@@ -143,7 +142,6 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
         local field = TextBox{parent=mek_c_2,height=1,text="  "..key[3].." ="}
 
         tool_ctl.custom_configs[key[1]] = NumberField{parent=mek_c_2,y=field.get_y(),x=string.len(key[3])+6,width=10,default=ini_cfg.MekanismConfig[key[1]],allow_decimal=true,fg_bg=bw_fg_bg}
-        TextBox{parent=mek_c_2,x=string.len(key[3])+17,y=field.get_y(),text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
     end
 
     local cfg_err = TextBox{parent=mek_c_2,x=8,y=14,width=35,text="Please fill out all fields.",fg_bg=cpair(colors.red,colors.lightGray),hidden=true}
@@ -172,12 +170,10 @@ function mekanism.create(tool_ctl, main_pane, cfg_sys, mek_cfg, style)
     TextBox{parent=mek_c_3,y=5,text="Nuclear Waste to Plutonium     :"}
     tool_ctl.waste_ratios[1] = NumberField{parent=mek_c_3,y=5,x=28,width=4,default=ini_cfg.MekanismWasteToPu[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
     tool_ctl.waste_ratios[2] = NumberField{parent=mek_c_3,y=5,x=33,width=4,default=ini_cfg.MekanismWasteToPu[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
-    TextBox{parent=mek_c_3,x=38,y=5,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=mek_c_3,y=6,text="Nuclear Waste to Polonium      :"}
     tool_ctl.waste_ratios[3] = NumberField{parent=mek_c_3,y=6,x=28,width=4,default=ini_cfg.MekanismWasteToPo[1],min=1,max=99,allow_decimal=false,align_right=true,fg_bg=bw_fg_bg}
     tool_ctl.waste_ratios[4] = NumberField{parent=mek_c_3,y=6,x=33,width=4,default=ini_cfg.MekanismWasteToPo[2],min=1,max=99,allow_decimal=false,fg_bg=bw_fg_bg}
-    TextBox{parent=mek_c_3,x=38,y=6,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     TextBox{parent=mek_c_3,y=8,height=2,text="Tip: the easist way to check these are their receipes in JEI.",fg_bg=g_lg_fg_bg}
 
