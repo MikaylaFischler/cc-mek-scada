@@ -117,7 +117,7 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == KEY_CLICK.DOWN then
+        if e.enabled and event.type == KEY_CLICK.DOWN then
             if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
                 args.callback()
                 -- visualize click without unfocusing

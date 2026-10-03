@@ -5,6 +5,8 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
+local KEY_CLICK = core.events.KEY_CLICK
+
 ---@class radio_2d_args
 ---@field rows integer
 ---@field columns integer
@@ -147,8 +149,8 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == core.events.KEY_CLICK.DOWN or event.type == core.events.KEY_CLICK.HELD then
-            if event.type == core.events.KEY_CLICK.DOWN and (event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter) then
+        if e.enabled and (event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD) then
+            if event.type == KEY_CLICK.DOWN and (event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter) then
                 e.value = focused_opt
                 e.redraw()
                 if type(args.callback) == "function" then args.callback(e.value) end
