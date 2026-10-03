@@ -16,15 +16,13 @@ local ALIGN = core.ALIGN
 ---@param main DisplayBox unit displaybox
 ---@param id integer
 local function init(main, id)
-    local ps = ioctl.get_db().os_ps
-
     local mid_x, mid_y = math.floor(main.get_width() / 2), math.floor(main.get_height() / 2)
 
     Waiting{parent=main,x=mid_x-2,y=mid_y-4}
 
     local status = TextBox{parent=main,x=mid_x-15,y=mid_y+2,width=30,text="Waiting...",alignment=ALIGN.CENTER}
 
-    status.register(ps, "splash_status_unit_" .. id, status.set_value)
+    status.register(ioctl.get_db().os_ps, "splash_status_unit_" .. id, status.set_value)
 end
 
 return init

@@ -18,8 +18,6 @@ local ALIGN = core.ALIGN
 -- create new flow splash screen
 ---@param main DisplayBox flow displaybox
 local function init(main)
-    local ps = ioctl.get_db().os_ps
-
     local mid_x, mid_y = math.floor(main.get_width() / 2), math.floor(main.get_height() / 2)
 
     local variant = (style.theme.text == colors.black) and "light.nfp" or "dark.nfp"
@@ -30,7 +28,7 @@ local function init(main)
 
     local status = TextBox{parent=main,x=mid_x-15,y=mid_y+15,width=30,text="Waiting...",alignment=ALIGN.CENTER}
 
-    status.register(ps, "splash_status_flow", status.set_value)
+    status.register(ioctl.get_db().os_ps, "splash_status_flow", status.set_value)
 end
 
 return init

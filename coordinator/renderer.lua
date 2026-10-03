@@ -488,7 +488,7 @@ function renderer.handle_resize(name)
                 ioctl.fp_monitor_state("main", 3)
 
                 log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
-                ioctl.sys_splash_main_msg(nil, "Display Ready...")
+                ioctl.sys_splash_main_msg(nil, "Display ready.")
 
                 if splash.enable then
                     splash.main.hide()
@@ -501,7 +501,7 @@ function renderer.handle_resize(name)
                 end
 
                 if splash.main then
-                    ioctl.sys_splash_main_msg(nil, "Monitor Too Small")
+                    ioctl.sys_splash_main_msg(nil, "Monitor too small.")
                 else
                     _print_too_small(device)
                 end
