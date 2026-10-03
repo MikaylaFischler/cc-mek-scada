@@ -2,12 +2,17 @@
 
 local util    = require("scada-common.util")
 
+local core    = require("graphics.core")
 local element = require("graphics.element")
+
+local MOUSE_CLICK = core.events.MOUSE_CLICK
+local KEY_CLICK = core.events.KEY_CLICK
 
 ---@class rectangle_args
 ---@field border? graphics_border
 ---@field thin? boolean true to use extra thin even borders
 ---@field even_inner? boolean true to make the inner area of a border even
+---@field callback? function function to call on touch
 ---@field parent graphics_element
 ---@field id? string element id
 ---@field x? integer 1 if omitted
@@ -23,6 +28,7 @@ local element = require("graphics.element")
 ---@return Rectangle element, element_id id
 return function (args)
     element.assert(args.border ~= nil or args.thin ~= true, "thin requires border to be provided")
+    element.assert((args.callback == nil) or (type(args.callback) == "function"), "callback must be a function if provided")
 
     -- if thin, then width will always need to be 1
     if args.thin == true then
@@ -189,6 +195,30 @@ return function (args)
 
         -- initial draw of border
         e.redraw()
+    end
+
+    -- handle mouse interaction
+    ---@param event mouse_interaction mouse event
+    function e.handle_mouse(event)
+        if args.callback and e.enabled then
+            if event.type == MOUSE_CLICK.TAP then
+                args.callback()
+            elseif event.type == MOUSE_CLICK.UP then
+                if e.in_frame_bounds(event.current.x, event.current.y) then
+                    args.callback()
+                end
+            end
+        end
+    end
+
+    -- handle keyboard interaction
+    ---@param event key_interaction key event
+    function e.handle_key(event)
+        if args.callback and e.enabled and event.type == KEY_CLICK.DOWN then
+            if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
+                args.callback()
+            end
+        end
     end
 
     ---@class Rectangle:graphics_element
