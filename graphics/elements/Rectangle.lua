@@ -5,8 +5,8 @@ local util    = require("scada-common.util")
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local MOUSE_CLICK = core.events.MOUSE_CLICK
 local KEY_CLICK = core.events.KEY_CLICK
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class rectangle_args
 ---@field border? graphics_border

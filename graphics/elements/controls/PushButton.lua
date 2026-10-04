@@ -8,8 +8,8 @@ local element = require("graphics.element")
 
 local ALIGN = core.ALIGN
 
-local MOUSE_CLICK = core.events.MOUSE_CLICK
 local KEY_CLICK = core.events.KEY_CLICK
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class push_button_args
 ---@field text string button text

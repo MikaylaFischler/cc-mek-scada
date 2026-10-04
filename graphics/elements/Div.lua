@@ -3,8 +3,8 @@
 local core    = require("graphics.core")
 local element = require("graphics.element")
 
-local MOUSE_CLICK = core.events.MOUSE_CLICK
 local KEY_CLICK = core.events.KEY_CLICK
+local MOUSE_CLICK = core.events.MOUSE_CLICK
 
 ---@class div_args
 ---@field callback? function function to call on touch
