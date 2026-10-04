@@ -1,5 +1,5 @@
 --[[
-CC-MEK-SCADA Installer Utility
+CC-MEK-SCADA Installer (CCMSI) Utility
 
 Copyright (c) 2023 - 2026 Mikayla Fischler
 
@@ -17,7 +17,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 local ccs = require("cc.strings")
 
-local CCMSI_VERSION = "2.4"
+local CCMSI_VERSION = "2.5"
 
 local IS_PKT = pocket ~= nil -- luacheck: ignore pocket
 
@@ -472,7 +472,7 @@ elseif mode == "install" or mode == "update" then
 		ver.graphics.v_local = l_manifest.versions.graphics
 		ver.lockbox.v_local = l_manifest.versions.lockbox
 
-		if l_manifest.versions[app] == nil then
+		if l_manifest.versions[app] == nil and not update_installer then
 			red();pln("Another application is already installed, please uninstall it before installing a new application.");white()
 			return
 		end
