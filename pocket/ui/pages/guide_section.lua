@@ -143,8 +143,7 @@ return function (data, base_page, title, items, scroll_height)
 
             if item.list_type == LIST_TYPE.BULLET then
                 for _, li in ipairs(item.items) do
-                    local pad = (item.list_type == LIST_TYPE.INDICATOR) and 4 or 3
-                    local lines = util.strwrap(li, p_width - pad)
+                    local lines = util.strwrap(li, p_width - 3)
                     height = height + #lines
                 end
             elseif item.list_type == LIST_TYPE.NUMBERED then
