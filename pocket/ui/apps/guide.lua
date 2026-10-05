@@ -184,7 +184,7 @@ local function new_view(root)
         PushButton{parent=set,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
         load_text(false, "Setup Tips")
-        local setup_tips_page = guide_section(sect_construct_data, set_page, "Setup Tips", docs.setup.tips, 240)
+        local setup_tips_page = guide_section(sect_construct_data, set_page, "Setup Tips", docs.setup.tips, 250)
         load_text(false, "Connecting Devices")
         local conn_dev_page = guide_section(sect_construct_data, set_page, "Connecting Devs", docs.setup.conn, 170)
         load_text(false, "Configuring Devices")
