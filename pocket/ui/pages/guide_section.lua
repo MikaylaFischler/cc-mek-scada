@@ -128,19 +128,55 @@ return function (data, base_page, title, items, scroll_height)
             TextBox{parent=def_list,text=item.text}
 
             page_end = Div{parent=def_list,height=1,can_focus=true}
+        elseif item.type == DOC_TYPE.IMPORTANT then
+            ---@cast item pocket_doc_important
+
+            TextBox{parent=def_list,text="IMPORTANT!",fg_bg=cpair(colors.yellow,colors._INHERIT)}
+            TextBox{parent=def_list,text=item.text}
+
+            page_end = Div{parent=def_list,height=1,can_focus=true}
         elseif item.type == DOC_TYPE.LIST then
             ---@cast item pocket_doc_list
 
-            local container = Div{parent=def_list,height=#item.items}
+            local p_width = def_list.get_width() - 1
+            local height  = 0
 
             if item.list_type == LIST_TYPE.BULLET then
                 for _, li in ipairs(item.items) do
-                    TextBox{parent=container,x=2,text="\x07 "..li}
+                    local pad = (item.list_type == LIST_TYPE.INDICATOR) and 4 or 3
+                    local lines = util.strwrap(li, p_width - pad)
+                    height = height + #lines
+                end
+            elseif item.list_type == LIST_TYPE.NUMBERED then
+                local width = string.len("" .. #item.items)
+                for _, li in ipairs(item.items) do
+                    local lines = util.strwrap(li, p_width - (width + 3))
+                    height = height + #lines
+                end
+            else
+                height = #item.items
+            end
+
+            local container = Div{parent=def_list,height=height}
+
+            if item.list_type == LIST_TYPE.BULLET then
+                for _, li in ipairs(item.items) do
+                    local lines = util.strwrap(li, p_width - 3)
+
+                    for l, line in ipairs(lines) do
+                        local prefix = (l == 1) and "\x07 " or "  "
+                        TextBox{parent=container,x=2,text=prefix..line}
+                    end
                 end
             elseif item.list_type == LIST_TYPE.NUMBERED then
                 local width = string.len("" .. #item.items)
                 for idx, li in ipairs(item.items) do
-                    TextBox{parent=container,x=2,text=util.sprintf("%" .. width .. "d. %s", idx, li)}
+                    local lines = util.strwrap(li, p_width - (width + 3))
+
+                    for l, line in ipairs(lines) do
+                        local prefix = (l == 1) and util.sprintf("%" .. width .. "d. ", idx) or string.rep(" ", width + 3)
+                        TextBox{parent=container,x=2,text=prefix..line}
+                    end
                 end
             elseif item.list_type == LIST_TYPE.INDICATOR then
                 for idx, li in ipairs(item.items) do
