@@ -360,6 +360,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
             elseif self.sv_config_err then
                 self.est_task_done(false)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
+                ioctl.sys_splash_main_msg("Connection Failed", "Supervisor and Coordinator configured unit counts do not match.")
                 ok = false
             elseif (os.clock() - self.est_last) > 1.0 then
                 if e_nic then _send_establish(e_nic) end
