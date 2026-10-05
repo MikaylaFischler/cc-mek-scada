@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import sys
 
 #
@@ -37,10 +38,15 @@ def min_files(path):
         os.makedirs(OUTPUT + '/' + root, exist_ok=True)
 
         for f in files:
-            start, end = minify(root + '/' + f)
+            file_path = root + '/' + f
 
-            start_sum = start_sum + start
-            end_sum   = end_sum + end
+            if f.endswith('.lua'):
+                start, end = minify(file_path)
+
+                start_sum = start_sum + start
+                end_sum   = end_sum + end
+            else:
+                shutil.copy(file_path, f"{OUTPUT}/{file_path}")
 
     delta = start_sum - end_sum
 

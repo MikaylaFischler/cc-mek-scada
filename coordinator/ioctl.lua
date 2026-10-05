@@ -49,6 +49,9 @@ local _ioctl = {
 local io = {
     -- mekanism configuration
     mek = { pu_ratio = { 10, 1 }, po_ratio = { 10, 1 } },
+    -- core
+    os_ps = psil.create(),
+    -- front panel
     ---@class crd_io_fp
     fp = { ps = psil.create() }
 }
@@ -58,9 +61,13 @@ local io = {
 ---@param comms coord_comms comms reference
 ---@param temp_scale TEMP_SCALE temperature unit
 ---@param energy_scale ENERGY_SCALE energy unit
-function ioctl.init(conf, comms, temp_scale, energy_scale)
-    io.temp_label   = TEMP_UNITS[temp_scale]
-    io.energy_label = ENERGY_UNITS[energy_scale]
+---@param en_flow_detail boolean enable flow detail view
+---@param en_flow_sw boolean enable flow detail view window switcher
+function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_flow_sw)
+    io.temp_label     = TEMP_UNITS[temp_scale]
+    io.energy_label   = ENERGY_UNITS[energy_scale]
+    io.en_flow_detail = en_flow_detail
+    io.en_flow_sw     = en_flow_detail and en_flow_sw
 
     -- temperature unit label and conversion function (from Kelvin)
     if temp_scale == TEMP_SCALE.CELSIUS then
@@ -187,6 +194,8 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
             has_tank = conf.cooling.r_cool[i].TankConnection,
             aux_coolant = conf.cooling.aux_coolant[i],
 
+            coolant_density = 0.1,
+
             status_lines = { "", "" },
 
             auto_ready = false,
@@ -254,6 +263,12 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 ---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
+            ---@type unit_properties
+            properties = {
+                flow_perf = {}, ---@type number[] turbine flow performance
+                generators = {} ---@type generator_properties[] turbine generator properties
+            },
+
             unit_ps = psil.create(),
             reactor_data = types.new_reactor_db(),
 
@@ -282,6 +297,7 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
+            table.insert(entry.properties.generators, { { multiplier = 0, efficiency = 0 } })
             table.insert(entry.turbine_ps_tbl, psil.create())
             table.insert(entry.turbine_data_tbl, {})
         end
@@ -294,6 +310,10 @@ function ioctl.init(conf, comms, temp_scale, energy_scale)
 
         entry.num_boilers = #entry.boiler_data_tbl
         entry.num_turbines = #entry.turbine_data_tbl
+
+        if entry.num_boilers > 0 then
+            entry.coolant_density = 0.082
+        end
 
         table.insert(io.units, entry)
     end
@@ -320,6 +340,40 @@ function ioctl.set_mek_config(conf)
 
     return valid
 end
+
+--#region System Fields
+
+-- update the main splash screen messages
+---@param line_1 string|nil new line 1 or nil to leave as-is
+---@param line_2 string|nil new line 2 or nil to leave as-is
+function ioctl.sys_splash_main_msg(line_1, line_2)
+    if line_1 then io.os_ps.publish("splash_status_1", line_1) end
+    if line_2 then io.os_ps.publish("splash_status_2", line_2) end
+end
+
+-- update the flow and unit view splash messages
+---@param id integer|true unit ID for unit display, 0 for flow display, or true for all displays
+---@param msg string message
+function ioctl.sys_splash_disp_msg(id, msg)
+    if id == true then
+        io.os_ps.publish("splash_status_flow", msg)
+
+        for i = 1, 4 do
+            io.os_ps.publish("splash_status_unit_" .. i, msg)
+        end
+    elseif id == 0 then
+        io.os_ps.publish("splash_status_flow", msg)
+    else
+        io.os_ps.publish("splash_status_unit_" .. id, msg)
+    end
+end
+
+-- remove the animated waiting graphic from the main splash screen
+function ioctl.sys_splash_anim_clear()
+    io.os_ps.publish("splash_anim_clear", true)
+end
+
+--#endregion
 
 --#region Front Panel PSIL
 
@@ -554,16 +608,39 @@ function ioctl.record_unit_builds(builds)
             log.debug(log_header .. "invalid unit id")
             valid = false
         else
-            -- reactor build
-            if type(build.reactor) == "table" then
-                unit.reactor_data.mek_struct = build.reactor
-                for key, val in pairs(unit.reactor_data.mek_struct) do
-                    unit.unit_ps.publish(key, val)
+            -- reactor build and properties
+            if type(build.reactor) == "table" and type(build.reactor_props) == "table" and #build.reactor_props == 2 then
+                local ps   = unit.unit_ps
+                local data = unit.reactor_data
+
+                data.mek_struct = build.reactor
+                for key, val in pairs(data.mek_struct) do
+                    ps.publish(key, val)
                 end
 
-                if (type(unit.reactor_data.mek_struct.length) == "number") and (unit.reactor_data.mek_struct.length ~= 0) and
-                    (type(unit.reactor_data.mek_struct.width) == "number") and (unit.reactor_data.mek_struct.width ~= 0) then
-                    unit.unit_ps.publish("size", { unit.reactor_data.mek_struct.length, unit.reactor_data.mek_struct.width })
+                data.max_op_temp_H2O = build.reactor_props[1]
+                data.max_op_temp_Na  = build.reactor_props[2]
+                ps.publish("max_op_temp_H2O", data.max_op_temp_H2O)
+                ps.publish("max_op_temp_Na", data.max_op_temp_Na)
+
+                local struct = unit.reactor_data.mek_struct
+
+                if (type(struct.length) == "number") and (struct.length ~= 0) and
+                    (type(struct.width) == "number") and (struct.width ~= 0) then
+                    ps.publish("size", { struct.length, struct.width })
+                end
+
+                -- computed flow detail view values
+                if io.en_flow_detail then
+                    local vol     = struct.length * struct.width * struct.height
+                    local ccool_p = ((struct.ccool_cap / 1000) / vol) * struct.height * unit.coolant_density
+                    local hcool_p = ((struct.hcool_cap / 1000) / vol) * unit.coolant_density
+                    local cool_f  = (struct.ccool_cap / 1000) * 20
+
+                    ps.publish("phys_ccool_p_max", ccool_p)
+                    ps.publish("phys_hcool_p_max", hcool_p)
+                    ps.publish("phys_vessel_p_max", ccool_p + hcool_p)
+                    ps.publish("phys_cool_f_max", cool_f)
                 end
             end
 
@@ -574,15 +651,60 @@ function ioctl.record_unit_builds(builds)
                         log.debug(util.c(log_header, "invalid boiler id ", b_id))
                         valid = false
                     end
+
+                    -- computed flow detail view values
+                    if io.en_flow_detail then
+                        local ps  = unit.boiler_ps_tbl[b_id]
+                        local bld = unit.boiler_data_tbl[b_id].build
+
+                        local water_p = ((bld.water_cap / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
+                        local steam_p = ((bld.steam_cap / 1000) / (bld.steam_cap / 160000))
+                        local steam_f = (bld.boil_cap / 1000) * 20
+
+                        ps.publish("phys_water_p_max", water_p)
+                        ps.publish("phys_steam_p_max", steam_p)
+                        ps.publish("phys_boiler_p_max", water_p + steam_p)
+                        ps.publish("phys_steam_f_max", steam_f)
+                    end
                 end
             end
 
-            -- turbine builds
-            if type(build.turbines) == "table" then
+            -- turbine builds and properties
+            if type(build.turbines) == "table" and type(build.turbine_props) == "table" then
                 for t_id, turbine in pairs(build.turbines) do
+                    local ps = unit.turbine_ps_tbl[t_id]
+
                     if not _record_multiblock_build(t_id, turbine, unit.turbine_data_tbl, unit.turbine_ps_tbl) then
                         log.debug(util.c(log_header, "invalid turbine id ", t_id))
                         valid = false
+                    end
+
+                    if #build.turbine_props[t_id] == 2 then
+                        local props = unit.properties
+
+                        props.flow_perf[t_id]  = build.turbine_props[t_id][1]
+                        props.generators[t_id] = build.turbine_props[t_id][2]
+
+                        ps.publish("flow_perf", props.flow_perf[t_id])
+                        ps.publish("gen_mult", props.generators[t_id].multiplier)
+                        ps.publish("gen_eff", props.generators[t_id].efficiency)
+                    end
+
+                    -- computed flow detail view values
+                    if io.en_flow_detail then
+                        local bld = unit.turbine_data_tbl[t_id].build
+
+                        local inlet_p   = ((bld.steam_cap / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK))
+                        local exhaust_p = ((bld.max_flow_rate / 1000) / bld.vents) * 0.1
+                        local inlet_f   = (bld.steam_cap / 1000) * 20
+                        local steam_f   = (bld.max_flow_rate / 1000) * 20
+                        local water_f   = (bld.max_flow_rate / 1000) * 20
+
+                        ps.publish("phys_inlet_p_max", inlet_p)
+                        ps.publish("phys_exhaust_p_max", exhaust_p)
+                        ps.publish("phys_inlet_f_max", inlet_f)
+                        ps.publish("phys_steam_f_max", steam_f)
+                        ps.publish("phys_water_f_max", water_f)
                     end
                 end
             end
@@ -1112,6 +1234,7 @@ function ioctl.update_unit_statuses(statuses)
                     unit.connected = false
                     unit.unit_ps.publish("computed_status", computed_status)
                 elseif #reactor_status == 3 then
+                    local ps         = unit.unit_ps
                     local mek_status = reactor_status[1]
                     local rps_status = reactor_status[2]
                     local gen_status = reactor_status[3]
@@ -1129,19 +1252,36 @@ function ioctl.update_unit_statuses(statuses)
 
                     for key, val in pairs(unit.reactor_data) do
                         if key ~= "rps_status" and key ~= "mek_struct" and key ~= "mek_status" then
-                            unit.unit_ps.publish(key, val)
+                            ps.publish(key, val)
                         end
                     end
 
                     unit.reactor_data.rps_status = rps_status
                     for key, val in pairs(rps_status) do
-                        unit.unit_ps.publish(key, val)
+                        ps.publish(key, val)
                     end
 
                     if next(mek_status) then
                         unit.reactor_data.mek_status = mek_status
                         for key, val in pairs(mek_status) do
-                            unit.unit_ps.publish(key, val)
+                            ps.publish(key, val)
+                        end
+
+                        -- computed flow detail view values
+                        if io.en_flow_detail then
+                            local struct = unit.reactor_data.mek_struct
+
+                            ps.publish("env_loss_J", struct.heat_cap * mek_status.env_loss)
+
+                            local vol     = struct.length * struct.width * struct.height
+                            local ccool_p = ((mek_status.ccool_amnt / 1000) / vol) * struct.height * unit.coolant_density
+                            local hcool_p = ((mek_status.hcool_amnt / 1000) / vol) * unit.coolant_density
+                            local cool_f  = (mek_status.heating_rate / 1000) * 20
+
+                            ps.publish("phys_ccool_p", ccool_p)
+                            ps.publish("phys_hcool_p", hcool_p)
+                            ps.publish("phys_vessel_p", ccool_p + hcool_p)
+                            ps.publish("phys_cool_f", cool_f)
                         end
                     end
 
@@ -1201,7 +1341,21 @@ function ioctl.update_unit_statuses(statuses)
                                     computed_status = util.trinary(data.state.boil_rate > 0, BLR_STATE.ACTIVE, BLR_STATE.IDLE)
                                 else computed_status = BLR_STATE.UNFORMED end
 
-                                unit.boiler_ps_tbl[id].publish("computed_status", computed_status)
+                                ps.publish("computed_status", computed_status)
+
+                                -- computed flow detail view values
+                                if io.en_flow_detail then
+                                    local bld = data.build
+
+                                    local water_p = ((data.tanks.water.amount / 1000) / (bld.water_cap / 16000)) * bld.height * 0.1
+                                    local steam_p = ((data.tanks.steam.amount / 1000) / (bld.steam_cap / 160000))
+                                    local steam_f = (data.state.boil_rate / 1000) * 20
+
+                                    ps.publish("phys_water_p", water_p)
+                                    ps.publish("phys_steam_p", steam_p)
+                                    ps.publish("phys_boiler_p", water_p + steam_p)
+                                    ps.publish("phys_steam_f", steam_f)
+                                end
                             else
                                 log.debug(util.c(log_header, "invalid boiler id ", id))
                                 valid = false
@@ -1216,7 +1370,7 @@ function ioctl.update_unit_statuses(statuses)
 
                     -- turbine statuses
                     if type(rtu_statuses.turbines) == "table" then
-                        local flow_sum = 0
+                        local water_sum = 0
 
                         computed_status = TRB_STATE.OFFLINE
 
@@ -1236,7 +1390,7 @@ function ioctl.update_unit_statuses(statuses)
                                 if rtu_faulted then
                                     computed_status = TRB_STATE.FAULT
                                 elseif data.formed then
-                                    flow_sum = flow_sum + data.state.flow_rate
+                                    water_sum = water_sum + math.min(data.state.flow_rate, data.build.max_water_output)
 
                                     if data.tanks.energy_fill >= 0.99 then
                                         computed_status = TRB_STATE.TRIPPED
@@ -1247,14 +1401,33 @@ function ioctl.update_unit_statuses(statuses)
                                     end
                                 else computed_status = TRB_STATE.UNFORMED end
 
-                                unit.turbine_ps_tbl[id].publish("computed_status", computed_status)
+                                ps.publish("computed_status", computed_status)
+
+                                -- computed flow detail view values
+                                if io.en_flow_detail then
+                                    ps.publish("flow_perf_live", (data.tanks.steam.amount or 0) / data.state.flow_rate)
+
+                                    local bld = data.build
+
+                                    local inlet_p   = (data.tanks.steam.amount / 1000) / (bld.steam_cap / const.mek.TURBINE_GAS_PER_TANK)
+                                    local exhaust_p = ((data.state.flow_rate / 1000) / bld.vents) * 0.1
+                                    local inlet_f   = (data.state.steam_input_rate / 1000) * 20
+                                    local steam_f   = (data.state.flow_rate / 1000) * 20
+                                    local water_f   = (math.min(data.state.flow_rate, bld.max_water_output) / 1000) * 20
+
+                                    ps.publish("phys_inlet_p", inlet_p)
+                                    ps.publish("phys_exhaust_p", exhaust_p)
+                                    ps.publish("phys_inlet_f", inlet_f)
+                                    ps.publish("phys_steam_f", steam_f)
+                                    ps.publish("phys_water_f", water_f)
+                                end
                             else
                                 log.debug(util.c(log_header, "invalid turbine id ", id))
                                 valid = false
                             end
                         end
 
-                        unit.unit_ps.publish("turbine_flow_sum", flow_sum)
+                        unit.unit_ps.publish("turbine_water_sum", water_sum)
                     else
                         log.debug(log_header .. "turbine list not a table")
                         valid = false

@@ -83,13 +83,13 @@ return function (app, panes, ecore_pane, ps, update)
     TextBox{parent=ecr_ext_div,y=1,text="More Energy Core Info",alignment=ALIGN.CENTER}
 
     TextBox{parent=ecr_ext_div,text="Energy Fill",y=3,width=13,fg_bg=label}
-    local fill = DataIndicator{parent=ecr_ext_div,y=3,x=14,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local fill = DataIndicator{parent=ecr_ext_div,y=3,x=14,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
 
     local chging = IconIndicator{parent=ecr_ext_div,y=5,label="Charging",states=wht_ind_s}
     local dischg = IconIndicator{parent=ecr_ext_div,label="Discharging",states=wht_ind_s}
 
     TextBox{parent=ecr_ext_div,text="Transfer",y=8,width=13,fg_bg=label}
-    local transfer = PowerIndicator{parent=ecr_ext_div,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",rate=true,value=0,width=21,fg_bg=text_fg}
+    local transfer = PowerIndicator{parent=ecr_ext_div,lu_colors=lu_col,unit=db.energy_label,format="%15.2f",rate=true,value=0,width=21,fg_bg=text_fg}
 
     fill.register(ps, "energy_fill", function (x) fill.update(x * 100) end)
     chging.register(ps, "is_charging", chging.update)
@@ -97,10 +97,10 @@ return function (app, panes, ecore_pane, ps, update)
     transfer.register(ps, "transfer", function (val) transfer.update(db.energy_convert_from_fe(val)) end)
 
     TextBox{parent=ecr_ext_div,text="Capacity",y=11,width=13,fg_bg=label}
-    local capacity = PowerIndicator{parent=ecr_ext_div,y=12,lu_colors=lu_col,label="",unit=db.energy_label,format="%15.2f",value=0,width=21,fg_bg=text_fg}
+    local capacity = PowerIndicator{parent=ecr_ext_div,y=12,lu_colors=lu_col,unit=db.energy_label,format="%15.2f",value=0,width=21,fg_bg=text_fg}
 
     TextBox{parent=ecr_ext_div,text="Capacity ("..db.energy_label..")",y=14,fg_bg=label}
-    local cap_fe  = DataIndicator{parent=ecr_ext_div,y=15,lu_colors=lu_col,label="",unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
+    local cap_fe  = DataIndicator{parent=ecr_ext_div,y=15,lu_colors=lu_col,unit="",format="%21d",value=0,width=21,fg_bg=text_fg}
 
     capacity.register(ps, "max_energy", function (val) capacity.update(db.energy_convert_from_fe(val)) end)
     cap_fe.register(ps, "max_energy", function (val) cap_fe.update(db.energy_convert_from_fe(val)) end)

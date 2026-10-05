@@ -5,7 +5,7 @@ local util    = require("scada-common.util")
 local element = require("graphics.element")
 
 ---@class power_indicator_args
----@field label string indicator label
+---@field label? string indicator label
 ---@field unit string energy unit
 ---@field format string power format override (lua string format)
 ---@field rate boolean? whether to append /t to the end (power per tick)
@@ -24,7 +24,6 @@ local element = require("graphics.element")
 ---@param args power_indicator_args
 ---@return PowerIndicator element, element_id id
 return function (args)
-    element.assert(type(args.label) == "string", "label is a required field")
     element.assert(type(args.unit) == "string", "unit is a required field")
     element.assert(type(args.value) == "number", "value is a required field")
     element.assert(util.is_int(args.width), "width is a required field")
@@ -74,10 +73,13 @@ return function (args)
     function e.redraw()
         if args.lu_colors ~= nil then e.w_set_fgd(args.lu_colors.color_a) end
         e.w_set_cur(1, 1)
-        e.w_write(args.label)
 
-        data_start = string.len(args.label) + 2
-        if string.len(args.label) == 0 then data_start = 1 end
+        if args.label and (string.len(args.label) > 0) then
+            e.w_write(args.label)
+            data_start = string.len(args.label) + 2
+        else
+            data_start = 1
+        end
 
         e.on_update(e.value)
     end

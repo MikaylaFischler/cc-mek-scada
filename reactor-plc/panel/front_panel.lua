@@ -75,7 +75,7 @@ local function init(panel, config)
 
     local ra = LED{parent=ramp,label="RAMPING ACTIVE",colors=ind_grn}
     TextBox{parent=ramp,x=3,text="SETPOINT"}
-    local sp  = DataIndicator{parent=ramp,y=2,x=12,label="",unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
+    local sp  = DataIndicator{parent=ramp,y=2,x=12,unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
 
     ramp.line_break()
 
@@ -114,11 +114,11 @@ local function init(panel, config)
     limit.line_break()
 
     TextBox{parent=limit,text="FUEL_FILT"}
-    local fuel_filt = DataIndicator{parent=limit,y=5,x=11,label="",unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
+    local fuel_filt = DataIndicator{parent=limit,y=5,x=11,unit="",format="%15.2f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="RATE_FILT"}
-    local rate_filt = DataIndicator{parent=limit,y=6,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    local rate_filt = DataIndicator{parent=limit,y=6,x=11,unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="TICK_FILT"}
-    local tick_filt = DataIndicator{parent=limit,y=7,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    local tick_filt = DataIndicator{parent=limit,y=7,x=11,unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
 
     fuel_filt.register(databus.ps, "spctl_limit_fuel_filt", fuel_filt.update)
     rate_filt.register(databus.ps, "spctl_limit_rate_filt", rate_filt.update)
@@ -127,11 +127,11 @@ local function init(panel, config)
     limit.line_break()
 
     TextBox{parent=limit,text="dFUEL"}
-    local df = DataIndicator{parent=limit,y=9,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    local df = DataIndicator{parent=limit,y=9,x=11,unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="dFUEL_mBt"}
-    local dfm = DataIndicator{parent=limit,y=10,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    local dfm = DataIndicator{parent=limit,y=10,x=11,unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
     TextBox{parent=limit,text="LIMIT"}
-    local lim = DataIndicator{parent=limit,y=11,x=11,label="",unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
+    local lim = DataIndicator{parent=limit,y=11,x=11,unit="",format="%15.4f",value=0,width=15,fg_bg=s_hi_box}
 
     lim.register(databus.ps, "spctl_limit_dfuel", df.update)
     lim.register(databus.ps, "spctl_limit_dfuelmbt", dfm.update)
@@ -144,9 +144,9 @@ local function init(panel, config)
     local general = Div{parent=diag_page,width=21,height=3,x=2,y=14}
 
     TextBox{parent=general,text="TPS"}
-    local tps = DataIndicator{parent=general,y=1,x=11,label="",unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
+    local tps = DataIndicator{parent=general,y=1,x=11,unit="",format="%8.2f",value=0,width=8,fg_bg=s_hi_box}
     TextBox{parent=general,text="TICK_TIME          ms"}
-    local tt  = DataIndicator{parent=general,y=2,x=11,label="",unit="",format="%8d",value=0,width=8,fg_bg=s_hi_box}
+    local tt  = DataIndicator{parent=general,y=2,x=11,unit="",format="%8d",value=0,width=8,fg_bg=s_hi_box}
 
     tps.register(databus.ps, "spctl_data_tps", tps.update)
     tt.register(databus.ps, "spctl_data_tick", tt.update)

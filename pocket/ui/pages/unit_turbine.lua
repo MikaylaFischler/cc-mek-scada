@@ -63,11 +63,11 @@ return function (app, u_page, panes, tbn_pane, u_id, t_id, ps, update)
     ccool.register(ps, "energy_fill", ccool.update)
 
     TextBox{parent=tbn_div,text="Production",x=3,y=3,width=17,fg_bg=label}
-    local prod_rate = PowerIndicator{parent=tbn_div,x=3,y=4,lu_colors=lu_col,label="",unit=db.energy_label,format="%11.2f",value=0,rate=true,width=17,fg_bg=text_fg}
+    local prod_rate = PowerIndicator{parent=tbn_div,x=3,y=4,lu_colors=lu_col,unit=db.energy_label,format="%11.2f",value=0,rate=true,width=17,fg_bg=text_fg}
     TextBox{parent=tbn_div,text="Flow Rate",x=3,y=5,width=17,fg_bg=label}
-    local flow_rate = DataIndicator{parent=tbn_div,x=3,y=6,lu_colors=lu_col,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=17,fg_bg=text_fg}
+    local flow_rate = DataIndicator{parent=tbn_div,x=3,y=6,lu_colors=lu_col,unit="mB/t",format="%11.0f",value=0,commas=true,width=17,fg_bg=text_fg}
     TextBox{parent=tbn_div,text="Steam Input Rate",x=3,y=7,width=17,fg_bg=label}
-    local input_rate = DataIndicator{parent=tbn_div,x=3,y=8,lu_colors=lu_col,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=17,fg_bg=text_fg}
+    local input_rate = DataIndicator{parent=tbn_div,x=3,y=8,lu_colors=lu_col,unit="mB/t",format="%11.0f",value=0,commas=true,width=17,fg_bg=text_fg}
 
     prod_rate.register(ps, "prod_rate", function (val) prod_rate.update(db.energy_convert(val)) end)
     flow_rate.register(ps, "flow_rate", flow_rate.update)
@@ -95,21 +95,21 @@ return function (app, u_page, panes, tbn_pane, u_id, t_id, ps, update)
     TextBox{parent=tbn_ext_div,y=1,text="More Turbine Info",alignment=ALIGN.CENTER}
 
     TextBox{parent=tbn_ext_div,text="Steam Tank",y=3,width=10,fg_bg=label}
-    local steam_p = DataIndicator{parent=tbn_ext_div,x=14,y=3,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local steam_amnt = DataIndicator{parent=tbn_ext_div,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local steam_p = DataIndicator{parent=tbn_ext_div,x=14,y=3,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local steam_amnt = DataIndicator{parent=tbn_ext_div,y=4,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     steam_p.register(ps, "steam_fill", function (x) steam_p.update(x * 100) end)
     steam_amnt.register(ps, "steam", function (x) steam_amnt.update(x.amount) end)
 
     TextBox{parent=tbn_ext_div,text="Energy Fill",y=6,width=12,fg_bg=label}
-    local charge_p = DataIndicator{parent=tbn_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local charge_amnt = PowerIndicator{parent=tbn_ext_div,y=7,lu_colors=lu_col,label="",unit=db.energy_label,format="%17.4f",value=0,width=21,fg_bg=text_fg}
+    local charge_p = DataIndicator{parent=tbn_ext_div,x=14,y=6,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local charge_amnt = PowerIndicator{parent=tbn_ext_div,y=7,lu_colors=lu_col,unit=db.energy_label,format="%17.4f",value=0,width=21,fg_bg=text_fg}
 
     charge_p.register(ps, "energy_fill", function (x) charge_p.update(x * 100) end)
     charge_amnt.register(ps, "energy", function (val) charge_amnt.update(db.energy_convert(val)) end)
 
     TextBox{parent=tbn_ext_div,text="Rotation Rate",y=9,width=13,fg_bg=label}
-    local rotation = DataIndicator{parent=tbn_ext_div,y=10,lu_colors=lu_col,label="",unit="",format="%21.12f",value=0,width=21,fg_bg=text_fg}
+    local rotation = DataIndicator{parent=tbn_ext_div,y=10,lu_colors=lu_col,unit="",format="%21.12f",value=0,width=21,fg_bg=text_fg}
 
     rotation.register(ps, "steam", function ()
         local ok, result = pcall(function () return util.turbine_rotation(db.units[u_id].turbine_data_tbl[t_id]) end)

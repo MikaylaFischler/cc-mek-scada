@@ -102,7 +102,7 @@ local function new_view(root)
         end
 
         TextBox{parent=f_div,y=6,text="RTU Gateways",fg_bg=label_fg_bg}
-        local rtu_count = DataIndicator{parent=f_div,x=19,y=6,label="",format="%3d",value=0,lu_colors=lu_col,width=3}
+        local rtu_count = DataIndicator{parent=f_div,x=19,y=6,format="%3d",value=0,lu_colors=lu_col,width=3}
         rtu_count.register(f_ps, "rtu_count", rtu_count.update)
 
         TextBox{parent=f_div,y=8,text="Energy Storage System",alignment=ALIGN.CENTER}

@@ -185,7 +185,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
     TextBox{parent=plc_c_6,y=8,height=3,text="When fast ramping is used, if the reactor drops below 80% cooled coolant, it will scale back the ramping proportionally as the coolant level drops.",fg_bg=g_lg_fg_bg}
 
     local fast_ramp = Checkbox{parent=plc_c_6,y=12,label="Enable Fast Ramping",default=ini_cfg.FastRamp,box_fg_bg=cpair(colors.orange,colors.black)}
-    TextBox{parent=plc_c_6,x=23,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function back_from_ramp()
         if tmp_cfg.EmerCoolEnable then plc_pane.set_value(4) else plc_pane.set_value(3) end
@@ -222,7 +221,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
 
     local fuel_limit = Checkbox{parent=plc_c_8,y=9,label="Enable Low-Fuel Burn Rate Limiting",default=ini_cfg.FuelAutoLimiting,box_fg_bg=cpair(colors.orange,colors.black)}
     TextBox{parent=plc_c_8,x=3,y=10,text="Supervisor Auto Control Only",fg_bg=g_lg_fg_bg}
-    TextBox{parent=plc_c_8,x=38,y=9,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function submit_fuel_limit()
         tmp_cfg.FuelAutoLimiting = fuel_limit.get_value()
@@ -236,7 +234,6 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
     TextBox{parent=plc_c_9,y=5,height=6,text="A DIAG button will be shown on the front panel to access it. Be aware that the diagnostics rapidly refresh with information, which can negatively impact performance. When not in use, use BACK to close it. Using escape to close out the computer does not stop the page from updating.",fg_bg=g_lg_fg_bg}
 
     local en_diag = Checkbox{parent=plc_c_9,y=12,label="Enable Diagnostics Panel",default=ini_cfg.EnableDiagnostics,box_fg_bg=cpair(colors.orange,colors.black)}
-    TextBox{parent=plc_c_9,x=28,y=12,text="new!",fg_bg=cpair(colors.red,colors._INHERIT)}  ---@todo remove NEW tag on next revision
 
     local function submit_diag()
         tmp_cfg.EnableDiagnostics = en_diag.get_value()

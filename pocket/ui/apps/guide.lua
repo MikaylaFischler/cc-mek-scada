@@ -77,20 +77,22 @@ local function new_view(root)
 
         local main_page = app.new_page(nil, 1)
         local search_page = app.new_page(main_page, 2)
-        local use_page = app.new_page(main_page, 3)
-        local uis_page = app.new_page(main_page, 4)
-        local fps_page = app.new_page(main_page, 5)
-        local gls_page = app.new_page(main_page, 6)
-        local lnk_page = app.new_page(main_page, 7)
+        local set_page = app.new_page(main_page, 3)
+        local use_page = app.new_page(main_page, 4)
+        local uis_page = app.new_page(main_page, 5)
+        local fps_page = app.new_page(main_page, 6)
+        local gls_page = app.new_page(main_page, 7)
+        local lnk_page = app.new_page(main_page, 8)
 
         local home = Div{parent=page_div,x=2}
         local search = Div{parent=page_div,x=2}
+        local set = Div{parent=page_div,x=2,width=p_width}
         local use = Div{parent=page_div,x=2,width=p_width}
         local uis = Div{parent=page_div,x=2,width=p_width}
         local fps = Div{parent=page_div,x=2,width=p_width}
         local gls = Div{parent=page_div,x=2,width=p_width}
         local lnk = Div{parent=page_div,x=2,width=p_width}
-        local panes = { home, search, use, uis, fps, gls, lnk } ---@type Div[]
+        local panes = { home, search, set, use, uis, fps, gls, lnk } ---@type Div[]
 
         local doc_map = {}   ---@type { [string]: function }
         local search_db = {} ---@type [ string, string, string, function ][]
@@ -100,11 +102,12 @@ local function new_view(root)
         TextBox{parent=home,y=1,text="cc-mek-scada Guide",alignment=ALIGN.CENTER}
 
         PushButton{parent=home,y=3,text="Search              >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=search_page.nav_to}
-        PushButton{parent=home,y=5,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
+        PushButton{parent=home,y=5,text="System Setup        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=set_page.nav_to}
+        PushButton{parent=home,text="System Usage        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=use_page.nav_to}
         PushButton{parent=home,text="Operator UIs        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=uis_page.nav_to}
         PushButton{parent=home,text="Front Panels        >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=fps_page.nav_to}
         PushButton{parent=home,text="Glossary            >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=gls_page.nav_to}
-        PushButton{parent=home,y=10,text="Wiki and Discord    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=lnk_page.nav_to}
+        PushButton{parent=home,y=11,text="Wiki and Discord    >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=lnk_page.nav_to}
 
         load_text("Search")
 
@@ -175,15 +178,29 @@ local function new_view(root)
 
         util.nop()
 
+        load_text("System Setup")
+
+        TextBox{parent=set,text="System Setup",alignment=ALIGN.CENTER}
+        PushButton{parent=set,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
+
+        load_text(false, "Setup Tips")
+        local setup_tips_page = guide_section(sect_construct_data, set_page, "Setup Tips", docs.setup.tips, 250)
+        load_text(false, "Connecting Devices")
+        local conn_dev_page = guide_section(sect_construct_data, set_page, "Connecting Devs", docs.setup.conn, 170)
+        load_text(false, "Configuring Devices")
+        local config_dev_page = guide_section(sect_construct_data, set_page, "Configuring Devs", docs.setup.config, 330)
+
+        PushButton{parent=set,y=3,text="Setup Tips & Issues >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=setup_tips_page.nav_to}
+        PushButton{parent=set,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=conn_dev_page.nav_to}
+        PushButton{parent=set,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=config_dev_page.nav_to}
+
+        util.nop()
+
         load_text("System Usage")
 
-        TextBox{parent=use,y=1,text="System Usage",alignment=ALIGN.CENTER}
+        TextBox{parent=use,text="System Usage",alignment=ALIGN.CENTER}
         PushButton{parent=use,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=main_page.nav_to}
 
-        load_text(false, "Connecting Devices")
-        local conn_dev_page = guide_section(sect_construct_data, use_page, "Connecting Devs", docs.usage.conn, 110)
-        load_text(false, "Configuring Devices")
-        local config_dev_page = guide_section(sect_construct_data, use_page, "Configuring Devs", docs.usage.config, 350)
         load_text(false, "Manual Control")
         local man_ctrl_page = guide_section(sect_construct_data, use_page, "Manual Control", docs.usage.manual, 100)
         load_text(false, "Auto Control")
@@ -191,9 +208,7 @@ local function new_view(root)
         load_text(false, "Waste Control")
         local waste_ctrl_page = guide_section(sect_construct_data, use_page, "Waste Control", docs.usage.waste, 120)
 
-        PushButton{parent=use,y=3,text="Connecting Devices  >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=conn_dev_page.nav_to}
-        PushButton{parent=use,text="Configuring Devices >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=config_dev_page.nav_to}
-        PushButton{parent=use,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=man_ctrl_page.nav_to}
+        PushButton{parent=use,y=3,text="Manual Control      >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=man_ctrl_page.nav_to}
         PushButton{parent=use,text="Automatic Control   >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=auto_ctrl_page.nav_to}
         PushButton{parent=use,text="Waste Control       >",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=waste_ctrl_page.nav_to}
 

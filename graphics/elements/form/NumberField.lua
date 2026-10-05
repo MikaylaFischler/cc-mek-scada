@@ -169,30 +169,32 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == KEY_CLICK.CHAR and string.len(e.value) < args.max_chars then
-            if tonumber(event.name) then
-                if e.value == 0 then e.value = "" end
-                ifield.try_insert_char(event.name)
-            end
-        elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
-            if (event.key == keys.backspace or event.key == keys.delete) and (string.len(e.value) > 0) then
-                ifield.backspace()
-                has_decimal = string.find(e.value, "%.") ~= nil
-            elseif (event.key == keys.period or event.key == keys.numPadDecimal) and (not has_decimal) and args.allow_decimal then
-                has_decimal = true
-                ifield.try_insert_char(".")
-            elseif (event.key == keys.minus or event.key == keys.numPadSubtract) and (string.len(e.value) == 0) and args.allow_negative then
-                ifield.set_value("-")
-            elseif event.key == keys.left then
-                ifield.nav_left()
-            elseif event.key == keys.right then
-                ifield.nav_right()
-            elseif event.key == keys.a and event.ctrl then
-                ifield.select_all()
-            elseif event.key == keys.home or event.key == keys.up then
-                ifield.nav_start()
-            elseif event.key == keys["end"] or event.key == keys.down then
-                ifield.nav_end()
+        if e.enabled then
+            if event.type == KEY_CLICK.CHAR and string.len(e.value) < args.max_chars then
+                if tonumber(event.name) then
+                    if e.value == 0 then e.value = "" end
+                    ifield.try_insert_char(event.name)
+                end
+            elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+                if (event.key == keys.backspace or event.key == keys.delete) and (string.len(e.value) > 0) then
+                    ifield.backspace()
+                    has_decimal = string.find(e.value, "%.") ~= nil
+                elseif (event.key == keys.period or event.key == keys.numPadDecimal) and (not has_decimal) and args.allow_decimal then
+                    has_decimal = true
+                    ifield.try_insert_char(".")
+                elseif (event.key == keys.minus or event.key == keys.numPadSubtract) and (string.len(e.value) == 0) and args.allow_negative then
+                    ifield.set_value("-")
+                elseif event.key == keys.left then
+                    ifield.nav_left()
+                elseif event.key == keys.right then
+                    ifield.nav_right()
+                elseif event.key == keys.a and event.ctrl then
+                    ifield.select_all()
+                elseif event.key == keys.home or event.key == keys.up then
+                    ifield.nav_start()
+                elseif event.key == keys["end"] or event.key == keys.down then
+                    ifield.nav_end()
+                end
             end
         end
     end

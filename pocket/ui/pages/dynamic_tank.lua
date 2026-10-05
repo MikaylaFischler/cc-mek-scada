@@ -69,8 +69,8 @@ return function (app, page, panes, tank_pane, tank_id, ps, update)
     status.register(ps, "DynamicTankStateStatus", status.update)
 
     TextBox{parent=tank_div,y=5,text="Fill",width=10,fg_bg=label}
-    local tank_pcnt = DataIndicator{parent=tank_div,x=14,y=5,label="",format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_fg}
-    local tank_amnt = DataIndicator{parent=tank_div,label="",format="%18d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=21,fg_bg=text_fg}
+    local tank_pcnt = DataIndicator{parent=tank_div,x=14,y=5,format="%5.2f",value=100,unit="%",lu_colors=lu_col,width=8,fg_bg=text_fg}
+    local tank_amnt = DataIndicator{parent=tank_div,format="%18d",value=0,commas=true,unit="mB",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
     local is_water = fac.tank_fluid_types[tank_id] == COOLANT_TYPE.WATER
 
