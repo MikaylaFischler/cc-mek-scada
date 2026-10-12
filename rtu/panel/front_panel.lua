@@ -158,7 +158,7 @@ local function init(panel, config, units)
     --
 
     TextBox{parent=panel,x=2,y=term_h-1,text="SPEAKERS",width=8,fg_bg=style.fp.text_fg}
-    local speaker_count = DataIndicator{parent=panel,x=11,y=term_h-1,label="",format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
+    local speaker_count = DataIndicator{parent=panel,x=11,y=term_h-1,format="%3d",value=0,width=3,fg_bg=style.theme.field_box}
     speaker_count.register(databus.ps, "speaker_count", speaker_count.update)
 
     --

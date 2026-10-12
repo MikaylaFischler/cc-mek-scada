@@ -73,44 +73,7 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class turbinev_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                length = 0,
-                width = 0,
-                height = 0,
-                min_pos = types.new_zero_coordinate(),
-                max_pos = types.new_zero_coordinate(),
-                blades = 0,
-                coils = 0,
-                vents = 0,
-                dispersers = 0,
-                condensers = 0,
-                steam_cap = 0,
-                max_energy = 0,
-                max_flow_rate = 0,
-                max_production = 0,
-                max_water_output = 0
-            },
-            state = {
-                last_update = 0,
-                flow_rate = 0,
-                prod_rate = 0,
-                steam_input_rate = 0,
-                dumping_mode = DUMPING_MODE.IDLE ---@type dumping_mode
-            },
-            tanks = {
-                last_update = 0,
-                steam = types.new_empty_gas(),
-                steam_need = 0,
-                steam_fill = 0.0,
-                energy = 0,
-                energy_need = 0,
-                energy_fill = 0.0
-            }
-        }
+        db = types.new_turbine_db()
     }
 
     ---@class turbinev_session:unit_session
@@ -285,9 +248,9 @@ function turbinev.new(session_id, unit_id, advert, out_queue)
                     -- instruction with body
                     local cmd = msg.message ---@type queue_data
                     if cmd.key == TBV_RTU_S_DATA.SET_DUMP_MODE then
-                        if cmd.val == types.DUMPING_MODE.IDLE or
-                           cmd.val == types.DUMPING_MODE.DUMPING_EXCESS or
-                           cmd.val == types.DUMPING_MODE.DUMPING then
+                        if cmd.val == DUMPING_MODE.IDLE or
+                           cmd.val == DUMPING_MODE.DUMPING_EXCESS or
+                           cmd.val == DUMPING_MODE.DUMPING then
                             _set_dump_mode(cmd.val)
                         else
                             log.debug(util.c(log_tag, "unrecognized dumping mode \"", cmd.val, "\""))

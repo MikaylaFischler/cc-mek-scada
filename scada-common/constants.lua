@@ -88,6 +88,10 @@ constants.PU_FALLBACK_MIN_TIME_MS = 3000
 -- milliseconds until coolant flow is assumed to be stable enough to enable certain coolant checks
 constants.FLOW_STABILITY_DELAY_MS = 10000
 
+-- assume an energy core is unformed/unactivated if this amount of generated energy (from turbines)
+-- is exceeded while the energy core reports zero FE stored, zero input, and zero output
+constants.ENERGY_CORE_UNFORMED_LIM_FE = 5
+
 -- Notes on Radiation
 -- - background radiation 0.0000001 Sv/h (99.99 nSv/h)
 -- - "green tint" radiation 0.00001 Sv/h (10 uSv/h)

@@ -84,10 +84,10 @@ return function (app, u_page, panes, page_div, u_id, u_ps, update)
     end)
 
     TextBox{parent=rct_div,text="Burn Rate",x=5,y=4,width=13,fg_bg=label}
-    local burn_rate = DataIndicator{parent=rct_div,x=5,y=5,lu_colors=lu_col,label="",unit="mB/t",format="%8.2f",value=0,commas=true,width=13,fg_bg=text_fg}
+    local burn_rate = DataIndicator{parent=rct_div,x=5,y=5,lu_colors=lu_col,unit="mB/t",format="%8.2f",value=0,commas=true,width=13,fg_bg=text_fg}
     TextBox{parent=rct_div,text="Temperature",x=5,y=6,width=13,fg_bg=label}
     local t_prec = util.trinary(db.temp_label == types.TEMP_SCALE_UNITS[types.TEMP_SCALE.KELVIN], 11, 10)
-    local core_temp = DataIndicator{parent=rct_div,x=5,y=7,lu_colors=lu_col,label="",unit=db.temp_label,format="%"..t_prec..".2f",value=0,commas=true,width=13,fg_bg=text_fg}
+    local core_temp = DataIndicator{parent=rct_div,x=5,y=7,lu_colors=lu_col,unit=db.temp_label,format="%"..t_prec..".2f",value=0,commas=true,width=13,fg_bg=text_fg}
 
     burn_rate.register(u_ps, "act_burn_rate", burn_rate.update)
     core_temp.register(u_ps, "temp", function (t) core_temp.update(db.temp_convert(t)) end)
@@ -105,9 +105,9 @@ return function (app, u_page, panes, page_div, u_id, u_ps, update)
     r_hsrt.register(u_ps, "HighStartupRate", r_hsrt.update)
 
     TextBox{parent=rct_div,text="HR",y=16,width=4,fg_bg=label}
-    local heating_r = DataIndicator{parent=rct_div,x=6,y=16,lu_colors=lu_col,label="",unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=text_fg}
+    local heating_r = DataIndicator{parent=rct_div,x=6,y=16,lu_colors=lu_col,unit="mB/t",format="%11.0f",value=0,commas=true,width=16,fg_bg=text_fg}
     TextBox{parent=rct_div,text="DMG",y=17,width=4,fg_bg=label}
-    local damage_p = DataIndicator{parent=rct_div,x=6,y=17,lu_colors=lu_col,label="",unit="%",format="%11.2f",value=0,width=16,fg_bg=text_fg}
+    local damage_p = DataIndicator{parent=rct_div,x=6,y=17,lu_colors=lu_col,unit="%",format="%11.2f",value=0,width=16,fg_bg=text_fg}
 
     heating_r.register(u_ps, "heating_rate", heating_r.update)
     damage_p.register(u_ps, "damage", damage_p.update)
@@ -124,37 +124,37 @@ return function (app, u_page, panes, page_div, u_id, u_ps, update)
     TextBox{parent=rct_ext_div,y=1,text="More Reactor Info",alignment=ALIGN.CENTER}
 
     TextBox{parent=rct_ext_div,text="Fuel Tank",y=3,width=9,fg_bg=label}
-    local fuel_p = DataIndicator{parent=rct_ext_div,x=14,y=3,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local fuel_amnt = DataIndicator{parent=rct_ext_div,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local fuel_p = DataIndicator{parent=rct_ext_div,x=14,y=3,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local fuel_amnt = DataIndicator{parent=rct_ext_div,y=4,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     fuel_p.register(u_ps, "fuel_fill", function (x) fuel_p.update(x * 100) end)
     fuel_amnt.register(u_ps, "fuel", fuel_amnt.update)
 
     TextBox{parent=rct_ext_div,text="Cool Coolant",y=6,width=12,fg_bg=label}
-    local cooled_p = DataIndicator{parent=rct_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local ccool_amnt = DataIndicator{parent=rct_ext_div,y=7,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local cooled_p = DataIndicator{parent=rct_ext_div,x=14,y=6,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local ccool_amnt = DataIndicator{parent=rct_ext_div,y=7,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     cooled_p.register(u_ps, "ccool_fill", function (x) cooled_p.update(x * 100) end)
     ccool_amnt.register(u_ps, "ccool_amnt", ccool_amnt.update)
 
     TextBox{parent=rct_ext_div,text="Hot Coolant",y=9,width=12,fg_bg=label}
-    local heated_p = DataIndicator{parent=rct_ext_div,x=14,y=9,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local hcool_amnt = DataIndicator{parent=rct_ext_div,y=10,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local heated_p = DataIndicator{parent=rct_ext_div,x=14,y=9,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local hcool_amnt = DataIndicator{parent=rct_ext_div,y=10,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     heated_p.register(u_ps, "hcool_fill", function (x) heated_p.update(x * 100) end)
     hcool_amnt.register(u_ps, "hcool_amnt", hcool_amnt.update)
 
     TextBox{parent=rct_ext_div,text="Waste Tank",y=12,width=10,fg_bg=label}
-    local waste_p = DataIndicator{parent=rct_ext_div,x=14,y=12,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local waste_amnt = DataIndicator{parent=rct_ext_div,y=13,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local waste_p = DataIndicator{parent=rct_ext_div,x=14,y=12,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local waste_amnt = DataIndicator{parent=rct_ext_div,y=13,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     waste_p.register(u_ps, "waste_fill", function (x) waste_p.update(x * 100) end)
     waste_amnt.register(u_ps, "waste", waste_amnt.update)
 
     TextBox{parent=rct_ext_div,text="Boil Eff.",y=15,width=9,fg_bg=label}
     TextBox{parent=rct_ext_div,text="Env. Loss",y=16,width=9,fg_bg=label}
-    local boil_eff = DataIndicator{parent=rct_ext_div,x=11,y=15,lu_colors=lu_col,label="",unit="%",format="%9.2f",value=0,width=11,fg_bg=text_fg}
-    local env_loss = DataIndicator{parent=rct_ext_div,x=11,y=16,lu_colors=lu_col,label="",unit="J",format="%9.2f",value=0,width=11,fg_bg=text_fg}
+    local boil_eff = DataIndicator{parent=rct_ext_div,x=11,y=15,lu_colors=lu_col,unit="%",format="%9.2f",value=0,width=11,fg_bg=text_fg}
+    local env_loss = DataIndicator{parent=rct_ext_div,x=11,y=16,lu_colors=lu_col,unit="J",format="%9.2f",value=0,width=11,fg_bg=text_fg}
 
     boil_eff.register(u_ps, "boil_eff", function (x) boil_eff.update(x * 100) end)
     env_loss.register(u_ps, "env_loss", function (raw)

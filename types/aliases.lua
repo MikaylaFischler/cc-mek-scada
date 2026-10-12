@@ -35,7 +35,7 @@
 --#region Pocket Aliases
 
 ---@alias pkt__sect_construct_data { [1]: pocket_app, [2]: Div, [3]: Div[], [4]: { [string]: function }, [5]: [ string, string, string, function ][], [6]: cpair, [7]: cpair }
----@alias pkt__doc_item pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_list
+---@alias pkt__doc_item pocket_doc_sect|pocket_doc_subsect|pocket_doc_text|pocket_doc_note|pocket_doc_tip|pocket_doc_important|pocket_doc_list
 
 --#endregion
 

@@ -30,6 +30,10 @@
 ---@field reactor integer reactor assignment, 0 for facility
 ---@field rs_conns IO_PORT[][]|nil redstone connections (only for redstone units)
 
+---@class generator_properties
+---@field multiplier number turbine generator energy multiplier
+---@field efficiency number turbine generator efficiency
+
 ---@class draconic_rf_notation
 ---@field exponent integer exponent scaler
 ---@field coefficient number coefficient to be scaled

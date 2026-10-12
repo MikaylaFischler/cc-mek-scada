@@ -6,7 +6,7 @@
 ---@class types
 local types = {}
 
---#region CLASSES
+--#region Common Classes
 
 -- create a new tank fluid
 ---@nodiscard
@@ -49,6 +49,10 @@ function types.new_coordinate(x, y, z) return { x = x, y = y, z = z } end
 ---@nodiscard
 ---@return coordinate
 function types.new_zero_coordinate() return { x = 0, y = 0, z = 0 } end
+
+--#endregion
+
+--#region Shared Multiblock Data Structures
 
 -- create a new reactor database
 ---@nodiscard
@@ -127,9 +131,234 @@ function types.new_reactor_db()
     return db
 end
 
+-- create a new boiler database
+---@nodiscard
+function types.new_boiler_db()
+    ---@class boilerv_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            min_pos = types.new_zero_coordinate(),
+            max_pos = types.new_zero_coordinate(),
+            boil_cap = 0.0,
+            steam_cap = 0,
+            water_cap = 0,
+            hcool_cap = 0,
+            ccool_cap = 0,
+            superheaters = 0
+        },
+        state = {
+            last_update = 0,
+            temperature = 0.0,
+            boil_rate = 0.0,
+            max_boil_rate = 0.0,
+            env_loss = 0.0
+        },
+        tanks = {
+            last_update = 0,
+            steam = types.new_empty_gas(),
+            steam_need = 0,
+            steam_fill = 0.0,
+            water = types.new_empty_gas(),
+            water_need = 0,
+            water_fill = 0.0,
+            hcool = types.new_empty_gas(),
+            hcool_need = 0,
+            hcool_fill = 0.0,
+            ccool = types.new_empty_gas(),
+            ccool_need = 0,
+            ccool_fill = 0.0
+        }
+    }
+
+    return db
+end
+
+-- create a new turbine database
+---@nodiscard
+function types.new_turbine_db()
+    ---@class turbinev_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            min_pos = types.new_zero_coordinate(),
+            max_pos = types.new_zero_coordinate(),
+            blades = 0,
+            coils = 0,
+            vents = 0,
+            dispersers = 0,
+            condensers = 0,
+            steam_cap = 0,
+            max_energy = 0,
+            max_flow_rate = 0,
+            max_production = 0,
+            max_water_output = 0
+        },
+        state = {
+            last_update = 0,
+            flow_rate = 0,
+            prod_rate = 0,
+            steam_input_rate = 0,
+            ---@type dumping_mode
+            dumping_mode = types.DUMPING_MODE.IDLE
+        },
+        tanks = {
+            last_update = 0,
+            steam = types.new_empty_gas(),
+            steam_need = 0,
+            steam_fill = 0.0,
+            energy = 0,
+            energy_need = 0,
+            energy_fill = 0.0
+        }
+    }
+
+    return db
+end
+
+-- create a new dynamic tank database
+---@nodiscard
+function types.new_tank_db()
+    ---@class dynamicv_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            min_pos = types.new_zero_coordinate(),
+            max_pos = types.new_zero_coordinate(),
+            tank_capacity = 0,
+            chem_tank_capacity = 0
+        },
+        state = {
+            last_update = 0,
+            ---@type container_mode
+            container_mode = types.CONTAINER_MODE.BOTH
+        },
+        tanks = {
+            last_update = 0,
+            stored = types.new_empty_gas(),
+            fill = 0
+        }
+    }
+
+    return db
+end
+
+-- create a new dynamic tank database
+---@nodiscard
+function types.new_sps_db()
+    ---@class sps_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            min_pos = types.new_zero_coordinate(),
+            max_pos = types.new_zero_coordinate(),
+            coils = 0,
+            input_cap = 0,
+            output_cap = 0,
+            max_energy = 0
+        },
+        state = {
+            last_update = 0,
+            process_rate = 0.0
+        },
+        tanks = {
+            last_update = 0,
+            input = types.new_empty_gas(),
+            input_need = 0,
+            input_fill = 0.0,
+            output = types.new_empty_gas(),
+            output_need = 0,
+            output_fill = 0.0,
+            energy = 0,
+            energy_need = 0,
+            energy_fill = 0.0
+        }
+    }
+
+    return db
+end
+
+-- create a new dynamic tank database
+---@nodiscard
+function types.new_induction_db()
+    ---@class imatrix_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            length = 0,
+            width = 0,
+            height = 0,
+            min_pos = types.new_zero_coordinate(),
+            max_pos = types.new_zero_coordinate(),
+            max_energy = 0,
+            transfer_cap = 0,
+            cells = 0,
+            providers = 0
+        },
+        state = {
+            last_update = 0,
+            last_input = 0,
+            last_output = 0
+        },
+        tanks = {
+            last_update = 0,
+            energy = 0,
+            energy_need = 0,
+            energy_fill = 0.0
+        }
+    }
+
+    return db
+end
+
+-- create a new dynamic tank database
+---@nodiscard
+function types.new_ecore_db()
+    ---@class ecore_session_db
+    local db = {
+        formed = false,
+        build = {
+            last_update = 0,
+            max_energy = 0
+        },
+        state = {
+            last_update = 0,
+            input = 0,
+            output = 0,
+            transfer = 0,
+            energy = 0
+        },
+        virtual = {
+            last_update = 0,
+            energy_need = 0,
+            energy_fill = 0,
+            tier = "Tier ?"
+        }
+    }
+
+    return db
+end
+
 --#endregion
 
---#region ENUMERATION TYPES
+--#region Enumerations
 
 ---@enum LISTEN_MODE
 types.LISTEN_MODE = {
@@ -455,7 +684,7 @@ types.ESS = {
 
 --#endregion
 
---#region STRING TYPES
+--#region String Types
 
 ---@see fluid
 types.FLUID = {
