@@ -233,9 +233,9 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
                     -- instruction with body
                     local cmd = msg.message ---@type queue_data
                     if cmd.key == DTV_RTU_S_DATA.SET_CONT_MODE then
-                        if cmd.val == types.CONTAINER_MODE.BOTH or
-                           cmd.val == types.CONTAINER_MODE.FILL or
-                           cmd.val == types.CONTAINER_MODE.EMPTY then
+                        if cmd.val == CONTAINER_MODE.BOTH or
+                           cmd.val == CONTAINER_MODE.FILL or
+                           cmd.val == CONTAINER_MODE.EMPTY then
                             _set_cont_mode(cmd.val)
                         else
                             log.debug(util.c(log_tag, "unrecognized container mode \"", cmd.val, "\""))
