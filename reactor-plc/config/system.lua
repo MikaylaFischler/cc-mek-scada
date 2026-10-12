@@ -101,7 +101,7 @@ function system.create(tool_ctl, main_pane, cfg_sys, divs, style, startup, exit)
     TextBox{parent=plc_cfg,y=2,text=" PLC Configuration",fg_bg=cpair(colors.black,colors.orange)}
 
     TextBox{parent=plc_c_1,y=1,text="Would you like to set this PLC as networked?"}
-    TextBox{parent=plc_c_1,y=3,height=4,text="If you have a supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=g_lg_fg_bg}
+    TextBox{parent=plc_c_1,y=3,height=4,text="If you have a Supervisor, select the box. You will later be prompted to select the network configuration. If you instead want to use this as a standalone safety system, don't select the box.",fg_bg=g_lg_fg_bg}
 
     local networked = Checkbox{parent=plc_c_1,y=8,label="Networked",default=ini_cfg.Networked,box_fg_bg=cpair(colors.orange,colors.black)}
 
