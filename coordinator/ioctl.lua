@@ -163,17 +163,17 @@ function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_fl
 
     -- create ESS and SPS tables (currently only 1 of each is supported)
     table.insert(io.facility.induction_ps_tbl, psil.create())
-    table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.induction_data_tbl, types.new_induction_db())
     table.insert(io.facility.ecore_ps_tbl, psil.create())
-    table.insert(io.facility.ecore_data_tbl, {})
+    table.insert(io.facility.ecore_data_tbl, types.new_ecore_db())
     table.insert(io.facility.sps_ps_tbl, psil.create())
-    table.insert(io.facility.sps_data_tbl, {})
+    table.insert(io.facility.sps_data_tbl, types.new_sps_db())
 
     -- create facility tank tables
     for i = 1, #io.facility.tank_list do
         if io.facility.tank_list[i] == 2 then
             table.insert(io.facility.tank_ps_tbl, psil.create())
-            table.insert(io.facility.tank_data_tbl, {})
+            table.insert(io.facility.tank_data_tbl, types.new_tank_db())
         end
     end
 
@@ -292,20 +292,20 @@ function ioctl.init(conf, comms, temp_scale, energy_scale, en_flow_detail, en_fl
         -- create boiler tables
         for _ = 1, conf.cooling.r_cool[i].BoilerCount do
             table.insert(entry.boiler_ps_tbl, psil.create())
-            table.insert(entry.boiler_data_tbl, {})
+            table.insert(entry.boiler_data_tbl, types.new_boiler_db())
         end
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
             table.insert(entry.properties.generators, { { multiplier = 0, efficiency = 0 } })
             table.insert(entry.turbine_ps_tbl, psil.create())
-            table.insert(entry.turbine_data_tbl, {})
+            table.insert(entry.turbine_data_tbl, types.new_turbine_db())
         end
 
         -- create tank tables
         if io.facility.tank_defs[i] == 1 then
             table.insert(entry.tank_ps_tbl, psil.create())
-            table.insert(entry.tank_data_tbl, {})
+            table.insert(entry.tank_data_tbl, types.new_tank_db())
         end
 
         entry.num_boilers = #entry.boiler_data_tbl

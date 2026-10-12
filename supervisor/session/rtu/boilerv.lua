@@ -57,46 +57,7 @@ function boilerv.new(session_id, unit_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class boilerv_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                length = 0,
-                width = 0,
-                height = 0,
-                min_pos = types.new_zero_coordinate(),
-                max_pos = types.new_zero_coordinate(),
-                boil_cap = 0.0,
-                steam_cap = 0,
-                water_cap = 0,
-                hcool_cap = 0,
-                ccool_cap = 0,
-                superheaters = 0
-            },
-            state = {
-                last_update = 0,
-                temperature = 0.0,
-                boil_rate = 0.0,
-                max_boil_rate = 0.0,
-                env_loss = 0.0
-            },
-            tanks = {
-                last_update = 0,
-                steam = types.new_empty_gas(),
-                steam_need = 0,
-                steam_fill = 0.0,
-                water = types.new_empty_gas(),
-                water_need = 0,
-                water_fill = 0.0,
-                hcool = types.new_empty_gas(),
-                hcool_need = 0,
-                hcool_fill = 0.0,
-                ccool = types.new_empty_gas(),
-                ccool_need = 0,
-                ccool_fill = 0.0
-            }
-        }
+        db = types.new_boiler_db()
     }
 
     ---@class boilerv_session:unit_session

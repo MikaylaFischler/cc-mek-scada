@@ -73,29 +73,7 @@ function dynamicv.new(session_id, unit_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class dynamicv_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                length = 0,
-                width = 0,
-                height = 0,
-                min_pos = types.new_zero_coordinate(),
-                max_pos = types.new_zero_coordinate(),
-                tank_capacity = 0,
-                chem_tank_capacity = 0
-            },
-            state = {
-                last_update = 0,
-                container_mode = CONTAINER_MODE.BOTH ---@type container_mode
-            },
-            tanks = {
-                last_update = 0,
-                stored = types.new_empty_gas(),
-                fill = 0
-            }
-        }
+        db = types.new_tank_db()
     }
 
     ---@class dynamicv_session:unit_session
