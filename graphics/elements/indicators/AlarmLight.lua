@@ -40,9 +40,6 @@ return function (args)
     -- determine width
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
-    -- flasher state
-    local flash_on = true
-
     -- blit translations
     local c1 = colors.toBlit(args.c1)
     local c2 = colors.toBlit(args.c2)
@@ -54,7 +51,8 @@ return function (args)
     e.value = 1
 
     -- called by flasher when enabled
-    local function flash_callback()
+    ---@param flash_on boolean synchronized on state
+    local function flash_callback(flash_on)
         e.w_set_cur(1, 1)
 
         if flash_on then
@@ -68,8 +66,6 @@ return function (args)
                 e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
             end
         end
-
-        flash_on = not flash_on
     end
 
     -- on state change
@@ -82,10 +78,8 @@ return function (args)
 
         if args.flash then
             if was_off and (new_state == 2) then
-                flash_on = true
                 flasher.start(flash_callback, args.period)
             elseif new_state ~= 2 then
-                flash_on = false
                 flasher.stop(flash_callback)
 
                 if new_state == 3 then

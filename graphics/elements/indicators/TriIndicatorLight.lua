@@ -42,14 +42,13 @@ return function (args)
 
     e.value = 1
 
-    local flash_on = true
-
     local c1 = colors.toBlit(args.c1)
     local c2 = colors.toBlit(args.c2)
     local c3 = colors.toBlit(args.c3)
 
     -- called by flasher when enabled
-    local function flash_callback()
+    ---@param flash_on boolean synchronized on state
+    local function flash_callback(flash_on)
         e.w_set_cur(1, 1)
 
         if flash_on then
@@ -61,8 +60,6 @@ return function (args)
         else
             e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
         end
-
-        flash_on = not flash_on
     end
 
     -- on state change
@@ -75,10 +72,8 @@ return function (args)
 
         if args.flash then
             if was_off and (new_state > 1) then
-                flash_on = true
                 flasher.start(flash_callback, args.period)
             elseif new_state <= 1 then
-                flash_on = false
                 flasher.stop(flash_callback)
 
                 e.w_blit(" \x95", "0" .. c1, c1 .. e.fg_bg.blit_bkg)
