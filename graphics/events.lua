@@ -236,7 +236,7 @@ function events.new_key_event(event_type, key, held)
         elseif key == keys.leftAlt or key == keys.rightAlt then
             handler.alt = true
         else
-            return _key_event(util.trinary(held, KEY_CLICK.HELD, KEY_CLICK.DOWN), key)
+            return _key_event(held and KEY_CLICK.HELD or KEY_CLICK.DOWN, key)
         end
     elseif event_type == "key_up" then
         if key == keys.leftShift or key == keys.rightShift then

@@ -13,7 +13,8 @@ local DOC_ITEM_TYPE = {
     TEXT = 3,
     NOTE = 4,
     TIP = 5,
-    LIST = 6
+    IMPORTANT = 6,
+    LIST = 7
 }
 
 ---@enum DOC_LIST_TYPE
@@ -69,6 +70,12 @@ local function tip(body)
     table.insert(target, item)
 end
 
+local function imp(body)
+    ---@class pocket_doc_important
+    local item = { type = DOC_ITEM_TYPE.IMPORTANT, text = body }
+    table.insert(target, item)
+end
+
 ---@param type DOC_LIST_TYPE
 ---@param items string[]
 ---@param colors color[]|nil colors for indicators or nil for normal lists
@@ -78,13 +85,46 @@ local function list(type, items, colors)
     table.insert(target, list_def)
 end
 
---#region System Usage
+--#region System Setup
 
-docs.usage = {
-    conn = {}, config = {}, manual = {}, auto = {}, waste = {}
+docs.setup = {
+    tips = {}, conn = {}, config = {}
 }
 
-target = docs.usage.conn
+target = docs.setup.tips
+sect("What Do I Need")
+text("To start, you'll need a minimum of 4 advanced computers to run the following programs.")
+list(DOC_LIST_TYPE.NUMBERED, { "Supervisor", "Coordinator", "Reactor PLC", "RTU Gateway" })
+text("You need one Reactor PLC per fission reactor, so you may need more than 4 computers.")
+tip("These each have network and peripheral connections, described in System Setup > Connecting Devices.")
+text("While you can theoretically connect all your other peripherals to one RTU Gateway, it is recommended to split them up if you have >10 connected devices, and users often use multiple RTU Gateways simply when wiring long network cables would be messy.")
+text("Just because you can connect any number of RTU Gateways doesn't mean you should, as more computers results in higher network load and added lag.")
+sect("Getting Started")
+text("After installing an application with ccmsi, you'll have 3 commands available from this system.")
+list(DOC_LIST_TYPE.BULLET, { "ccmsi", "startup", "configure" })
+doc("app_ccmsi", "ccmsi", "This is the installer/updater utility. Running this without parameters shows its help screen with available parameters.")
+tip("Parameters are other words or numbers after the program in the ComputerCraft terminal, so '> ccmsi install reactor-plc' has install and reactor-plc as parameters.")
+doc("app_start", "startup", "This is the main application that runs when the computer starts up or reboots.")
+doc("app_cnfgr", "configure", "The configurator app allows you to configure the application on that computer, which you must do first, but startup will launch configure any time configuration is required.")
+text("Once you've launched the configurator program and configured the computer, you can press Start Up in it or exit and run startup.")
+imp("Make sure you configure any peripheral and redstone connections (RTUs) on the RTU Gateway, simply configuring the RTU Gateway itself is not enough.")
+sect("Common Problems")
+doc("prob_1", "Connection Issues", "Make sure all computers on your SCADA network have the same network configuration.")
+list(DOC_LIST_TYPE.BULLET, { "Matching port settings", "Same or disabled facility auth. keys", "Sufficient or disabled range limits" })
+text("If you are using a wired network, make sure all computers are on the same network cable (ONLY put computers on that cable).")
+text("If you are using a wireless network, Ender modems are preferred. If you use Wireless modems, computers can be out of range if placed too far away or with too many obstacles.")
+doc("prob_2", "PLC ID Conflict", "Make sure each Reactor PLC has a different unit ID, counting up from 1.")
+doc("prob_3", "Missing Boiler or Turbine", "If you have a boiler or turbine not showing up, make sure you configured the right boiler and turbine counts on the Supervisor.")
+text("Adding more boilers or turbines to an RTU Gateway won't automatically change the Supervisor's configuration.")
+doc("prob_4", "Unit Count Changes", "If you change the number of units in your facility on the Supervisor, you must reconfigure the Coordinator to update its count and monitor settings.")
+doc("prob_5", "Waste Control Issues", "Multiple things can cause issues with waste management. Ensure redstone signals are configured correctly on the RTU Gateway (U_WASTE for normal mode, F_WASTE if you specifically enabled combined facility waste).")
+text("You can check if the redstone signals are correct by using redstone lamps and trying different output modes (bundled or unbundled) on the RTU Gateway to find the source of the problem.")
+text("Common causes include:")
+list(DOC_LIST_TYPE.BULLET, { "RTU Gateway not connected to the Supervisor", "Incorrect side", "Incorrect bundled color", "Incorrect port mode", "Tube not set as redstone sensitive" })
+text("When using bundled redstone with Immersive Engineering:")
+list(DOC_LIST_TYPE.BULLET, { "Redstone Connectors MUST be set as output with the correct color", "Redstone Interface Connector MUST be used for the computer connection" })
+
+target = docs.setup.conn
 sect("Overview")
 tip("For the best setup experience, see the Wiki on GitHub or the YouTube channel! This app does not contain all information.")
 text("Mekanism devices are connected to ComputerCraft computers that form the SCADA control system.")
@@ -92,15 +132,24 @@ sect("Mekanism Conns")
 text("Multiblocks and single block devices are both connected directly to a computer by touching it or via wired modems.")
 doc("usage_conn_mb", "Multiblocks", "For multiblocks, a logic adapter is used if it exists for that multiblock, otherwise a valve or port block is used.")
 text("A wired modem is only connected to the block when you right click it and it gets a red border and you see a message in the chat with the peripheral name.")
-tip("Do not connect all peripherals in the system on the same network cable, since Reactor PLCs will grab the first reactor they find and you may accidentally duplicate RTUs.")
+imp("Do not connect all peripherals in the system on the same network cable, since Reactor PLCs will grab the first reactor they find and you may accidentally duplicate RTUs.")
 sect("Computer Conns")
 tip("It helps to be familiar with how ComputerCraft manages peripherals before using this system, though it is not necessary.")
 doc("usage_conn_network", "Network", "All computers in the system communicate with each other via wired, wireless, and/or Ender modems. Ender modems are preferred over wireless due to the unlimited range.")
 text("Five different network channels are used and must have the same value for each name across all devices.")
 text("For example, the supervisor channel SVR_CHANNEL must be set to the same channel for all devices in your system. Two different named channels should not share the same value (such as SVR_CHANNEL vs CRD_CHANNEL).")
 doc("usage_conn_peri", "Peripherals", "ComputerCraft peripherals like monitors and speakers need to touch the computer or be connected via wired modems.")
+sect("What Connects To..")
+doc("plc_conns", "A Fission PLC", "These can connect to a Fission Reactor PLC computer:")
+list(DOC_LIST_TYPE.BULLET, { "Wired, Wireless, and Ender Modems", "Redstone", "Fission Reactor Logic Adapter" })
+doc("rtugw_conns", "An RTU Gateway", "These can connect to an RTU Gateway computer:")
+list(DOC_LIST_TYPE.BULLET, { "Wired, Wireless, and Ender Modems", "Redstone", "Redstone Relay", "Speaker", "Boiler Valve", "Turbine Valve", "Dynamic Valve", "SPS Port", "Induction Port", "Reinforced Induction Port", "Energy Pylon", "Environment Detector", "Solar Neutron Activator", "Large Solar Neutron Activator" })
+doc("crd_conns", "The Coordinator", "These can connect to a Coordinator computer:")
+list(DOC_LIST_TYPE.BULLET, { "Wired, Wireless, and Ender Modems", "Speaker", "Advanced Monitor" })
+doc("svr_conns", "The Supervisor", "These can connect to a Supervisor computer:")
+list(DOC_LIST_TYPE.BULLET, { "Wired, Wireless, and Ender Modems" })
 
-target = docs.usage.config
+target = docs.setup.config
 sect("Overview")
 tip("For the best setup experience, see the Wiki on GitHub or the YouTube channel! This app does not contain all information.")
 text("All devices have a configurator program you can launch by running the 'configure' command.")
@@ -116,7 +165,7 @@ text("If you intend to be able to share logs, you should leave it to append.")
 doc("usage_cfg_log_upload", "Sharing Logs", "To share logs, you would run 'pastebin put log.txt' where your log file is then share the code.")
 sect("Reactor PLC")
 text("The Reactor PLC must be connected to a single fission reactor that it will manage. Use the configurator to choose if you would like it to operate as networked or not.")
-tip("The Reactor PLC should always be in a chunk with the reactor to ensure it can protect it on server start and/or chunk load.")
+imp("The Reactor PLC should always be in a chunk with the reactor to ensure it can protect it on server start and/or chunk load.")
 doc("usage_cfg_plc_nonet", "Non-Networked", "This lets you use this device as an advanced standalone safety system rather than a basic redstone breaker for easier safety protection.")
 doc("usage_cfg_plc_net", "Networked", "This is the most commonly used mode. The Reactor PLC will require a connection to the Supervisor to operate and will allow usage through that for more advanced functionality.")
 doc("usage_cfg_plc_unit", "Unit ID", "When networked, you can set any unit ID ranging from 1 to 4. Multiple Reactor PLCs cannot share the same unit ID.")
@@ -129,10 +178,10 @@ text("This configuration contains many settings that are detailed better in the 
 doc("usage_cfg_sv_tanks", "Dynamic Tanks", "Dynamic tanks can be used to provide emergency coolant (and/or auxiliary coolant) to the system. Many layouts are supported by using a mix of facility tanks (connect to 1+ units) and unit tanks (connect to only one unit).")
 doc("usage_cfg_sv_aux", "Auxiliary Coolant", "This coolant is enabled at the start of reactors to prevent water levels from dropping in the reactor or boiler while the turbine ramps up. This can be connected to a dynamic tank, a sink, or any other water supply.")
 sect("Coordinator")
-text("The Coordinator configuration is mainly focused around setting up your displays. This is best to do last after everything else. See the wiki on the GitHub for details on monitor sizing.")
-tip("When changing the unit count on the Supervisor, you must also update it on the Coordinator.")
+text("The Coordinator configuration is mainly focused around setting up your displays. This is best to do last after everything else. Monitor sizes vary by facility, so the Coordinator Configurator will tell you the requirements based on your selections.")
+imp("When changing the unit count on the Supervisor, you must also update it on the Coordinator.")
 doc("usage_cfg_crd_main", "Main Monitor", "The main monitor contains the main interface and overview. It is always 8 block wide with varying height depending on how many units you have.")
-doc("usage_cfg_crd_flow", "Flow Monitor", "The flow monitor contains the waste and coolant flow diagram. It is always 8 block wide with varying height depending on how many units you have.")
+doc("usage_cfg_crd_flow", "Flow Monitor", "The flow monitor contains the waste and coolant flow diagram. It is always 8 block wide with varying height depending on how many units you have and some other facility options.")
 doc("usage_cfg_crd_unit", "Unit Monitor", "You need one unit monitor per reactor, and it is always a 4x4 monitor.")
 text("Monitors can be connected by direct contact or via wired modems.")
 text("Various unit and color options are available to customize the display to your liking. Using energy scales other than RF can impact the precision of your power-related auto control setpoints as RF is always used internally.")
@@ -142,6 +191,14 @@ sect("Self-Check")
 text("Most application configurators provide a self-check function that will check the validity of your configuration and the network connection. You should run this if you are having issues with that device.")
 sect("Config Changes")
 text("When an update adds or removes or otherwise modifies configuration requirements, you will be warned that you need to re-configure. You will not lose any prior data as updates will preserve configurations, you just need to step through the instructions again to add or change any new data.")
+
+--#endregion
+
+--#region System Usage
+
+docs.usage = {
+    manual = {}, auto = {}, waste = {}
+}
 
 target = docs.usage.manual
 sect("Overview")

@@ -33,15 +33,14 @@ return function (args)
     args.height = 1
     args.width = math.max(args.min_label_width or 1, string.len(args.label)) + 2
 
-    local flash_on = true
-
     -- create new graphics element base object
     local e = element.new(args --[[@as graphics_args]])
 
     e.value = false
 
     -- called by flasher when enabled
-    local function flash_callback()
+    ---@param flash_on boolean synchronized on state
+    local function flash_callback(flash_on)
         e.w_set_cur(1, 1)
 
         if flash_on then
@@ -49,14 +48,11 @@ return function (args)
         else
             e.w_blit(" \x95", "0" .. args.colors.blit_b, args.colors.blit_b .. e.fg_bg.blit_bkg)
         end
-
-        flash_on = not flash_on
     end
 
     -- enable light or start flashing
     local function enable()
         if args.flash then
-            flash_on = true
             flasher.start(flash_callback, args.period)
         else
             e.w_set_cur(1, 1)
@@ -67,7 +63,6 @@ return function (args)
     -- disable light or stop flashing
     local function disable()
         if args.flash then
-            flash_on = false
             flasher.stop(flash_callback)
         end
 

@@ -38,7 +38,8 @@ local changes = {
     { "v1.10.0", { "Added support for wired communications modems" } },
     { "v1.11.5", { "Added option for fast burn rate ramping in automatic control modes" } },
     { "v1.12.1", { "Added option for limiting maximum burn rate when running out of fuel in auto control" } },
-    { "v1.12.5", { "Added option for displaying a diagnostics panel" } }
+    { "v1.12.5", { "Added option for displaying a diagnostics panel" } },
+    { "v1.12.20", { "Changed Networked to default to true" } }
 }
 
 ---@class plc_configurator
@@ -84,7 +85,7 @@ local tool_ctl = {
 
 ---@class plc_config
 local tmp_cfg = {
-    Networked = false,
+    Networked = true,
     UnitID = 0,
     FastRamp = true,
     FastRampConfirmed = false,
@@ -116,7 +117,7 @@ local settings_cfg = {}
 
 -- all settings fields, their nice names, and their default values
 local fields = {
-    { "Networked", "Networked", false },
+    { "Networked", "Networked", true },
     { "UnitID", "Unit ID", 1 },
     { "FastRamp", "Fast Ramp", true },
     { "FastRampConfirmed", "Fast Ramp Confirmed", false },

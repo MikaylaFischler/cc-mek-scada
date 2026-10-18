@@ -58,21 +58,23 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == KEY_CLICK.CHAR then
-            ifield.try_insert_char(event.name)
-        elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
-            if (event.key == keys.backspace or event.key == keys.delete) then
-                ifield.backspace()
-            elseif event.key == keys.left then
-                ifield.nav_left()
-            elseif event.key == keys.right then
-                ifield.nav_right()
-            elseif event.key == keys.a and event.ctrl then
-                ifield.select_all()
-            elseif event.key == keys.home or event.key == keys.up then
-                ifield.nav_start()
-            elseif event.key == keys["end"] or event.key == keys.down then
-                ifield.nav_end()
+        if e.enabled then
+            if event.type == KEY_CLICK.CHAR then
+                ifield.try_insert_char(event.name)
+            elseif event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+                if (event.key == keys.backspace or event.key == keys.delete) then
+                    ifield.backspace()
+                elseif event.key == keys.left then
+                    ifield.nav_left()
+                elseif event.key == keys.right then
+                    ifield.nav_right()
+                elseif event.key == keys.a and event.ctrl then
+                    ifield.select_all()
+                elseif event.key == keys.home or event.key == keys.up then
+                    ifield.nav_start()
+                elseif event.key == keys["end"] or event.key == keys.down then
+                    ifield.nav_end()
+                end
             end
         end
     end

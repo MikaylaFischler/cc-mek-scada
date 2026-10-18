@@ -9,6 +9,7 @@ local pocket      = require("pocket.pocket")
 
 local about_app   = require("pocket.ui.apps.about")
 local alarm_app   = require("pocket.ui.apps.alarm")
+local build_app   = require("pocket.ui.apps.build")
 local comps_app   = require("pocket.ui.apps.comps")
 local control_app = require("pocket.ui.apps.control")
 local facil_app   = require("pocket.ui.apps.facility")
@@ -65,18 +66,24 @@ local function init(main)
     local page_div = Div{parent=main_pane,x=4,y=1}
 
     -- create all the apps & pages
+
     home_page(page_div)
+    loader_app(page_div)
+
+    -- page 1
     unit_app(page_div)
     facil_app(page_div)
     control_app(page_div)
     process_app(page_div)
     waste_app(page_div)
     guide_app(page_div)
-    rad_app(page_div)
-    loader_app(page_div)
     about_app(page_div)
+
+    -- page 2
     alarm_app(page_div)
     comps_app(page_div)
+    rad_app(page_div)
+    build_app(page_div)
 
     -- verify all apps were created
     assert(util.table_len(db.nav.get_containers()) == APP_ID.NUM_APPS, "app IDs were not sequential or some apps weren't registered")

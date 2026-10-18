@@ -1,3 +1,4 @@
+local const        = require("scada-common.constants")
 local log          = require("scada-common.log")
 local types        = require("scada-common.types")
 local util         = require("scada-common.util")
@@ -54,27 +55,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
             next_build_req = 0,
             next_state_req = 0
         },
-        ---@class ecore_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                max_energy = 0
-            },
-            state = {
-                last_update = 0,
-                input = 0,
-                output = 0,
-                transfer = 0,
-                energy = 0
-            },
-            virtual = {
-                last_update = 0,
-                energy_need = 0,
-                energy_fill = 0,
-                tier = "Tier ?"
-            }
-        }
+        db = types.new_ecore_db()
     }
 
     ---@class ecore_session:unit_session
@@ -202,7 +183,7 @@ function ecore.new(session_id, unit_id, advert, out_queue)
 
             local now = util.time_ms()
 
-            if (gen_in >= 1) and (state.transfer == 0 and state.input == 0 and state.output == 0) then
+            if (gen_in >= const.ENERGY_CORE_UNFORMED_LIM_FE) and (state.transfer == 0 and state.input == 0 and state.output == 0) then
                 if self.formed.time_deact > 0 then
                     if ((now - self.formed.time_deact) > DEACTIVATION_TIMEOUT_ms) then
                         self.formed.state_ok = false

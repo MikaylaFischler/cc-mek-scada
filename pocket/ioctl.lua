@@ -95,12 +95,13 @@ function ioctl.init_core(pkt_comms, nav, cfg)
     -- API access
     ---@class pocket_ioctl_api
     io.api = {
-        get_fac = function () comms.api__get_facility() end,
-        get_unit = function (unit) comms.api__get_unit(unit) end,
-        get_ctrl = function () comms.api__get_control() end,
-        get_proc = function () comms.api__get_process() end,
+        get_fac   = function () comms.api__get_facility() end,
+        get_unit  = function (unit) comms.api__get_unit(unit) end,
+        get_ctrl  = function () comms.api__get_control() end,
+        get_proc  = function () comms.api__get_process() end,
         get_waste = function () comms.api__get_waste() end,
-        get_rad = function () comms.api__get_rad() end
+        get_rad   = function () comms.api__get_rad() end,
+        get_build = function () comms.api__get_build() end
     }
 end
 
@@ -206,17 +207,17 @@ function ioctl.init_fac(conf)
 
     -- create ESS and SPS tables (currently only 1 of each is supported)
     table.insert(io.facility.induction_ps_tbl, psil.create())
-    table.insert(io.facility.induction_data_tbl, {})
+    table.insert(io.facility.induction_data_tbl, types.new_induction_db())
     table.insert(io.facility.ecore_ps_tbl, psil.create())
-    table.insert(io.facility.ecore_data_tbl, {})
+    table.insert(io.facility.ecore_data_tbl, types.new_ecore_db())
     table.insert(io.facility.sps_ps_tbl, psil.create())
-    table.insert(io.facility.sps_data_tbl, {})
+    table.insert(io.facility.sps_data_tbl, types.new_sps_db())
 
     -- create facility tank tables
     for i = 1, #io.facility.tank_list do
         if io.facility.tank_list[i] == 2 then
             table.insert(io.facility.tank_ps_tbl, psil.create())
-            table.insert(io.facility.tank_data_tbl, {})
+            table.insert(io.facility.tank_data_tbl, types.new_tank_db())
         end
     end
 
@@ -277,6 +278,12 @@ function ioctl.init_fac(conf)
 ---@diagnostic disable-next-line: missing-fields
             annunciator = {},       ---@type annunciator
 
+            ---@type unit_properties
+            properties = {
+                flow_perf = {}, ---@type number[] turbine flow performance
+                generators = {} ---@type generator_properties[] turbine generator properties
+            },
+
             unit_ps = psil.create(),
             reactor_data = types.new_reactor_db(),
 
@@ -300,19 +307,20 @@ function ioctl.init_fac(conf)
         -- create boiler tables
         for _ = 1, conf.cooling.r_cool[i].BoilerCount do
             table.insert(entry.boiler_ps_tbl, psil.create())
-            table.insert(entry.boiler_data_tbl, {})
+            table.insert(entry.boiler_data_tbl, types.new_boiler_db())
         end
 
         -- create turbine tables
         for _ = 1, conf.cooling.r_cool[i].TurbineCount do
+            table.insert(entry.properties.generators, { { multiplier = 0, efficiency = 0 } })
             table.insert(entry.turbine_ps_tbl, psil.create())
-            table.insert(entry.turbine_data_tbl, {})
+            table.insert(entry.turbine_data_tbl, types.new_turbine_db())
         end
 
         -- create tank tables
         if io.facility.tank_defs[i] == 1 then
             table.insert(entry.tank_ps_tbl, psil.create())
-            table.insert(entry.tank_data_tbl, {})
+            table.insert(entry.tank_data_tbl, types.new_tank_db())
         end
 
         entry.num_boilers = #entry.boiler_data_tbl

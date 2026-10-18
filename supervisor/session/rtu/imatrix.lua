@@ -54,33 +54,7 @@ function imatrix.new(session_id, unit_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class imatrix_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                length = 0,
-                width = 0,
-                height = 0,
-                min_pos = types.new_zero_coordinate(),
-                max_pos = types.new_zero_coordinate(),
-                max_energy = 0,
-                transfer_cap = 0,
-                cells = 0,
-                providers = 0
-            },
-            state = {
-                last_update = 0,
-                last_input = 0,
-                last_output = 0
-            },
-            tanks = {
-                last_update = 0,
-                energy = 0,
-                energy_need = 0,
-                energy_fill = 0.0
-            }
-        }
+        db = types.new_induction_db()
     }
 
     ---@class imatrix_session:unit_session

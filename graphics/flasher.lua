@@ -18,25 +18,36 @@ local PERIOD = {
 
 flasher.PERIOD = PERIOD
 
-local active = false
+local active   = false
+local counter  = 0
 local registry = { {}, {}, {} } ---@type [ function[], function[], function [] ] one registry table per period
-local callback_counter = 0
+local states   = { true, true, true } -- synchronized indicator states
+
+-- fire all the callbacks for the associated period and toggle their state
+---@param period PERIOD
+local function fire_period(period)
+    local state = states[period]
+
+    for _, f in ipairs(registry[period]) do f(state) end
+
+    states[period] = not state
+end
 
 -- blink registered indicators<br>
 -- this assumes it is called every 250ms, it does no checking of time on its own
 local function callback_250ms()
     if active then
-        for _, f in ipairs(registry[PERIOD.BLINK_250_MS]) do f() end
+        fire_period(PERIOD.BLINK_250_MS)
 
-        if callback_counter % 2 == 0 then
-            for _, f in ipairs(registry[PERIOD.BLINK_500_MS]) do f() end
+        if counter % 2 == 0 then
+            fire_period(PERIOD.BLINK_500_MS)
         end
 
-        if callback_counter % 4 == 0 then
-            for _, f in ipairs(registry[PERIOD.BLINK_1000_MS]) do f() end
+        if counter % 4 == 0 then
+            fire_period(PERIOD.BLINK_1000_MS)
         end
 
-        callback_counter = callback_counter + 1
+        counter = counter + 1
 
         tcd.dispatch_unique(0.25, callback_250ms)
     end
@@ -50,16 +61,17 @@ function flasher.run()
     end
 end
 
--- clear all blinking indicators and stop the flasher periodic
+-- clear/reset all blinking indicators and stop the flasher periodic
 function flasher.clear()
-    active = false
-    callback_counter = 0
+    active   = false
+    counter  = 0
     registry = { {}, {}, {} }
+    states   = { true, true, true }
 end
 
 -- register a function to be called on the selected blink period<br>
 -- times are not strictly enforced, but all with a given period will be set at the same time
----@param f function function to call each period
+---@param f fun(on: boolean) function to call each period, boolean on state for sync
 ---@param period PERIOD time period option (1, 2, or 3)
 function flasher.start(f, period)
     if type(registry[period]) == "table" and not util.table_contains(registry[period], f) then
