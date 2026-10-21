@@ -122,8 +122,8 @@ function pocket.new_session(id, s_addr, i_seq_num, in_queue, out_queue, timeout,
                         log.warning(log_tag .. "PDG KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "PDG RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "PDG TT  = " .. (srv_now - pdg_send) .. "ms")
+                    -- log.debug(log_tag .. "PDG RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_tag .. "PDG TT  = " .. (srv_now - pdg_send) .. "ms")
 
                     databus.tx_pdg_rtt(id, self.last_rtt)
                 else

@@ -203,16 +203,16 @@ function coordinator.new_session(id, s_addr, i_seq_num, in_queue, out_queue, tim
                 -- keep alive reply
                 if pkt.length == 2 then
                     local srv_start = pkt.data[1]
-                    -- local coord_send = pkt.data[2]
+                    -- local crd_send = pkt.data[2]
                     local srv_now = util.time()
                     self.last_rtt = srv_now - srv_start
 
                     if self.last_rtt > 750 then
-                        log.warning(log_tag .. "COORD KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
+                        log.warning(log_tag .. "CRD KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "COORD RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "COORD TT  = " .. (srv_now - coord_send) .. "ms")
+                    -- log.debug(log_tag .. "CRD RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_tag .. "CRD TT  = " .. (srv_now - crd_send) .. "ms")
 
                     databus.tx_crd_rtt(self.last_rtt)
                 else
