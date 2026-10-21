@@ -68,10 +68,10 @@ local function new_view(root)
 
     nt_div.line_break()
     TextBox{parent=nt_div,x=2,text="Coordinator Address",fg_bg=label}
-    local coord = TextBox{parent=nt_div,x=2,text=""}
+    local crd = TextBox{parent=nt_div,x=2,text=""}
 
     sv.register(db.ps, "sv_addr", sv.set_value)
-    coord.register(db.ps, "api_addr", coord.set_value)
+    crd.register(db.ps, "api_addr", crd.set_value)
 
     nt_div.line_break()
     TextBox{parent=nt_div,x=2,text="Message Authentication",fg_bg=label}
