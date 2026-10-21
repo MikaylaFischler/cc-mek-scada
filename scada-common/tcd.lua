@@ -69,10 +69,14 @@ function tcd.handle(event)
     end
 end
 
--- identify any overdue callbacks<br>
--- prints to log debug output
+-- print callbacks to help identify any overdue callbacks<br>
+-- note: prints to log debug output
 function tcd.diagnostics()
+    local count = 0
+
     for timer, entry in pairs(registry) do
+        count = count + 1
+
         if entry.expiry < util.time_s() then
             local overtime = util.time_s() - entry.expiry
             log.debug(util.c("TCD: unserviced timer ", timer, " for callback ", entry.callback, " is at least ", overtime, "s late"))
@@ -81,6 +85,8 @@ function tcd.diagnostics()
             log.debug(util.c("TCD: pending timer ", timer, " for callback ", entry.callback, " (call after ", entry.duration, "s, expires ", time, ")"))
         end
     end
+
+    log.debug(util.c("TCD: ", count, " total registered callback(s)"))
 end
 
 return tcd
