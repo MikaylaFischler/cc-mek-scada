@@ -9,7 +9,9 @@ local flasher = {}
 
 -- note: no additional call needs to be made in a main loop as this class automatically uses the TCD to operate
 
----@alias PERIOD integer
+---@alias flash_callback fun(flash_on: boolean)
+
+---@alias PERIOD 1|2|3
 local PERIOD = {
     BLINK_250_MS = 1,
     BLINK_500_MS = 2,
@@ -20,7 +22,7 @@ flasher.PERIOD = PERIOD
 
 local active   = false
 local counter  = 0
-local registry = { {}, {}, {} } ---@type [ function[], function[], function [] ] one registry table per period
+local registry = { {}, {}, {} }       ---@type [ flash_callback[], flash_callback[], flash_callback [] ]
 local states   = { true, true, true } -- synchronized indicator states
 
 -- fire all the callbacks for the associated period and toggle their state
@@ -35,21 +37,21 @@ end
 
 -- blink registered indicators<br>
 -- this assumes it is called every 250ms, it does no checking of time on its own
-local function callback_250ms()
+local function periodic_250ms()
     if active then
         fire_period(PERIOD.BLINK_250_MS)
 
         if counter % 2 == 0 then
             fire_period(PERIOD.BLINK_500_MS)
-        end
 
-        if counter % 4 == 0 then
-            fire_period(PERIOD.BLINK_1000_MS)
+            if counter % 4 == 0 then
+                fire_period(PERIOD.BLINK_1000_MS)
+            end
         end
 
         counter = counter + 1
 
-        tcd.dispatch_unique(0.25, callback_250ms)
+        tcd.dispatch_unique(0.25, periodic_250ms)
     end
 end
 
@@ -57,7 +59,7 @@ end
 function flasher.run()
     if not active then
         active = true
-        callback_250ms()
+        periodic_250ms()
     end
 end
 
@@ -71,7 +73,7 @@ end
 
 -- register a function to be called on the selected blink period<br>
 -- times are not strictly enforced, but all with a given period will be set at the same time
----@param f fun(on: boolean) function to call each period, boolean on state for sync
+---@param f flash_callback function to call each period with a boolean on parameter to sync flashing
 ---@param period PERIOD time period option (1, 2, or 3)
 function flasher.start(f, period)
     if type(registry[period]) == "table" and not util.table_contains(registry[period], f) then
