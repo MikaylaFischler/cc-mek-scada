@@ -246,6 +246,12 @@ function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
                 br100 = 0,
                 lim_br100 = 0,
                 waste_mode = WASTE_MODE.AUTO ---@type WASTE_MODE
+            },
+            -- computed unit properties
+            ---@class unit_properties
+            properties = {
+                flow_perf = {}, ---@type number[] turbine flow performance
+                generators = {} ---@type generator_properties[] turbine generator properties
             }
         }
     }
@@ -269,6 +275,7 @@ function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
         table.insert(self.db.annunciator.TurbineOverSpeed, false)
         table.insert(self.db.annunciator.GeneratorTrip, false)
         table.insert(self.db.annunciator.TurbineTrip, false)
+        table.insert(self.db.properties.generators, { multiplier = 0, efficiency = 0 })
         table.insert(self.turbine_stability_data, { time_state = 0, time_tanks = 0, rotation = 1, input_rate = 0 })
     end
 
@@ -935,12 +942,15 @@ function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
 
         if all or (filter == -1) then
             if self.plc_i ~= nil then
+                local db = self.plc_i.get_db()
                 build.reactor = self.plc_i.get_struct()
+                build.reactor_props = { db.max_op_temp_H2O, db.max_op_temp_Na }
             end
         end
 
         if all or (filter == RTU_UNIT_TYPE.BOILER_VALVE) then
             build.boilers = {}
+
             for i = 1, #self.boilers do
                 local boiler = self.boilers[i]
                 build.boilers[boiler.get_device_idx()] = { boiler.get_db().formed, boiler.get_db().build }
@@ -949,14 +959,19 @@ function unit.new(reactor_id, cooling_conf, po_prod_ratio, config)
 
         if all or (filter == RTU_UNIT_TYPE.TURBINE_VALVE) then
             build.turbines = {}
+            build.turbine_props = {}
+
             for i = 1, #self.turbines do
                 local turbine = self.turbines[i]
-                build.turbines[turbine.get_device_idx()] = { turbine.get_db().formed, turbine.get_db().build }
+                local db, idx = turbine.get_db(), turbine.get_device_idx()
+                build.turbines[idx] = { db.formed, db.build }
+                build.turbine_props[idx] = { self.db.properties.flow_perf[idx], self.db.properties.generators[idx] }
             end
         end
 
         if all or (filter == RTU_UNIT_TYPE.DYNAMIC_VALVE) then
             build.tanks = {}
+
             for i = 1, #self.tanks do
                 local tank = self.tanks[i]
                 build.tanks[tank.get_device_idx()] = { tank.get_db().formed, tank.get_db().build }

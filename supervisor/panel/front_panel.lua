@@ -127,7 +127,7 @@ local function init(panel, config)
         plc_fw_v.register(databus.ps, ps_prefix .. "fw", plc_fw_v.set_value)
 
         TextBox{parent=plc_entry,x=term_w-14,y=2,text="RTT:",width=4}
-        local plc_rtt = DataIndicator{parent=plc_entry,x=term_w-9,y=2,label="",unit="",format="%4d",value=0,width=4,fg_bg=label_fg}
+        local plc_rtt = DataIndicator{parent=plc_entry,x=term_w-9,y=2,unit="",format="%4d",value=0,width=4,fg_bg=label_fg}
         TextBox{parent=plc_entry,x=term_w-4,y=2,text="ms",width=4,fg_bg=label_fg}
         plc_rtt.register(databus.ps, ps_prefix .. "rtt", plc_rtt.update)
         plc_rtt.register(databus.ps, ps_prefix .. "rtt_color", plc_rtt.recolor)
@@ -158,7 +158,7 @@ local function init(panel, config)
     crd_fw_v.register(databus.ps, "crd_fw", crd_fw_v.set_value)
 
     TextBox{parent=crd_box,x=term_w-15,y=2,text="RTT:",width=4}
-    local crd_rtt = DataIndicator{parent=crd_box,x=term_w-10,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
+    local crd_rtt = DataIndicator{parent=crd_box,x=term_w-10,y=2,unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
     TextBox{parent=crd_box,x=term_w-4,y=2,text="ms",width=4,fg_bg=label_fg}
     crd_rtt.register(databus.ps, "crd_rtt", crd_rtt.update)
     crd_rtt.register(databus.ps, "crd_rtt_color", crd_rtt.recolor)

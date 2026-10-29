@@ -46,7 +46,7 @@ local function init(parent, id)
     pkt_fw_v.register(ps, ps_prefix .. "fw", pkt_fw_v.set_value)
 
     TextBox{parent=entry,x=term_w-16,y=2,text="RTT:",width=4}
-    local pkt_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,label="",unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
+    local pkt_rtt = DataIndicator{parent=entry,x=term_w-11,y=2,unit="",format="%5d",value=0,width=5,fg_bg=label_fg}
     TextBox{parent=entry,x=term_w-5,y=2,text="ms",width=4,fg_bg=label_fg}
     pkt_rtt.register(ps, ps_prefix .. "rtt", pkt_rtt.update)
     pkt_rtt.register(ps, ps_prefix .. "rtt_color", pkt_rtt.recolor)

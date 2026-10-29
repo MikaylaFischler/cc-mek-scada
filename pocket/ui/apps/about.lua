@@ -26,7 +26,7 @@ local APP_ID = pocket.APP_ID
 
 -- create about page view
 ---@param root Container parent
-local function create_pages(root)
+local function new_view(root)
     local db = ioctl.get_db()
 
     local frame = Div{parent=root,y=1}
@@ -68,10 +68,10 @@ local function create_pages(root)
 
     nt_div.line_break()
     TextBox{parent=nt_div,x=2,text="Coordinator Address",fg_bg=label}
-    local coord = TextBox{parent=nt_div,x=2,text=""}
+    local crd = TextBox{parent=nt_div,x=2,text=""}
 
     sv.register(db.ps, "sv_addr", sv.set_value)
-    coord.register(db.ps, "api_addr", coord.set_value)
+    crd.register(db.ps, "api_addr", crd.set_value)
 
     nt_div.line_break()
     TextBox{parent=nt_div,x=2,text="Message Authentication",fg_bg=label}
@@ -116,10 +116,10 @@ local function create_pages(root)
 
     --#endregion
 
-    --#region Host Versions
+    --#region Host Details
 
     local hw_div = Div{parent=frame,y=2}
-    TextBox{parent=hw_div,y=1,text="Host Versions",alignment=ALIGN.CENTER}
+    TextBox{parent=hw_div,y=1,text="Host Details",alignment=ALIGN.CENTER}
 
     PushButton{parent=hw_div,x=2,y=1,text="<",fg_bg=btn_fg_bg,active_fg_bg=btn_active,callback=about_page.nav_to}
 
@@ -138,4 +138,4 @@ local function create_pages(root)
     app.set_root_pane(root_pane)
 end
 
-return create_pages
+return new_view

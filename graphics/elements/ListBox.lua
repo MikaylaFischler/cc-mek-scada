@@ -313,7 +313,7 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD then
+        if e.enabled and (event.type == KEY_CLICK.DOWN or event.type == KEY_CLICK.HELD) then
             if event.key == keys.up then
                 scroll_up()
             elseif event.key == keys.down then

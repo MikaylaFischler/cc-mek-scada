@@ -100,7 +100,7 @@ local function new_view(root)
                         local mon_rect = Rectangle{parent=elem_list[id],height=4,x=2,width=20,border=border(1,colors.gray,true),thin=true,fg_bg=cpair(colors.black,colors.lightGray)}
 
                         TextBox{parent=mon_rect,text="Env. Detector "..id}
-                        local mon_rad = RadIndicator{parent=mon_rect,x=2,label="",format="%13.3f",lu_colors=cpair(colors.gray,colors.gray),width=18}
+                        local mon_rad = RadIndicator{parent=mon_rect,x=2,format="%13.3f",lu_colors=cpair(colors.gray,colors.gray),width=18}
                         mon_rad.register(ps, "radiation@" .. id, mon_rad.update)
                     end
                 end
@@ -121,7 +121,7 @@ local function new_view(root)
             TextBox{parent=u_div,y=1,text="Unit #"..i.." Monitors",alignment=ALIGN.CENTER}
 
             TextBox{parent=u_div,x=2,y=3,text="Max Radiation",fg_bg=label_fg_bg}
-            local radiation = RadIndicator{parent=u_div,x=2,label="",format="%17.3f",lu_colors=lu_col,width=21}
+            local radiation = RadIndicator{parent=u_div,x=2,format="%17.3f",lu_colors=lu_col,width=21}
             radiation.register(u_ps, "radiation", radiation.update)
 
             new_mon_list(u_div, u_ps)
@@ -140,7 +140,7 @@ local function new_view(root)
         TextBox{parent=s_div,y=1,text=" Radiation Monitoring",alignment=ALIGN.CENTER}
 
         TextBox{parent=s_div,y=3,text="Max Facility Rad.",fg_bg=label_fg_bg}
-        local s_f_rad = RadIndicator{parent=s_div,label="",format="%17.3f",lu_colors=lu_col,width=21}
+        local s_f_rad = RadIndicator{parent=s_div,format="%17.3f",lu_colors=lu_col,width=21}
         s_f_rad.register(f_ps, "radiation", s_f_rad.update)
 
         for i = 1, db.facility.num_units do
@@ -149,7 +149,7 @@ local function new_view(root)
 
             s_div.line_break()
             TextBox{parent=s_div,text="Max Unit "..i.." Radiation",fg_bg=label_fg_bg}
-            local s_u_rad = RadIndicator{parent=s_div,label="",format="%17.3f",lu_colors=lu_col,width=21}
+            local s_u_rad = RadIndicator{parent=s_div,format="%17.3f",lu_colors=lu_col,width=21}
             s_u_rad.register(u_ps, "radiation", s_u_rad.update)
         end
 
@@ -166,7 +166,7 @@ local function new_view(root)
         TextBox{parent=f_div,y=1,text="Facility Monitors",alignment=ALIGN.CENTER}
 
         TextBox{parent=f_div,x=2,y=3,text="Max Radiation",fg_bg=label_fg_bg}
-        local f_rad = RadIndicator{parent=f_div,x=2,label="",format="%17.3f",lu_colors=lu_col,width=21}
+        local f_rad = RadIndicator{parent=f_div,x=2,format="%17.3f",lu_colors=lu_col,width=21}
         f_rad.register(f_ps, "radiation", f_rad.update)
 
         new_mon_list(f_div, f_ps)

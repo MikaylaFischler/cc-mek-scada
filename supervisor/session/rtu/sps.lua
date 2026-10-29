@@ -54,38 +54,7 @@ function sps.new(session_id, unit_id, advert, out_queue)
             next_state_req = 0,
             next_tanks_req = 0
         },
-        ---@class sps_session_db
-        db = {
-            formed = false,
-            build = {
-                last_update = 0,
-                length = 0,
-                width = 0,
-                height = 0,
-                min_pos = types.new_zero_coordinate(),
-                max_pos = types.new_zero_coordinate(),
-                coils = 0,
-                input_cap = 0,
-                output_cap = 0,
-                max_energy = 0
-            },
-            state = {
-                last_update = 0,
-                process_rate = 0.0
-            },
-            tanks = {
-                last_update = 0,
-                input = types.new_empty_gas(),
-                input_need = 0,
-                input_fill = 0.0,
-                output = types.new_empty_gas(),
-                output_need = 0,
-                output_fill = 0.0,
-                energy = 0,
-                energy_need = 0,
-                energy_fill = 0.0
-            }
-        }
+        db = types.new_sps_db()
     }
 
     ---@class sps_session:unit_session

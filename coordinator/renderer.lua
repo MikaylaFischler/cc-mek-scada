@@ -11,6 +11,10 @@ local ioctl       = require("coordinator.ioctl")
 local style       = require("coordinator.ui.style")
 local pgi         = require("coordinator.ui.pgi")
 
+local flow_splash = require("coordinator.ui.layout.flow_splash")
+local main_splash = require("coordinator.ui.layout.main_splash")
+local unit_splash = require("coordinator.ui.layout.unit_splash")
+
 local flow_view   = require("coordinator.ui.layout.flow_view")
 local panel_view  = require("coordinator.ui.layout.front_panel")
 local main_view   = require("coordinator.ui.layout.main_view")
@@ -34,6 +38,12 @@ local engine = {
     dmesg_window = nil,     ---@type Window|nil
     ui_ready = false,
     fp_ready = false,
+    splash = {
+        enable = false,
+        main = nil, ---@type DisplayBox|nil
+        flow = nil, ---@type DisplayBox|nil
+        unit = {}   ---@type (DisplayBox|nil)[]
+    },
     ui = {
         front_panel = nil,  ---@type DisplayBox|nil
         main_display = nil, ---@type DisplayBox|nil
@@ -121,6 +131,25 @@ function renderer.init_dmesg()
     log.direct_dmesg(engine.dmesg_window)
 end
 
+-- enable and show splash screens
+function renderer.init_splash()
+    -- hide dmesg
+    engine.dmesg_window.setVisible(false)
+
+    engine.splash.enable = true
+
+    engine.splash.main = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
+    main_splash(engine.splash.main)
+
+    engine.splash.flow = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+    flow_splash(engine.splash.flow)
+
+    for idx, display in pairs(engine.monitors.unit_displays) do
+        engine.splash.unit[idx] = DisplayBox{window=display,fg_bg=style.root}
+        unit_splash(engine.splash.unit[idx], idx)
+    end
+end
+
 -- try to start the front panel
 ---@return boolean success, any error_msg
 function renderer.try_start_fp()
@@ -189,7 +218,7 @@ function renderer.try_start_ui()
         status, msg = pcall(function ()
             -- show main view on main monitor
             if engine.monitors.main ~= nil then
-                engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root}
+                engine.ui.main_display = DisplayBox{window=engine.monitors.main,fg_bg=style.root,hidden=engine.splash.enable}
                 main_view(engine.ui.main_display)
                 ioctl.fp_monitor_state("main", 3)
                 util.nop()
@@ -197,18 +226,34 @@ function renderer.try_start_ui()
 
             -- show flow view on flow monitor
             if engine.monitors.flow ~= nil then
-                engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root}
+                engine.ui.flow_display = DisplayBox{window=engine.monitors.flow,fg_bg=style.root,hidden=engine.splash.enable}
                 flow_view(engine.ui.flow_display)
                 ioctl.fp_monitor_state("flow", 3)
+                ioctl.sys_splash_disp_msg(0, "Display Ready...")
                 util.nop()
             end
 
             -- show unit views on unit displays
             for idx, display in pairs(engine.monitors.unit_displays) do
-                engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root}
+                engine.ui.unit_displays[idx] = DisplayBox{window=display,fg_bg=style.root,hidden=engine.splash.enable}
                 unit_view(engine.ui.unit_displays[idx], idx)
                 ioctl.fp_monitor_state(idx, 3)
+                ioctl.sys_splash_disp_msg(idx, "Display Ready...")
                 util.nop()
+            end
+
+            -- if using splash, finally show the displays after render completion
+            if engine.splash.enable then
+                engine.splash.main.hide()
+                engine.ui.main_display.show()
+
+                engine.splash.flow.hide()
+                engine.ui.flow_display.show()
+
+                for idx, _ in pairs(engine.monitors.unit_displays) do
+                    engine.splash.unit[idx].hide()
+                    engine.ui.unit_displays[idx].show()
+                end
             end
         end)
 
@@ -264,9 +309,56 @@ function renderer.close_ui()
     -- clear flow monitor
     engine.monitors.flow.clear()
 
-    -- re-draw dmesg
-    engine.dmesg_window.setVisible(true)
-    engine.dmesg_window.redraw()
+    -- restore splash or dmesg
+    if engine.splash.enable then
+        if engine.splash.main then
+            engine.splash.main.show()
+        else
+            engine.dmesg_window.setVisible(true)
+            engine.dmesg_window.redraw()
+        end
+
+        if engine.splash.flow then engine.splash.flow.show() end
+
+        for _, unit in pairs(engine.splash.unit) do unit.show() end
+    else
+        engine.dmesg_window.setVisible(true)
+        engine.dmesg_window.redraw()
+    end
+end
+
+-- close UIs and switch back to dmesg
+---@param preserve_splash boolean true to leave the main splash up with its last message if in use
+function renderer.shutdown(preserve_splash)
+    local splash = engine.splash
+
+    renderer.close_ui()
+    renderer.close_fp()
+
+    if splash.enable then
+        if preserve_splash then
+            ioctl.sys_splash_anim_clear()
+        elseif splash.main then
+            splash.main.delete()
+            splash.main = nil
+        end
+
+        if splash.flow then
+            splash.flow.delete()
+            splash.flow = nil
+        end
+
+        for idx, unit in pairs(splash.unit) do
+            unit.delete()
+            splash.unit[idx] = nil
+        end
+
+        if not preserve_splash then
+            -- re-draw dmesg
+            engine.dmesg_window.setVisible(true)
+            engine.dmesg_window.redraw()
+        end
+    end
 end
 
 -- is the front panel ready?
@@ -333,8 +425,10 @@ end
 ---@return boolean is_used, boolean is_ok
 function renderer.handle_resize(name)
     local is_used = false
-    local is_ok = true
-    local ui = engine.ui
+    local is_ok   = true
+
+    local ui     = engine.ui
+    local splash = engine.splash
 
     if not engine.monitors then return false, false end
 
@@ -358,12 +452,35 @@ function renderer.handle_resize(name)
 
         ioctl.fp_monitor_state("main", 2)
 
-        engine.dmesg_window.setVisible(not engine.ui_ready)
+        if splash.enable then
+            if splash.main then
+                splash.main.delete()
+                splash.main = nil
+            end
 
-        if engine.ui_ready then
+            local ok = pcall(function ()
+                splash.main = DisplayBox{window=device,fg_bg=style.root}
+                main_splash(splash.main)
+            end)
+
+            if not ok then
+                if splash.main then
+                    splash.main.delete()
+                    splash.main = nil
+                end
+
+                _print_too_small(device)
+
+                is_ok = false
+            end
+        end
+
+        engine.dmesg_window.setVisible(not (engine.ui_ready or splash.main))
+
+        if is_ok and engine.ui_ready then
             local draw_start = util.time_ms()
             local ok = pcall(function ()
-                ui.main_display = DisplayBox{window=device,fg_bg=style.root}
+                ui.main_display = DisplayBox{window=device,fg_bg=style.root,hidden=splash.enable}
                 main_view(ui.main_display)
             end)
 
@@ -371,13 +488,23 @@ function renderer.handle_resize(name)
                 ioctl.fp_monitor_state("main", 3)
 
                 log_render("main view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+                ioctl.sys_splash_main_msg(nil, "Display ready.")
+
+                if splash.enable then
+                    splash.main.hide()
+                    ui.main_display.show()
+                end
             else
                 if ui.main_display then
                     ui.main_display.delete()
                     ui.main_display = nil
                 end
 
-                _print_too_small(device)
+                if splash.main then
+                    ioctl.sys_splash_main_msg(nil, "Monitor too small.")
+                else
+                    _print_too_small(device)
+                end
 
                 is_ok = false
             end
@@ -397,10 +524,35 @@ function renderer.handle_resize(name)
 
         ioctl.fp_monitor_state("flow", 2)
 
-        if engine.ui_ready then
+        if splash.enable then
+            if splash.flow then
+                splash.flow.delete()
+                splash.flow = nil
+            end
+
+            local ok = pcall(function ()
+                splash.flow = DisplayBox{window=device,fg_bg=style.root}
+                flow_splash(splash.flow)
+            end)
+
+            if ok then
+                ioctl.sys_splash_disp_msg(0, "Redrawing...")
+            else
+                if splash.flow then
+                    splash.flow.delete()
+                    splash.flow = nil
+                end
+
+                _print_too_small(device)
+
+                is_ok = false
+            end
+        end
+
+        if is_ok and engine.ui_ready then
             local draw_start = util.time_ms()
             local ok = pcall(function ()
-                ui.flow_display = DisplayBox{window=device,fg_bg=style.root}
+                ui.flow_display = DisplayBox{window=device,fg_bg=style.root,hidden=splash.enable}
                 flow_view(ui.flow_display)
             end)
 
@@ -408,13 +560,23 @@ function renderer.handle_resize(name)
                 ioctl.fp_monitor_state("flow", 3)
 
                 log_render("flow view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+                ioctl.sys_splash_disp_msg(0, "Display Ready...")
+
+                if splash.enable then
+                    splash.flow.hide()
+                    ui.flow_display.show()
+                end
             else
                 if ui.flow_display then
                     ui.flow_display.delete()
                     ui.flow_display = nil
                 end
 
-                _print_too_small(device)
+                if splash.flow then
+                    ioctl.sys_splash_disp_msg(0, "Monitor Too Small")
+                else
+                    _print_too_small(device)
+                end
 
                 is_ok = false
             end
@@ -436,10 +598,35 @@ function renderer.handle_resize(name)
 
                 ioctl.fp_monitor_state(idx, 2)
 
-                if engine.ui_ready then
+                if splash.enable then
+                    if splash.unit[idx] then
+                        splash.unit[idx].delete()
+                        splash.unit[idx] = nil
+                    end
+
+                    local ok = pcall(function ()
+                        splash.unit[idx] = DisplayBox{window=device,fg_bg=style.root}
+                        unit_splash(splash.unit[idx], idx)
+                    end)
+
+                    if ok then
+                        ioctl.sys_splash_disp_msg(idx, "Redrawing...")
+                    else
+                        if splash.unit[idx] then
+                            splash.unit[idx].delete()
+                            splash.unit[idx] = nil
+                        end
+
+                        _print_too_small(device)
+
+                        is_ok = false
+                    end
+                end
+
+                if is_ok and engine.ui_ready then
                     local draw_start = util.time_ms()
                     local ok = pcall(function ()
-                        ui.unit_displays[idx] = DisplayBox{window=device,fg_bg=style.root}
+                        ui.unit_displays[idx] = DisplayBox{window=device,fg_bg=style.root,hidden=splash.enable}
                         unit_view(ui.unit_displays[idx], idx)
                     end)
 
@@ -447,13 +634,23 @@ function renderer.handle_resize(name)
                         ioctl.fp_monitor_state(idx, 3)
 
                         log_render("unit " .. idx .. " view re-draw completed in " .. (util.time_ms() - draw_start) .. "ms")
+                        ioctl.sys_splash_disp_msg(idx, "Display Ready...")
+
+                        if splash.enable then
+                            splash.unit[idx].hide()
+                            ui.unit_displays[idx].show()
+                        end
                     else
                         if ui.unit_displays[idx] then
                             ui.unit_displays[idx].delete()
                             ui.unit_displays[idx] = nil
                         end
 
-                        _print_too_small(device)
+                        if splash.unit[idx] then
+                            ioctl.sys_splash_disp_msg(idx, "Monitor Too Small")
+                        else
+                            _print_too_small(device)
+                        end
 
                         is_ok = false
                     end

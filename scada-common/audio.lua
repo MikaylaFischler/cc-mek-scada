@@ -2,6 +2,9 @@
 -- Audio & Tone Control for Alarms
 --
 
+local min = math.min
+local max = math.max
+
 -- sounds modeled after https://www.e2s.com/references-and-guidelines/listen-and-download-alarm-tones
 
 -- note: max samples = 0x20000 (128 * 1024 samples)
@@ -225,14 +228,6 @@ function audio.generate_tones()
     gen_tone_8()
 end
 
--- hard audio limiter
----@nodiscard
----@param output number output level
----@return number limited -128.0 to 127.0
-local function limit(output)
-    return math.max(-128, math.min(127, output))
-end
-
 -- clear output buffer
 ---@param buffer integer[][] quad buffer
 local function clear(buffer)
@@ -303,7 +298,9 @@ function audio.new_stream()
                     local buffer = self.quad_buffer[i]
                     local values = tone_data[id][i]
 
-                    for s = 1, _05s_SAMPLES do self.quad_buffer[i][s] = limit(buffer[s] + values[s]) end
+                    for s = 1, _05s_SAMPLES do
+                        buffer[s] = max(-128, min(127, buffer[s] + values[s]))
+                    end
                 end
             end
         end

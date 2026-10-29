@@ -92,7 +92,7 @@ return function (args)
     -- handle keyboard interaction
     ---@param event key_interaction key event
     function e.handle_key(event)
-        if event.type == core.events.KEY_CLICK.DOWN then
+        if e.enabled and event.type == core.events.KEY_CLICK.DOWN then
             if event.key == keys.space or event.key == keys.enter or event.key == keys.numPadEnter then
                 e.value = not e.value
                 draw()

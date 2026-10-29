@@ -91,11 +91,12 @@ local APP_ID = {
     GUIDE = 8,
     ABOUT = 9,
     RADMON = 10,
+    BUILD = 11,
     -- diagnostic apps
-    ALARMS = 11,
-    COMPS = 12,
+    ALARMS = 12,
+    COMPS = 13,
     -- count
-    NUM_APPS = 12
+    NUM_APPS = 13
 }
 
 pocket.APP_ID = APP_ID
@@ -593,6 +594,11 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
         if self.api.linked then _send_api(CRDN_TYPE.API_GET_RAD, {}) end
     end
 
+    -- coordinator get build app data
+    function public.api__get_build()
+        if self.api.linked then _send_api(CRDN_TYPE.API_GET_BUILD, {}) end
+    end
+
     -- send a facility command
     ---@param cmd FAC_COMMAND command
     ---@param option any? optional option options for the optional options (like waste mode)
@@ -749,6 +755,10 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                         elseif packet.type == CRDN_TYPE.API_GET_UNIT then
                             if _check_length(packet, 13) and type(packet.data[1]) == "number" and ioctl.get_db().units[packet.data[1]] then
                                 ioctl.rx.record_unit_data(packet.data)
+                            end
+                        elseif packet.type == CRDN_TYPE.API_GET_BUILD then
+                            if _check_length(packet, #ioctl.get_db().units + 1) then
+                                ioctl.rx.record_build_data(packet.data)
                             end
                         elseif packet.type == CRDN_TYPE.API_GET_CTRL then
                             if _check_length(packet, #ioctl.get_db().units) then

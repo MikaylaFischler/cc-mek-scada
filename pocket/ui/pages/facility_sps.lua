@@ -52,9 +52,9 @@ return function (app, panes, sps_pane, ps, update)
     am_bar.register(ps, "output_fill", am_bar.update)
 
     TextBox{parent=sps_div,y=9,text="Input Rate",width=10,fg_bg=label}
-    local input_rate = DataIndicator{parent=sps_div,label="",format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+    local input_rate = DataIndicator{parent=sps_div,format="%16.2f",value=0,unit="mB/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
     TextBox{parent=sps_div,y=12,text="Production Rate",width=15,fg_bg=label}
-    local proc_rate = DataIndicator{parent=sps_div,label="",format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
+    local proc_rate = DataIndicator{parent=sps_div,format="%16d",value=0,unit="\xb5B/t",lu_colors=lu_col,width=21,fg_bg=text_fg}
 
     proc_rate.register(ps, "process_rate", function (r) proc_rate.update(r * 1000) end)
     input_rate.register(db.facility.ps, "po_am_rate", input_rate.update)
@@ -71,15 +71,15 @@ return function (app, panes, sps_pane, ps, update)
     TextBox{parent=sps_ext_div,y=1,text="More SPS Info",alignment=ALIGN.CENTER}
 
     TextBox{parent=sps_ext_div,text="Polonium",y=3,width=13,fg_bg=label}
-    local input_p = DataIndicator{parent=sps_ext_div,x=14,y=3,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local input_amnt = DataIndicator{parent=sps_ext_div,y=4,lu_colors=lu_col,label="",unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local input_p = DataIndicator{parent=sps_ext_div,x=14,y=3,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local input_amnt = DataIndicator{parent=sps_ext_div,y=4,lu_colors=lu_col,unit="mB",format="%18.0f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     input_p.register(ps, "input_fill", function (x) input_p.update(x * 100) end)
     input_amnt.register(ps, "input", function (x) input_amnt.update(x.amount) end)
 
     TextBox{parent=sps_ext_div,text="Antimatter",y=6,width=15,fg_bg=label}
-    local output_p = DataIndicator{parent=sps_ext_div,x=14,y=6,lu_colors=lu_col,label="",unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
-    local output_amnt = DataIndicator{parent=sps_ext_div,y=7,lu_colors=lu_col,label="",unit="\xb5B",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
+    local output_p = DataIndicator{parent=sps_ext_div,x=14,y=6,lu_colors=lu_col,unit="%",format="%6.2f",value=0,width=8,fg_bg=text_fg}
+    local output_amnt = DataIndicator{parent=sps_ext_div,y=7,lu_colors=lu_col,unit="\xb5B",format="%18.3f",value=0,commas=true,width=21,fg_bg=text_fg}
 
     output_p.register(ps, "output_fill", function (x) output_p.update(x * 100) end)
     output_amnt.register(ps, "output", function (x) output_amnt.update(x.amount) end)

@@ -481,8 +481,8 @@ function plc.new_session(id, s_addr, i_seq_num, reactor_id, in_queue, out_queue,
                         log.warning(log_tag .. "PLC KEEP_ALIVE round trip time > 750ms (" .. self.last_rtt .. "ms)")
                     end
 
-                    -- log.debug(log_header .. "PLC RTT = " .. self.last_rtt .. "ms")
-                    -- log.debug(log_header .. "PLC TT  = " .. (srv_now - plc_send) .. "ms")
+                    -- log.debug(log_tag .. "PLC RTT = " .. self.last_rtt .. "ms")
+                    -- log.debug(log_tag .. "PLC TT  = " .. (srv_now - plc_send) .. "ms")
 
                     databus.tx_plc_rtt(reactor_id, self.last_rtt)
                 else

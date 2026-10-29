@@ -6,6 +6,7 @@
         "fs",
         "http",
         "keys",
+        "paintutils",
         "parallel",
         "periphemu",
         "peripheral",
