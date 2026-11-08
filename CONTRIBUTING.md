@@ -1,8 +1,5 @@
 # Contribution Guide
 
->[!NOTE]
-Until the system is out of beta, contributions will be limited as I wrap up the specific release feature set.
-
 This project is highly complex for a ComputerCraft Lua application. Contributions need to follow style guides and meet the code quality I've kept this project up to for years. Contributions must be tested appropriately with test results included.
 
 I have extensively tested software components for stability required for safety, with tiers of software robustness.
@@ -54,4 +51,4 @@ PRs will only be accepted if they match the style of this project and pass manua
 ### No AI
 
 Your code should follow the style guide, be succinct, make sense, and you should be able to explain what it does. Random changes done in multiple places will be deemed suspicious along with poor comments or nonsensical code.
-Use your contributions as programming practice or to hone your skills; don't automate away thinking.
+Use your contributions as programming practice or to hone your skills; don't automate away thinking. This project is entirely hand-made, and I would like to keep it that way.

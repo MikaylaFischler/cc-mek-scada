@@ -66,9 +66,7 @@ Installation manifests end up at these paths:
 
 ## Contributing
 
-Please reach out to me via Discord or email (or GitHub in some way) if you are thinking of making any contributions at this time. I started this project as a challenge for myself and have been enjoying having something I can work on in my own way. 
-
-Once this is out of beta I will be more open to contributions, but for now I am hoping to keep them to a minimum as the remaining challenges are ones I am looking forward to solving.
+Please reach out to me via Discord, email, or on GitHub issues if you are thinking of making contributions. I started this project as a challenge for myself and have been enjoying having something I can work on in my own way.
 
 ## [SCADA](https://en.wikipedia.org/wiki/SCADA)
 > Supervisory control and data acquisition (SCADA) is a control system architecture comprising computers, networked data communications and graphical user interfaces for high-level supervision of machines and processes. It also covers sensors and other devices, such as programmable logic controllers, which interface with process plant or machinery.
