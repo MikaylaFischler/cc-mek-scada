@@ -14,6 +14,8 @@ local FAC_COMMAND = comms.FAC_COMMAND
 
 local LINK_STATE = ioctl.LINK_STATE
 
+local LINK_EST_DELAY_TICKS = 4
+
 local pocket = {}
 
 local MQ__RENDER_DATA = {
@@ -406,7 +408,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
             r_seq_num = nil,               ---@type nil|integer
             last_est_ack = ESTABLISH_ACK.ALLOW
         },
-        establish_delay_counter = 0
+        est_delay_counter = 0
     }
 
     comms.set_trusted_range(config.TrustedRange)
@@ -530,12 +532,12 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                 ioctl.report_link_state(LINK_STATE.UNLINKED, false, false)
             end
 
-            if self.establish_delay_counter <= 0 then
+            if self.est_delay_counter == 0 then
                 if not self.api.linked then _send_api_establish() end
                 if not self.sv.linked then _send_sv_establish() end
-                self.establish_delay_counter = 4
+                self.est_delay_counter = LINK_EST_DELAY_TICKS
             else
-                self.establish_delay_counter = self.establish_delay_counter - 1
+                self.est_delay_counter = self.est_delay_counter - 1
             end
         end
     end
@@ -824,7 +826,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
                                         ioctl.init_fac(conf)
 
                                         log.info("coordinator connection established")
-                                        self.establish_delay_counter = 0
+                                        self.est_delay_counter = 0
                                         self.api.linked = true
                                         self.api.addr = src_addr
 
@@ -973,7 +975,7 @@ function pocket.comms(version, nic, sv_watchdog, api_watchdog, nav)
 
                             if est_ack == ESTABLISH_ACK.ALLOW then
                                 log.info("supervisor connection established")
-                                self.establish_delay_counter = 0
+                                self.est_delay_counter = 0
                                 self.sv.linked = true
                                 self.sv.addr = src_addr
 

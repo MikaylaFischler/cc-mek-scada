@@ -34,7 +34,7 @@ function threads.thread__main(smem)
         log.debug("OS: main thread start")
 
         local LINK_TICKS = 2
-        local ticks_to_update = 0
+        local link_wait = 0
 
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
@@ -66,7 +66,7 @@ function threads.thread__main(smem)
                     smem.q.mq_comms_tx.push_command(MQ__COMM_CMD.SEND_STATUS)
 
                     plc_comms.manage_failover(backplane.active_nic())
-                elseif ticks_to_update == 0 then
+                elseif link_wait == 0 then
                     local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
 
                     if a_nic.is_network_up() then
@@ -75,9 +75,9 @@ function threads.thread__main(smem)
                         plc_comms.send_link_req(s_nic)
                     end
 
-                    ticks_to_update = LINK_TICKS
+                    link_wait = LINK_TICKS
                 else
-                    ticks_to_update = ticks_to_update - 1
+                    link_wait = link_wait - 1
                 end
             end
 

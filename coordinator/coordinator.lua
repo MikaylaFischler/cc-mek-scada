@@ -18,6 +18,7 @@ local CRDN_TYPE = comms.CRDN_TYPE
 local UNIT_COMMAND = comms.UNIT_COMMAND
 local FAC_COMMAND = comms.FAC_COMMAND
 
+local LINK_EST_DELAY_S = 1.0
 local LINK_TIMEOUT = 60.0
 
 -- wait 5 seconds after initializing a network switch request before being allowed to send more,
@@ -362,7 +363,7 @@ function coordinator.comms(version, backplane, sv_watchdog)
                 coordinator.log_comms("supervisor unit count does not match coordinator unit count, check configs")
                 ioctl.sys_splash_main_msg("Connection Failed", "Supervisor and Coordinator configured unit counts do not match.")
                 ok = false
-            elseif (os.clock() - self.est_last) > 1.0 then
+            elseif (os.clock() - self.est_last) > LINK_EST_DELAY_S then
                 if e_nic then _send_establish(e_nic) end
                 self.est_last = os.clock()
             end

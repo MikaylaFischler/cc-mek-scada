@@ -194,6 +194,9 @@ function threads.thread__main(smem)
         databus.tx_rt_status("main", true)
         log.debug("OS: main thread start")
 
+        local LINK_TICKS = 2
+        local link_wait = 0
+
         -- main loop clock
         local loop_clock = util.new_clock(MAIN_CLOCK)
 
@@ -222,10 +225,10 @@ function threads.thread__main(smem)
                 end
             end
 
-            -- period tick, if we are not linked send establish request
+            -- if we are not linked send establish request periodically
             if rtu_state.linked then
                 rtu_comms.manage_failover(backplane.active_nic())
-            else
+            elseif link_wait == 0 then
                 -- advertise units
                 local a_nic, s_nic = backplane.active_nic(), backplane.standby_nic()
 
@@ -234,6 +237,10 @@ function threads.thread__main(smem)
                 elseif s_nic and s_nic.is_network_up() then
                     rtu_comms.send_establish(s_nic, units)
                 end
+
+                link_wait = LINK_TICKS
+            else
+                link_wait = link_wait - 1
             end
 
             -- start next clock timer
