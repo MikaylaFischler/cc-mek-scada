@@ -67,6 +67,8 @@ local function new_view(root)
         local fac  = db.facility
         local f_ps = fac.ps
 
+        local using_ecore = fac.ess_type == types.ESS.ENERGY_CORE
+
         page_div = Div{parent=main,y=2,width=main.get_width()}
 
         local panes = {} ---@type Div[]
@@ -95,7 +97,7 @@ local function new_view(root)
         local sps_state = IconIndicator{parent=f_div,label="SPS Status",states=basic_states}
         sps_state.register(fac.sps_ps_tbl[1], "SPSStatus", sps_state.update)
 
-        if fac.ess_type == types.ESS.ENERGY_CORE then
+        if using_ecore then
             ess_state.register(fac.ecore_ps_tbl[1], "EnergyCoreStatus", ess_state.update)
         else
             ess_state.register(fac.induction_ps_tbl[1], "InductionMatrixStatus", ess_state.update)
@@ -108,7 +110,12 @@ local function new_view(root)
         TextBox{parent=f_div,y=8,text="Energy Storage System",alignment=ALIGN.CENTER}
 
         local eta = TextBox{parent=f_div,y=10,text="ETA Unknown",alignment=ALIGN.CENTER,fg_bg=cpair(colors.white,colors.gray)}
-        eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
+
+        if using_ecore then
+            eta.register(fac.ecore_ps_tbl[1], "eta_string", eta.set_value)
+        else
+            eta.register(fac.induction_ps_tbl[1], "eta_string", eta.set_value)
+        end
 
         TextBox{parent=f_div,y=12,text="Unit Statuses",alignment=ALIGN.CENTER}
 
@@ -139,7 +146,7 @@ local function new_view(root)
         all_ok.register(f_ps, "all_sys_ok", all_ok.update)
         sps.register(fac.sps_ps_tbl[1], "SPSStateStatus", function (status) sps.update(status > 1) end)
 
-        if fac.ess_type == types.ESS.ENERGY_CORE then
+        if using_ecore then
             ind_ess.register(fac.ecore_ps_tbl[1], "EnergyCoreStatetatus", function (status) ind_ess.update(status > 1) end)
         else
             ind_ess.register(fac.induction_ps_tbl[1], "InductionMatrixStateStatus", function (status) ind_ess.update(status > 1) end)
@@ -167,7 +174,7 @@ local function new_view(root)
 
         local ess_page_nav ---@type function
 
-        if fac.ess_type == types.ESS.ENERGY_CORE then
+        if using_ecore then
             ess_page_nav = energy_core(app, panes, Div{parent=page_div}, fac.ecore_ps_tbl[1], update)
         else
             ess_page_nav = induction_mtx(app, panes, Div{parent=page_div}, fac.induction_ps_tbl[1], update)
