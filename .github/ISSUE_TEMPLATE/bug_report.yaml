@@ -1,4 +1,4 @@
-iname: Bug report
+name: Bug report
 description: Create a report to help improve the project.
 type: Bug
 labels: ["bug"]
