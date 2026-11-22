@@ -36,10 +36,10 @@ jobs:
             };
             
             const situationLabels = {
-              'Application crash': ['stability', 'triage.CRITICAL'],
-              'Application freeze': ['triage.CRITICAL'],
+              'Application crash': ['stability', 'triage.URGENT'],
+              'Application freeze': ['triage.URGENT'],
               'Application fails to start': ['triage.URGENT'],
-              'Incorrect data': ['triage.URGENT'],
+              'Incorrect data': ['triage.TIMELY'],
               'Missing data': ['triage.TIMELY'],
               'Graphical glitch': ['triage.TIMELY'],
             };
