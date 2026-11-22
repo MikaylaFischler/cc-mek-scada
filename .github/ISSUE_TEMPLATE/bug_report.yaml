@@ -1,4 +1,4 @@
-name: Bug Report
+iname: Bug report
 description: Create a report to help improve the project.
 type: Bug
 labels: ["bug"]
@@ -13,14 +13,14 @@ body:
     attributes:
       label: Description
       description: A clear and concise description of what the bug is.
-      placeholder: Tell us what went wrong.
+      placeholder: Describe what went wrong.
     validations:
       required: true
 
   - type: textarea
     id: reproduce
     attributes:
-      label: How To Reproduce
+      label: How to reproduce
       description: Steps to reproduce the behavior.
       value: |
         1. Go to '...'
@@ -33,7 +33,7 @@ body:
   - type: textarea
     id: expected
     attributes:
-      label: Expected Behavior
+      label: Expected behavior
       description: A clear and concise description of what you expected to happen.
     validations:
       required: true
@@ -42,7 +42,10 @@ body:
     id: logs
     attributes:
       label: Logs
-      description: Please paste a text snippet from the `log.txt` file if possible. This will be formatted as code automatically. Alternatively upload them to pastebin with `pastebin put log.txt` on the device and share the pastebin code/link.
+      description: |
+        Please paste a text snippet from the `log.txt` file if possible. This will be formatted as code automatically.
+        
+        Alternatively, you may upload entire log files to pastebin with `pastebin put log.txt` on the computer experiencing the bug, then share the pastebin code/link.
       render: text
 
   - type: textarea
@@ -54,5 +57,5 @@ body:
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional Context
+      label: Additional context
       description: Add any other context about the problem here.
