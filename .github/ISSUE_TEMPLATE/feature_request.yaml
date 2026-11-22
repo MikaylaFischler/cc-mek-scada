@@ -8,7 +8,7 @@ body:
       value: |
         Thanks for suggesting an idea! Please fill out the sections below.
         
-        If you aren't ready to open an issue quite yet, you may also open a new discussion or talk about it on the Discord.
+        If you aren't ready to open an issue quite yet, you may also [open a new discussion](https://github.com/MikaylaFischler/cc-mek-scada/discussions/new?category=ideas-suggestions) or talk about it on [the Discord](https://discord.gg/R9NSCkhcwt).
 
   - type: textarea
     id: problem
