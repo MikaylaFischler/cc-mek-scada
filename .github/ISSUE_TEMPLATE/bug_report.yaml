@@ -8,6 +8,45 @@ body:
       value: |
         Thanks for taking the time to report a bug! Please fill out the sections below.
 
+  - type: dropdown
+    id: application
+    attributes:
+      label: Application/component
+      description: Which device application/component encountered the bug?
+      multiple: true
+      options:
+        - Installer
+        - Reactor PLC
+        - RTU Gateway
+        - Supervisor
+        - Coordinator
+        - Pocket
+        - Unsure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: situation
+    attributes:
+      label: What best describes the problem?
+      options:
+        - Application crash
+        - Application freeze
+        - Application fails to start
+        - Missing data
+        - Incorrect data
+        - Graphical glitch
+        - Something else
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety impact
+      options:
+        - label: This issue appears to impact reactor or facility safety.
+
   - type: textarea
     id: describe-bug
     attributes:
