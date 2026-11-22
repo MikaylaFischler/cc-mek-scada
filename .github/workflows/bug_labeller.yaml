@@ -1,0 +1,105 @@
+name: Label Bug Reports
+on:
+  issues:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue number to (re)label
+        required: true
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.issue.labels.*.name, 'bug')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.payload.issue ? context.payload.issue.number : Number(context.payload.inputs.issue_number);
+            const issue = context.payload.issue ? context.payload.issue : (await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number,
+            })).data;
+            
+            const componentLabels = {
+              'Installer': 'installer',
+              'Reactor PLC': 'reactor-plc',
+              'RTU Gateway': 'rtu',
+              'Supervisor': 'supervisor',
+              'Coordinator': 'coordinator',
+              'Pocket': 'pocket',
+            };
+            
+            const situationLabels = {
+              'Application crash': ['stability', 'triage.CRITICAL'],
+              'Application freeze': ['triage.CRITICAL'],
+              'Application fails to start': ['triage.URGENT'],
+              'Incorrect data': ['triage.URGENT'],
+              'Missing data': ['triage.TIMELY'],
+              'Graphical glitch': ['triage.TIMELY'],
+            };
+
+            // Issue forms render each field as "### Label" followed by the answer
+            const body = issue.body || '';
+            const sections = {};
+            
+            for (const part of body.split(/^### /m).slice(1)) {
+              const [heading, ...rest] = part.split('\n');
+              sections[heading.trim()] = rest.join('\n').trim();
+            }
+
+            // Only act on issues created through the bug report form
+            const requiredHeadings = [ 'Affected application(s) or component(s)', 'What best describes the problem?' ];
+            if (!requiredHeadings.every((h) => h in sections)) {
+              core.info('Issue body does not match the bug report form; skipping.');
+              return;
+            }
+            
+            const values = (heading) => (sections[heading] || '').split(',').map((s) => s.trim()).filter((v) => v && v !== '_No response_');
+            const labels = [];
+
+            // Components: if all five non-installer apps are selected, use 'common' instead
+            const selected = values('Affected application(s) or component(s)');
+            const nonInstaller = Object.keys(componentLabels).filter((k) => k !== 'Installer');
+            const useCommon = nonInstaller.every((k) => selected.includes(k));
+            
+            for (const v of selected) {
+              if (!(useCommon && v !== 'Installer') && componentLabels[v]) {
+                labels.push(componentLabels[v]);
+              }
+            }
+            
+            if (useCommon) {
+              labels.push('common');
+            }
+
+            // Problem type -> stability / triage labels
+            for (const v of values('What best describes the problem?')) {
+              labels.push(...(situationLabels[v] || []));
+            }
+            
+            // Safety checkbox: adds 'safety' and overrides any other triage level
+            const safetyChecked = /-\s*\[x\]/i.test(sections['Safety impact'] || '');
+            let finalLabels = labels;
+            if (safetyChecked) {
+              finalLabels = [
+                ...labels.filter((l) => !l.startsWith('triage.')),
+                'safety',
+                'triage.CRITICAL',
+              ];
+            }
+
+            const unique = [...new Set(finalLabels)];
+            if (unique.length) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue_number,
+                labels: unique,
+              });
+            }
