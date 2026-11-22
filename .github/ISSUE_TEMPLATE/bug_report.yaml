@@ -12,7 +12,7 @@ body:
     id: application
     attributes:
       label: Affected application(s) or component(s)
-      description: Which device application/component encountered the bug?
+      description: Which device application/component encountered the bug? You can select multiple.
       multiple: true
       options:
         - Installer
