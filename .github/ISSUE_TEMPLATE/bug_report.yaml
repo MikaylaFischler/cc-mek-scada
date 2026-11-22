@@ -11,7 +11,7 @@ body:
   - type: dropdown
     id: application
     attributes:
-      label: Application/component
+      label: Affected application(s) or component(s)
       description: Which device application/component encountered the bug?
       multiple: true
       options:
